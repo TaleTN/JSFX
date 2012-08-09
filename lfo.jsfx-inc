@@ -1,0 +1,199 @@
+desc:Naive (non-bandlimited) low-frequency oscillator
+// (c) Theo Niessink 2012
+// License: GPL <http://www.gnu.org/licenses/gpl.html>
+
+/* Example:
+
+   desc:Tremolo
+   slider1:4.0<0.0,20.0,0.1>Frequency (Hz)
+
+   import lfo.jsfx-inc
+
+   @slider
+   lfo.lfo_setf(slider1);
+
+   @sample
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = mono * (0.67 + 0.33 * lfo.lfo_tri());
+
+*/
+
+@init
+
+
+function lfo_setf(f)
+  instance(dt)
+(
+  dt = 2*$pi / srate * f;
+);
+
+
+function lfo_sync(t)
+(
+  t >= 2*$pi ? (
+    t /= 2*$pi;
+    t = (t - (t|0)) * 2*$pi;
+  );
+  this.t = t;
+);
+
+
+function lfo_inc()
+  instance(t, dt)
+(
+  t += dt;
+  t >= 2*$pi ? t -= 2*$pi : t;
+);
+
+
+// Sine
+
+function _lfo_sin(t)
+(
+  sin(t);
+);
+
+function lfo_sin()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  sin(t);
+);
+
+
+// Half-wave rectified sine
+
+function _lfo_half(t)
+(
+  t < $pi ? -1.0 + 2 * sin(t) : -1.0;
+);
+
+function lfo_half()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_half(t);
+);
+
+
+// Full-wave rectified sine
+
+function _lfo_full(t)
+(
+  (-1.0) + 2 * sin(0.5 * t);
+);
+
+function lfo_full()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_full(t);
+);
+
+
+// Circle
+
+function _lfo_circ(t)
+  local(t2, s)
+(
+  t2 = 2 * t - $pi;
+  t2 >= $pi ? t2 -= 2*$pi;
+  s = sqrt($pi*$pi - t2*t2) / $pi;
+  t < $pi ? s : -s;
+);
+
+function lfo_circ()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_circ(t);
+);
+
+
+// Triangle
+
+function _lfo_tri(t)
+(
+  t /= 0.5*$pi;
+  t >= 3 ? t - 4 : t >= 1 ? 2 - t : t;
+);
+
+function lfo_tri()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_tri(t);
+);
+
+
+// Trapezoid
+
+function _lfo_trap(t)
+(
+  max(-1.0, min(1.0, 2 * this._lfo_tri(t)));
+);
+
+function lfo_trap()
+(
+  max(-1.0, min(1.0, 2 * this.lfo_tri()));
+);
+
+
+// Square
+
+function _lfo_sqr(t)
+(
+  t < $pi ? 1.0 : -1.0;
+);
+
+function lfo_sqr()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_sqr(t);
+);
+
+
+// Rectangle
+
+function lfo_setpw(pw)
+(
+  this.pw = 2*$pi * pw;
+);
+
+function _lfo_rect(t)
+  instance(pw)
+(
+  t < pw ? 1.0 : -1.0;
+);
+
+function lfo_rect()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_rect(t);
+);
+
+
+// Sawtooth
+
+function _lfo_saw(t)
+(
+  t /= $pi;
+  t >= 1 ? t - 2 : t;
+);
+
+function lfo_saw()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  this._lfo_saw(t);
+);

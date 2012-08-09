@@ -1,0 +1,111 @@
+desc:Sample accurate MIDI queue
+// (c) Theo Niessink 2012
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example:
+
+   desc:Mono synth
+   in_pin:none
+
+   import midi_queue.jsfx-inc
+
+   @init
+   
+   // Set MIDI queue local memory index and size
+   q.midiq_init(0, 256);
+
+   @block
+   
+   // Receive all MIDI messages and add them to the queue
+   q.midiq_collect();
+
+   @sample
+
+   while(
+     // Remove one MIDI message from the head of the queue
+     q.midiq_remove() ? (
+
+       // Parse MIDI message
+       q.msg1 &= 0xF0;
+       velocity = q.msg23 >> 8;
+
+       // Note On
+       q.msg1 == 0x90 && velocity ? (
+         note = q.msg23 & 0x7F;
+         dt = 2*$pi / srate * 440.0 * 2^((note - 69) / 12);
+       ) :
+
+       // Note Off
+       q.msg1 == 0x80 || (q.msg1 == 0x90 && !velocity) ? (
+         q.msg23 & 0x7F == note ? dt = 0;
+       );
+
+       1; // while q.midiq_remove()
+     );
+  );
+
+  // Sine wave oscillator
+  dt > 0 ? spl0 = spl1 = 0.5 * sin(t);
+  t += dt;
+  t >= 2*$pi ? t -= 2*$pi;
+
+*/
+
+@init
+
+
+function midiq_init(mem, size)
+(
+  this.buf = mem;
+
+  // Maximum number of MIDI events (0 for unlimited size)
+  this.size = size * 3;
+);
+
+
+function midiq_rewind()
+  instance(buf, head, tail, ofs)
+(
+  head = tail = buf;
+  ofs = 0;
+);
+
+
+function midiq_add(ofs, msg1, msg23)
+  instance(buf, size, tail)
+(
+  !size || tail < buf + size ? (
+    tail[0] = ofs;
+    tail[1] = msg1;
+    tail[2] = msg23;
+    tail += 3;
+  );
+);
+
+
+function midiq_collect()
+  local(ofs, msg1, msg23)
+(
+  this.midiq_rewind();
+
+  while(
+    midirecv(ofs, msg1, msg23) ? (
+      this.midiq_add(ofs, msg1, msg23);
+      midisend(ofs, msg1, msg23);
+    );
+  );
+);
+
+
+function midiq_remove()
+  instance(head, tail, ofs, msg1, msg23)
+(
+  head < tail && head[] >= ofs ? (
+    msg1  = head[1];
+    msg23 = head[2];
+    head += 3;
+  ) : (
+    ofs += 1;
+    0;
+  );
+);

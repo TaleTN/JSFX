@@ -1,0 +1,85 @@
+desc:1st order RC filter
+// (c) Theo Niessink 2012
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example:
+
+   desc:Low-pass RC filter
+   slider1:1000<20,20000,1>Corner Frequency (Hz)
+
+   import rc_filter.jsfx-inc
+
+   @slider
+   lp.rc_setf(slider1);
+
+   @sample
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = lp.rc_lp(mono);
+
+*/
+
+@init
+
+
+function rc_set(rc)
+  instance(a)
+  local(dt)
+(
+  dt = 1/srate;
+  a = dt / (rc + dt);
+);
+
+
+function rc_setf(f)
+(
+  this.rc_set(1/(2*$pi * f));
+);
+
+
+function rc_sets(t)
+(
+  // Convert attack/decay/release time to RC time constant
+  this.rc_set(0.2 * t);
+);
+
+
+// Low-pass
+
+function rc_lp(s)
+  instance(lp, a)
+(
+  lp += a * (s - lp);
+);
+
+
+// High-pass
+
+function rc_hp(s)
+(
+  s - this.rc_lp(s);
+);
+
+
+// All-pass
+
+function rc_ap(s)
+  instance(lp)
+(
+  this.rc_lp(s);
+  lp - (s - lp);
+);
+
+
+// Leaky integrator
+
+function rc_leaky_set(rc)
+  instance(a)
+(
+  a = 1 - this.rc_set(rc);
+);
+
+function rc_leaky(s)
+  instance(lp, a)
+(
+  lp = a * (s + lp);
+);

@@ -1,0 +1,158 @@
+desc:Simple mono synth
+// (c) Theo Niessink 2012
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
+slider2:0.0<-1200.0,1200.0,1.0>Tuning (cent)
+slider4:3<0,5000,1>Attack (ms)
+slider5:1000<1,15000,1>Decay (ms)
+slider6:0.0<-120.0,24.0,1.0>Sustain (dB)
+slider7:8<0,5000,1>Release (ms)
+slider9:7<0,7,1{Sine,Half-wave rectified sine,Full-wave rectified sine,Triangle,Trapezoid,Square,Pulse,Sawtooth}>Waveform
+slider10:0.30<0.10,0.90,0.01>Pulse Width
+
+out_pin:Synth output
+out_pin:Synth output
+
+import midi_queue.jsfx-inc
+import rc_filter.jsfx-inc
+import tone_generator.jsfx-inc
+
+
+@init
+
+tg.tg_init_rect(0, 20.0);
+midiq.midiq_init(tg.cache + tg.size, 0);
+
+inf = 10^(-120.0 / 20);
+step5 = exp(-5);
+
+gain.rc_set(0.0033);
+
+function set_freq()
+(
+  tg.tg_setf(tuning * pitch * freq);
+);
+
+function adsr_a() ( adsr = 1; env.a = adsr.a; );
+function adsr_d() ( adsr = 2; env.a = adsr.d; );
+function adsr_s() ( adsr = 3; env.lp = adsr.s * vel; );
+function adsr_r() ( adsr = 4; env.a = adsr.r; );
+
+pitch = 1.0;
+
+
+@slider
+
+function amp(db) ( db <= -120.0 ? 0.0 : 10^(db / 20); );
+function rc(ms, lo, hi) ( adsr.rc_sets(0.001 * max(lo, min(hi, ms))); );
+
+gain.in = amp(slider1);
+
+adsr.s = amp(slider6);
+adsr.r = rc(slider7, 0, 5000);
+adsr.d = rc(slider5, 1, 15000);
+adsr.a = rc(slider4, 0, 5000);
+adsr & 2 ? adsr_d() : adsr == 4 ? adsr_r() : adsr == 1 ? adsr_a();
+
+tuning = 2^(slider2 / 1200);
+wave = slider9;
+tg.tg_setpw(max(0.10, min(0.90, slider10)));
+set_freq();
+
+
+@block
+
+midiq.midiq_collect();
+
+
+@sample
+
+while(
+  midiq.midiq_remove() ? (
+    midiq.msg1 &= 0xF0;
+    midiq.msg2  = midiq.msg23 & 0x7F;
+    midiq.msg23 = midiq.msg23 >> 8;
+
+    // Note On
+    midiq.msg1 == 0x90 && midiq.msg23 ? (
+      note = midiq.msg2;
+      freq = 440.0 * 2^((note - 69) / 12);
+      vel = midiq.msg23 / 127;
+      set_freq();
+      hold = 0;
+      adsr_a();
+    ) :
+
+    // Note Off
+    midiq.msg1 == 0x80 || (midiq.msg1 == 0x90 && !midiq.msg23) ? (
+      midiq.msg2 == note ? !pedal ? adsr_r() : hold = 1;
+    ) :
+
+    // Pitch Wheel
+    midiq.msg1 == 0xE0 ? (
+      pitch = (midiq.msg23 << 7 | midiq.msg2) - 8192;
+      pitch = 2^(pitch / ((pitch >= 0 ? 8191 : 8192) * 6));
+      set_freq();
+    ) :
+
+    // Control Change
+    midiq.msg1 == 0xB0 ? (
+
+      // Damper Pedal (Sustain)
+      midiq.msg2 == 64 ? (
+        pedal = midiq.msg23 >= 64;
+        !pedal && hold ? adsr_r();
+      ) :
+
+      // All Notes Off
+      midiq.msg2 == 123 ? (
+        adsr_r();
+      );
+    );
+
+    1; // while midiq.midiq_remove()
+  );
+);
+
+gain.rc_lp(gain.in);
+
+adsr > 0 ? (
+  // Sustain
+  adsr == 3 ? (
+    1;
+  ) :
+
+  // Decay
+  adsr == 2 ? (
+    s = adsr.s * vel;
+    env.rc_lp(s);
+    abs(env.lp - s) <= inf ? adsr_s();
+  ) :
+
+  // Release
+  adsr == 4 ? (
+    env.rc_lp(0.0);
+    env.lp <= inf ? adsr = env.lp = 0;;
+  ) :
+
+  // Attack
+  adsr == 1 ? (
+    env.rc_lp(vel);
+    abs(env.lp - vel) <= step5 ? adsr_d();
+  );
+
+  s = wave >= 6.5 ? tg.tg_saw()
+    : wave >= 5.5 ? tg.tg_rect()
+    : wave >= 4.5 ? tg.tg_sqr()
+    : wave >= 3.5 ? tg.tg_trap()
+    : wave >= 2.5 ? tg.tg_tri()
+    : wave >= 1.5 ? tg.tg_full()
+    : wave >= 0.5 ? tg.tg_half()
+    : tg.tg_sin();
+
+  s *= gain.lp * env.lp;
+
+  spl0 += s;
+  spl1 += s;
+);
