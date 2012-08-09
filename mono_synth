@@ -29,10 +29,7 @@ step5 = exp(-5);
 
 gain.rc_set(0.0033);
 
-function set_freq()
-(
-  tg.tg_setf(tuning * pitch * freq);
-);
+function set_freq() ( tg.tg_setf(tuning * pitch * freq); );
 
 function adsr_a() ( adsr = 1; env.a = adsr.a; );
 function adsr_d() ( adsr = 2; env.a = adsr.d; );
@@ -56,8 +53,10 @@ adsr.a = rc(slider4, 0, 5000);
 adsr & 2 ? adsr_d() : adsr == 4 ? adsr_r() : adsr == 1 ? adsr_a();
 
 tuning = 2^(slider2 / 1200);
+
 wave = slider9;
 tg.tg_setpw(max(0.10, min(0.90, slider10)));
+
 set_freq();
 
 
