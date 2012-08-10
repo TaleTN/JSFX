@@ -137,7 +137,7 @@ function _tg_half(t)
   local(n, s)
 (
   // Naive
-  n = dt * 4;
+  n = dt * 8;
   t >= $pi + n && t <= 2*$pi - n ? (
     this.tg_falloff(-2/$pi);
   ) : t >= n && t <= $pi - n ? (
@@ -171,7 +171,7 @@ function _tg_full(t)
   instance(dt, a)
   local(n, s)
 (
-  n = dt * 5;
+  n = dt * 10;
   t >= n && t <= 2*$pi - n ? (
     this.tg_falloff(2 * sin(0.5 * t) - 4/$pi);
 
@@ -211,7 +211,7 @@ function _tg_circ(t)
   instance(dt, a, cache, size)
   local(n, num, s, i)
 (
-  n = dt * 5;
+  n = dt * 10;
   t >= n && t <= $pi - n ? (
     t = 2 * t - $pi;
     t >= $pi ? t -= 2*$pi;
@@ -255,7 +255,7 @@ function _tg_tri(t)
   instance(dt, a)
   local(n, s)
 (
-  n = dt * 4;
+  n = dt * 8;
   t >= 0.5*$pi + n && t <= 1.5*$pi - n ? (
     this.tg_falloff(2 - t / (0.5*$pi));
   ) : t <= 0.5*$pi - n ? (
@@ -297,7 +297,7 @@ function _tg_trap(t)
   instance(dt, a)
   local(n, s)
 (
-  n = dt * 2;
+  n = dt * 4;
   t >= 0.25*$pi + n && t <= 0.75*$pi - n ? (
     this.tg_falloff(1.0);
   ) : t >= 1.25*$pi + n && t <= 1.75*$pi - n ? (
@@ -340,7 +340,7 @@ function _tg_sqr(t)
   instance(dt, a)
   local(n, s)
 (
-  n = dt * 5;
+  n = dt * 10;
   t >= n && t <= $pi - n ? (
     this.tg_falloff(1.0);
   ) : t >= $pi + n && t <= 2*$pi - n ? (
@@ -391,7 +391,7 @@ function _tg_rect(t)
   instance(dt, pw, a, cache, size)
   local(pw2, n, num, s, i)
 (
-  n = dt * 6;
+  n = dt * 12;
   t >= n && t <= pw - n ? (
     this.tg_falloff(2 - pw / $pi);
   ) : t >= pw + n && t <= 2*$pi - n ? (
@@ -433,7 +433,7 @@ function _tg_saw(t)
   instance(dt, a)
   local(n, s)
 (
-  n = dt * 6;
+  n = dt * 12;
   t <= $pi - n ? (
     this.tg_falloff(t / $pi);
   ) : t >= $pi + n ? (
