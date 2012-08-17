@@ -100,7 +100,7 @@ function midiq_collect()
 function midiq_remove()
   instance(head, tail, ofs, msg1, msg23)
 (
-  head < tail && head[] >= ofs ? (
+  head < tail && head[] <= ofs ? (
     msg1  = head[1];
     msg23 = head[2];
     head += 3;

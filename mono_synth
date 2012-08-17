@@ -56,6 +56,7 @@ tuning = 2^(slider2 / 1200);
 
 wave = slider9;
 tg.tg_setpw(max(0.10, min(0.90, slider10)));
+wave >= 5.5 && wave < 6.5 && tg.pw == $pi ? wave = 5;
 
 set_freq();
 
