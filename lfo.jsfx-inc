@@ -30,9 +30,9 @@ function lfo_setf(f)
 
 function lfo_sync(t)
 (
-  t >= 2*$pi ? (
+  t >= 2*$pi || t < 0 ? (
     t /= 2*$pi;
-    t = (t - (t|0)) * 2*$pi;
+    t = (t - floor(t)) * 2*$pi;
   );
   this.t = t;
 );
@@ -42,7 +42,11 @@ function lfo_inc()
   instance(t, dt)
 (
   t += dt;
-  t >= 2*$pi ? t -= 2*$pi : t;
+
+  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : (
+    t /= 2*$pi;
+    t = (t - (t|0)) * 2*$pi;
+  );
 );
 
 

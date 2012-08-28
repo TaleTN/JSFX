@@ -10,6 +10,7 @@ slider6:0.0<-120.0,24.0,1.0>Sustain (dB)
 slider7:8<0,5000,1>Release (ms)
 slider9:7<0,7,1{Sine,Half-wave rectified sine,Full-wave rectified sine,Triangle,Trapezoid,Square,Pulse,Sawtooth}>Waveform
 slider10:0.30<0.10,0.90,0.01>Pulse Width
+slider12:200.0<0.0,1200.0,1.0>Pitch Wheel Range (cent)
 
 out_pin:Synth output
 out_pin:Synth output
@@ -29,6 +30,7 @@ step5 = exp(-5);
 
 gain.rc_set(0.0033);
 
+function set_pitch() ( pitch = pitch_range > 0.0 ? 2^(pitch_wheel / ((pitch_wheel >= 0 ? 8191 : 8192) * pitch_range)) : 1.0; );
 function set_freq() ( tg.tg_setf(tuning * pitch * freq); );
 
 function adsr_a() ( adsr = 1; env.a = adsr.a; );
@@ -36,6 +38,7 @@ function adsr_d() ( adsr = 2; env.a = adsr.d; );
 function adsr_s() ( adsr = 3; env.lp = adsr.s * vel; );
 function adsr_r() ( adsr = 4; env.a = adsr.r; );
 
+pitch_wheel = 0;
 pitch = 1.0;
 
 
@@ -58,6 +61,8 @@ wave = slider9;
 tg.tg_setpw(max(0.10, min(0.90, slider10)));
 wave >= 5.5 && wave < 6.5 && tg.pw == $pi ? wave = 5;
 
+pitch_range = slider12 > 0.0 ? 1200 / slider12 : 0.0;
+set_pitch();
 set_freq();
 
 
@@ -91,8 +96,8 @@ while(
 
     // Pitch Wheel
     midiq.msg1 == 0xE0 ? (
-      pitch = (midiq.msg23 << 7 | midiq.msg2) - 8192;
-      pitch = 2^(pitch / ((pitch >= 0 ? 8191 : 8192) * 6));
+      pitch_wheel = (midiq.msg23 << 7 | midiq.msg2) - 8192;
+      set_pitch();
       set_freq();
     ) :
 
