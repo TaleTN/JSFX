@@ -89,13 +89,15 @@ function tg_setf(f)
 );
 
 
+function _tg_sync(t)
+(
+  t /= 2*$pi;
+  (t - floor(t)) * 2*$pi;
+);
+
 function tg_sync(t)
 (
-  t >= 2*$pi || t < 0 ? (
-    t /= 2*$pi;
-    t = (t - floor(t)) * 2*$pi;
-  );
-  this.t = t;
+  this.t = t >= 0 && t < 2*$pi ? t : _tg_sync(t);
 );
 
 
@@ -103,11 +105,7 @@ function tg_inc()
   instance(t, dt)
 (
   t += dt;
-
-  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : (
-    t /= 2*$pi;
-    t = (t - (t|0)) * 2*$pi;
-  );
+  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : t = _tg_sync(t);
 );
 
 
