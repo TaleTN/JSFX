@@ -1,5 +1,5 @@
 desc:1st order RC filter
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example:
@@ -23,10 +23,8 @@ desc:1st order RC filter
 
 function rc_set(rc)
   instance(a)
-  local(dt)
 (
-  dt = 1/srate;
-  a = dt / (rc + dt);
+  a = 1 / (rc * srate + 1);  
 );
 
 

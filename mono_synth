@@ -1,5 +1,5 @@
 desc:Simple mono synth
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
@@ -8,32 +8,45 @@ slider4:3<0,5000,1>Attack (ms)
 slider5:1000<1,15000,1>Decay (ms)
 slider6:0.0<-120.0,24.0,1.0>Sustain (dB)
 slider7:8<0,5000,1>Release (ms)
-slider9:7<0,7,1{Sine,Half-wave rectified sine,Full-wave rectified sine,Triangle,Trapezoid,Square,Pulse,Sawtooth}>Waveform
-slider10:0.30<0.10,0.90,0.01>Pulse Width
+slider9:7<0,11,1{Sine,Half-wave rectified sine,Full-wave rectified sine,Triangle,Trapezoid,Square,Pulse,Sawtooth,Modified triangle,Triangular pulse,Hammond,Staircase}>Waveform
+slider10:0.30<0.0,1.0,0.01>Pulse Width
 slider12:200.0<0.0,1200.0,1.0>Pitch Wheel Range (cent)
+slider14:-36.0<-36.0,0.0,1.0>White Noise (dB)
+slider16:1.0<0.0,1.0,0.01>Low-Pass Filter
+slider17:0<0,15000,1>Filter Decay (ms)
 
 out_pin:Synth output
 out_pin:Synth output
 
 import midi_queue.jsfx-inc
 import rc_filter.jsfx-inc
-import tone_generator.jsfx-inc
+import rbj_filter.jsfx-inc
+import poly_blep.jsfx-inc
 
 
 @init
 
-tg.tg_init_rect(0, 20.0);
-midiq.midiq_init(tg.cache + tg.size, 0);
+midiq.midiq_init(0, 0);
 
 inf = 10^(-120.0 / 20);
 step5 = exp(-5);
 
+lpf.m = 50;
+lpf.ln = log(lpf.m);
+
 gain.rc_set(0.0033);
+lpf.rc.a = gain.a;
 
 function set_pitch() ( pitch = pitch_range > 0.0 ? 2^(pitch_wheel / ((pitch_wheel >= 0 ? 8191 : 8192) * pitch_range)) : 1.0; );
-function set_freq() ( tg.tg_setf(tuning * pitch * freq); );
 
-function adsr_a() ( adsr = 1; env.a = adsr.a; );
+function set_freq()
+(
+  tuned_freq = tuning * freq;
+  tg.poly_setf(pitch * tuned_freq);
+  lpf.env.a <= 0 ? lpf.freq = lpf.n * tuned_freq;
+);
+
+function adsr_a() ( adsr = 1; env.a = adsr.a; lpf.env.lp = lpf.m; );
 function adsr_d() ( adsr = 2; env.a = adsr.d; );
 function adsr_s() ( adsr = 3; env.lp = adsr.s * vel; );
 function adsr_r() ( adsr = 4; env.a = adsr.r; );
@@ -57,9 +70,21 @@ adsr & 2 ? adsr_d() : adsr == 4 ? adsr_r() : adsr == 1 ? adsr_a();
 
 tuning = 2^(slider2 / 1200);
 
-wave = slider9;
-tg.tg_setpw(max(0.10, min(0.90, slider10)));
-wave >= 5.5 && wave < 6.5 && tg.pw == $pi ? wave = 5;
+slider9|0 != wave ? (
+  wave = slider9|0;
+  // Resync leaky integrator
+  tg.leak.a = 0;
+);
+
+// Pulse
+wave == 6 ? tg.poly_setpw(max(0.10, min(0.90, slider10))) :
+// Modified triangle
+wave == 8 ? tg.poly_setpw(max(0.0,  min(1.0,  slider10)));
+
+noise = slider14 <= -36.0 ? 0.0 : 10^(slider14 / 20);
+
+lpf.n = slider16 >= 1.0 ? lpf.m : exp(max(0.0, slider16) * lpf.ln);
+slider17 < 1 ? lpf.env.a = 0 : lpf.env.rc_sets(0.001 * min(15000, slider17));
 
 pitch_range = slider12 > 0.0 ? 1200 / slider12 : 0.0;
 set_pitch();
@@ -122,7 +147,7 @@ while(
 
 gain.rc_lp(gain.in);
 
-adsr > 0 ? (
+adsr <= 0 ? s = 0.0 : (
   // Sustain
   adsr == 3 ? (
     1;
@@ -147,17 +172,42 @@ adsr > 0 ? (
     abs(env.lp - vel) <= step5 ? adsr_d();
   );
 
-  s = wave >= 6.5 ? tg.tg_saw()
-    : wave >= 5.5 ? tg.tg_rect()
-    : wave >= 4.5 ? tg.tg_sqr()
-    : wave >= 3.5 ? tg.tg_trap()
-    : wave >= 2.5 ? tg.tg_tri()
-    : wave >= 1.5 ? tg.tg_full()
-    : wave >= 0.5 ? tg.tg_half()
-    : tg.tg_sin();
+  noise < 1.0 ? (
+    s = wave == 7  ? tg.poly_saw():
+        wave == 6  ? tg.poly_rect():
+        wave == 5  ? tg.poly_sqr():
+        wave == 4  ? tg.poly_trap():
+        wave == 3  ? tg.poly_tri():
+        wave == 2  ? tg.poly_full():
+        wave == 1  ? tg.poly_half():
+        wave == 0  ? tg.poly_sin():
+        wave == 8  ? tg.poly_tri2():
+        wave == 9  ? tg.poly_trip():
+        wave == 10 ? tg.poly_ham():
+      /*wave == 11*/ tg.poly_stairs();
+    noise > 0.0 ? s = noise * (-1 + rand(2)) + (1.0 - noise) * s;
+  ) : (
+    s = -1 + rand(2);
+  );
 
   s *= gain.lp * env.lp;
-
-  spl0 += s;
-  spl1 += s;
 );
+
+lpf.env.a > 0 ? lpf.freq = lpf.env.rc_lp(lpf.n) * tuned_freq;
+lpf.rc.rc_lp(lpf.freq);
+
+// Recalculate LPF coefficients only every 16 samples
+lpf.skip > 0 ? lpf.skip -= 1 : (
+  lpf.skip = 16 - 1;
+
+  lpf.rc.lp != lpf.rbj.freq ? (
+    lpf.rbj.freq = lpf.rc.lp;
+    lpf.rbj.rbj_lp(min(0.49 * srate, lpf.rc.lp), 1.0);
+  );
+);
+
+lpf.rbj.rbj_df1(s);
+lpf.n < lpf.m ? s = lpf.rbj.y0;
+
+spl0 += s;
+spl1 += s;

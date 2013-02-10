@@ -1,5 +1,5 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL <http://www.gnu.org/licenses/gpl.html>
 
 /* Example:
@@ -21,6 +21,11 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 @init
 
 
+function lfo_setdt(dt)
+(
+  this.dt = dt;
+);
+
 function lfo_setf(f)
   instance(dt)
 (
@@ -40,11 +45,16 @@ function lfo_sync(t)
 );
 
 
+function _lfo_inc(t, dt)
+(
+  t += dt;
+  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : _lfo_sync(t);
+);
+
 function lfo_inc()
   instance(t, dt)
 (
-  t += dt;
-  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : t = _lfo_sync(t);
+  t = _lfo_inc(t, dt)
 );
 
 
@@ -76,7 +86,7 @@ function lfo_half()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_half(t);
+  _lfo_half(t);
 );
 
 
@@ -92,7 +102,7 @@ function lfo_full()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_full(t);
+  _lfo_full(t);
 );
 
 
@@ -112,7 +122,7 @@ function lfo_circ()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_circ(t);
+  _lfo_circ(t);
 );
 
 
@@ -129,7 +139,26 @@ function lfo_tri()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_tri(t);
+  _lfo_tri(t);
+);
+
+
+// Modified triangle
+
+function _lfo_tri2(t, pw)
+(
+  t /= 0.5*$pi;
+  pw /= $pi;
+  t >= 4 - pw ? (t - 4) / pw : t >= pw ? 1 - (t - pw) / (2 - pw) : t / pw;
+);
+
+function lfo_tri2()
+  instance(pw)
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  _lfo_tri2(t, pw);
 );
 
 
@@ -137,12 +166,34 @@ function lfo_tri()
 
 function _lfo_trap(t)
 (
-  max(-1.0, min(1.0, 2 * this._lfo_tri(t)));
+  max(-1.0, min(1.0, 2 * _lfo_tri(t)));
 );
 
 function lfo_trap()
+  local(t)
 (
-  max(-1.0, min(1.0, 2 * this.lfo_tri()));
+  t = this.t;
+  this.lfo_inc();
+  _lfo_trap(t);
+);
+
+
+// Triangular pulse
+
+function _lfo_trip(t)
+(
+  t >= $pi ? -1 : (
+    t /= 0.5*$pi;
+    t >= 1 ? 3 - 2 * t : 2 * t - 1;
+  );
+);
+
+function lfo_trip()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  _lfo_trip(t);
 );
 
 
@@ -158,7 +209,7 @@ function lfo_sqr()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_sqr(t);
+  _lfo_sqr(t);
 );
 
 
@@ -180,7 +231,7 @@ function lfo_rect()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_rect(t);
+  _lfo_rect(t);
 );
 
 
@@ -197,5 +248,40 @@ function lfo_saw()
 (
   t = this.t;
   this.lfo_inc();
-  this._lfo_saw(t);
+  _lfo_saw(t);
+);
+
+
+// Staircase
+
+function _lfo_stairs(t)
+  local(t2)
+(
+  t2 = t+t;
+  t2 >= 2*$pi ? t2 -= 2*$pi;
+  (t < $pi ? 2/3 : -2/3) + (t2 < $pi ? 2/6 : -2/6);
+);
+
+function lfo_stairs()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  _lfo_stairs(t);
+);
+
+
+// Hammond 88 8000 00
+
+function _lfo_ham(t)
+(
+  0.4 * (sin(t) + sin(t+t) + sin(3*t));
+);
+
+function lfo_ham()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+  _lfo_ham(t);
 );

@@ -1,5 +1,5 @@
 desc:Fourier series bandlimited tone generator
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL <http://www.gnu.org/licenses/gpl.html>
 
 /* Example #1:
@@ -70,10 +70,12 @@ function tg_setbw(bw)
 );
 
 
-function tg_setf(f)
-  instance(bw, n, a, dt)
+function _tg_setdt(dt, f)
+  instance(bw, n, a)
   local(f0, f1)
 (
+  this.dt = dt;
+
   this.tg_setbw(0);
   n = ceil(bw / f);
 
@@ -84,8 +86,17 @@ function tg_setf(f)
   ) : (
     a = 0.0;
   );
+);
 
-  dt = 2*$pi / srate * f;
+function tg_setdt(dt)
+(
+  this._tg_setdt(dt, dt * srate / (2*$pi));
+);
+
+
+function tg_setf(f)
+(
+  this._tg_setdt(2*$pi / srate * f, f);
 );
 
 
@@ -101,11 +112,16 @@ function tg_sync(t)
 );
 
 
+function _tg_inc(t, dt)
+(
+  t += dt;
+  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : _tg_sync(t);
+);
+
 function tg_inc()
   instance(t, dt)
 (
-  t += dt;
-  t < 2*$pi ? t : (t -= 2*$pi) < 2*$pi ? t : t = _tg_sync(t);
+  t = _tg_inc(t, dt);
 );
 
 
@@ -369,6 +385,35 @@ function tg_sqr()
 );
 
 
+/* // Low-pass filtered square
+
+function _tg_lpsqr(t)
+  instance(dt, a)
+  local(n, s, tmp)
+(
+  s = 0.0;
+  n = 1;
+  loop((this.n - 1) / 2,
+    tmp = atan(n); // atan(f / fc * n)
+    s += cos(tmp) * sin(n * t - tmp) / n;
+    n += 2;
+  );
+  n < this.n ? (
+    tmp = atan(n);
+    s += a * cos(tmp) * sin(n * t - tmp) / n;
+  );
+  4/$pi * s;
+);
+
+function tg_lpsqr()
+  local(t)
+(
+  t = this.t;
+  this.tg_inc();
+  this._tg_lpsqr(t);
+); */
+
+
 // Rectangle
 
 function tg_init_rect(mem, lf)
@@ -460,4 +505,26 @@ function tg_saw()
   t = this.t;
   this.tg_inc();
   this._tg_saw(t);
+);
+
+
+// Hammond 88 8000 000
+
+function _tg_ham(t)
+  instance(a, n)
+(
+  0.4 * (
+    n > 4 ? sin(t) + sin(t+t) + sin(3*t) :
+    n > 3 ? sin(t) + sin(t+t) + a * sin(3*t) :
+    n > 2 ? sin(t) + a * sin(t+t) :
+    n > 1 ? a * sin(t) : 0.0
+  );
+);
+
+function tg_ham()
+  local(t)
+(
+  t = this.t;
+  this.tg_inc();
+  this._tg_ham(t);
 );
