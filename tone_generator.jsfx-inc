@@ -389,20 +389,37 @@ function tg_sqr()
 
 function _tg_lpsqr(t)
   instance(dt, a)
-  local(n, s, tmp)
+  local(n, s, at, tmp)
 (
-  s = 0.0;
-  n = 1;
-  loop((this.n - 1) / 2,
-    tmp = atan(n); // atan(f / fc * n)
-    s += cos(tmp) * sin(n * t - tmp) / n;
-    n += 2;
+  !at ? (
+    // (f / fc) - sqrt(2) + 1
+    tmp = 2 - sqrt(2);
+    at = atan(tmp)/tmp;
   );
-  n < this.n ? (
-    tmp = atan(n);
-    s += a * cos(tmp) * sin(n * t - tmp) / n;
+
+  n = dt * 4;
+  t >= n && t <= $pi - n ? (
+    // -at + (at + 1) * (1 - exp(-fc/f * t))
+    this.tg_falloff(-at + (at + 1) * (1 - exp(-t)));
+  ) : t >= $pi + n && t <= 2*$pi - n ? (
+    // -1 + (at + 1) * exp(fc/f * ($pi - t))
+    this.tg_falloff(-1 + (at + 1) * exp($pi - t));
+
+  ) : (
+    s = 0.0;
+    n = 1;
+    loop((this.n - 1) / 2,
+      // atan(f/fc * n)
+      tmp = atan(n);
+      s += cos(tmp) * sin(n * t - tmp) / n;
+      n += 2;
+    );
+    n < this.n ? (
+      tmp = atan(n);
+      s += a * cos(tmp) * sin(n * t - tmp) / n;
+    );
+    4/$pi * s;
   );
-  4/$pi * s;
 );
 
 function tg_lpsqr()

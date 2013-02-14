@@ -1,5 +1,5 @@
 desc:2nd order RBJ filter
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on "Cookbook formulae for audio EQ biquad filter coefficients" by
@@ -26,6 +26,11 @@ desc:2nd order RBJ filter
 @init
 
 
+function _rbj_w0(f)
+(
+  2*$pi * min(f, 0.49 * srate) / srate;
+);
+
 function rbj_scale(a0)
   instance(a1, a2, b0, b1, b2)
 (
@@ -44,7 +49,7 @@ function rbj_lp(f, q)
   local(w0, cos_w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   cos_w0 = cos(w0);
   alpha = sin(w0) / (2*q);
 
@@ -64,7 +69,7 @@ function rbj_hp(f, q)
   local(w0, cos_w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   cos_w0 = cos(w0);
   alpha = sin(w0) / (2*q);
 
@@ -84,7 +89,7 @@ function rbj_bp(f, q)
   local(w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   alpha = sin(w0) / (2*q);
 
   b0 = q * alpha;
@@ -104,7 +109,7 @@ function rbj_bp2(f, q)
   local(w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   alpha = sin(w0) / (2*q);
 
   b0 = alpha;
@@ -124,7 +129,7 @@ function rbj_notch(f, q)
   local(w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   alpha = sin(w0) / (2*q);
 
   b0 = b2 = 1;
@@ -142,7 +147,7 @@ function rbj_ap(f, q)
   local(w0, alpha, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   alpha = sin(w0) / (2*q);
 
   b0 = a2 = 1 - alpha;
@@ -155,13 +160,13 @@ function rbj_ap(f, q)
 
 // Peaking EQ
 
-function rbj_peak(f, q, gain)
+function rbj_peak(f, q, db_gain)
   local(w0, alpha, a, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   alpha = sin(w0) / (2*q);
-  a = 10^(gain / 40);
+  a = 10^(db_gain / 40);
 
   b0 = 1 + alpha * a;
   b1 = a1 = -2 * cos(w0);
@@ -175,13 +180,13 @@ function rbj_peak(f, q, gain)
 
 // Low-shelf
 
-function rbj_low_shelf(f, q, gain)
+function rbj_low_shelf(f, q, db_gain)
   local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   cos_w0 = cos(w0);
-  a = 10^(gain / 40);
+  a = 10^(db_gain / 40);
 
   tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
   tmp1 = (a + 1) - (a - 1) * cos_w0;
@@ -200,13 +205,13 @@ function rbj_low_shelf(f, q, gain)
 
 // High-shelf
 
-function rbj_high_shelf(f, q, gain)
+function rbj_high_shelf(f, q, db_gain)
   local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
   instance(a1, a2, b0, b1, b2)
 (
-  w0 = 2*$pi * f / srate;
+  w0 = _rbj_w0(f);
   cos_w0 = cos(w0);
-  a = 10^(gain / 40);
+  a = 10^(db_gain / 40);
 
   tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
   tmp1 = (a + 1) - (a - 1) * cos_w0;

@@ -220,18 +220,18 @@ function lfo_setpw(pw)
   this.pw = 2*$pi * pw;
 );
 
-function _lfo_rect(t)
-  instance(pw)
+function _lfo_rect(t, pw)
 (
   t < pw ? 1.0 : -1.0;
 );
 
 function lfo_rect()
+  instance(pw)
   local(t)
 (
   t = this.t;
   this.lfo_inc();
-  _lfo_rect(t);
+  _lfo_rect(t, pw);
 );
 
 
