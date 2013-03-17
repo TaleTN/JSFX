@@ -1,0 +1,34 @@
+desc:A/B two mono channels
+// (c) Theo Niessink 2011-2013
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// In "normal" mode this effect lets you switch between two mono input
+// channels. In "difference" mode it will output the difference between the
+// two channels. In both modes it will send the output signal to both the
+// left and right channels (i.e. its output is "dual mono").
+
+slider1:0<0,1,1{A,B}>Channel
+slider2:0<0,1,1{Normal,Difference}>Mode
+
+in_pin:A
+in_pin:B
+out_pin:Mono
+out_pin:Mono
+
+import rc_filter.jsfx-inc
+
+@init
+
+ch.a = mode.rc_sets(0.0075);
+
+@slider
+
+ch = slider1 >= 0.5;
+mode = slider2 >= 0.5;
+
+@sample
+
+ch.inv = 1 - ch.rc_lp(ch);
+mode.inv = 1 - mode.rc_lp(mode);
+
+spl0 = spl1 = mode.inv * (ch.inv * spl0 + ch.lp * spl1) + mode.lp * (ch.inv * (spl0 - spl1) + ch.lp * (spl1 - spl0));

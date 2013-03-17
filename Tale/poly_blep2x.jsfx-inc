@@ -1,0 +1,830 @@
+desc:PolyBLEP 2x oversampled quasi-bandlimited tone generator
+// (c) Theo Niessink 2013
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:Bandlimited oscillator
+   slider1:440<20,12000,1>Frequency (Hz)
+   slider2:0<0,1,1{Saw,Square}>Waveform
+
+   import poly_blep2x.jsfx-inc
+
+   @slider
+   osc.poly2_setf(slider1);
+
+   @sample
+   spl0 = spl1 = 0.5 * (slider2 < 0.5 ? osc.poly2_saw() : osc.poly2_sqr());
+
+   Setting Functions
+
+    * poly2_setf(f)
+      Example: osc.poly2_setf(440);
+      Sets the oscillator frequency (specified in Hz).
+
+      Note: You can safely specify frequencies beyond srate/2.
+
+    * poly2_setdt(dt)
+      Example: osc2.poly2_setdt(osc1.dt);
+      Sets the oscillator frequency (specified in seconds/sample).
+
+      (To convert from Hz to seconds/sample, divide by srate.)
+
+    * poly2_setpw(pw)
+      Example: osc.poly2_setpw(0.30);
+      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
+      oscillator.
+
+    * poly2_leaky_set(rc)
+      Example: osc.poly2_leaky_set(0.022);
+      Sets the RC time constant (specified in seconds) of the leaky
+      integrator used by a full-wave rectified sine, triangular, half-wave
+      rectified sine, trapezoid, or triangular pulse oscillator.
+
+      The leaky integrator behaves like a high-pass filter with a
+      cutoff frequency (in Hz) of 1/(2*$pi*rc).
+
+      Note: An oscillator that requires a leaky integrator will
+      automatically set the default RC time constant if none has been set.
+
+   Waveform Functions
+
+    * poly2_saw()    -- Sawtooth
+    * poly2_sqr()    -- Square
+    * poly2_rect()   -- Rectangle (pulse)
+    * poly2_full()   -- Full-wave rectified sine
+    * poly2_tri()    -- Triangle
+    * poly2_tri2()   -- Modified triangle
+    * poly2_half()   -- Half-wave rectified sine
+    * poly2_circ()   -- Circle
+    * poly2_trap()   -- Trapezoid
+    * poly2_trip()   -- Triangular pulse
+    * poly2_stairs() -- Staircase
+    * poly2_sin()    -- Sine
+    * poly2_ham()    -- Hammond 88 8000 00
+      Example: s = osc.poly2_saw();
+      Returns a sample of a waveform, and increments its phase.
+      
+      Note: You will need to set a pulse width before you can use
+      poly2_rect() or poly2_tri2().
+      
+      Note: poly2_ham() might not be suitable for vegetarians.
+
+   Miscellaneous Functions
+
+    * poly2_sync(t)
+      Example: osc2.poly2_sync(osc1.t + 0.5);
+      Synchronizes the oscillator with the specified phase.
+
+      Note: You can safely specify out or range (and even negative) values
+      here.
+
+    * poly2_inc()
+      Example: osc.poly2_inc();
+      Increments the oscillator phase.
+
+      Note: All waveform functions automatically increment the phase.
+
+    * poly2_init_full()   -- Full-wave rectified sine
+    * poly2_init_tri()    -- Triangle
+    * poly2_init_tri2()   -- Modified triangle
+    * poly2_init_half()   -- Half-wave rectified sine
+    * poly2_init_trap()   -- Trapezoid
+    * poly2_init_trip()   -- Triangular pulse
+      Example: osc.poly2_init_full();
+      Resets the leaky integrator output to a best guess.
+
+      Note: It is not really necessary to call one of these functions before
+      using an oscillator, but it is recommended to prevent pops/clicks.
+
+    * poly2_leaky_reset()
+      Example: osc.poly2_leaky_reset();
+      Resets the leakly integrator RC time constant to its default, and
+      resets the integrator output to a best guess.
+
+    * poly2_resetf()
+      Example: osc.poly2_resetf();
+      Call this when changing the waveform to poly2_half(), poly2_stairs(),
+      or poly2_ham().
+
+    * poly2_blep(t, dt)
+      Example: s = poly2_blep(osc.t, osc.dt);
+      Returns a polynomial around a discontinuity (i.e. when t passes 1.0
+      and wraps to 0.0), or 0.0 otherwise.
+
+   Instance Variables
+
+    * t
+      Example: phase = osc.t;
+      The current phase [0.0..1.0) of the oscillator.
+
+    * dt
+      Example: freq = osc.dt * srate;
+      The oscillator frequency, in seconds/sample.
+
+    * pw
+      Example: duty_cycle = osc.pw;
+      The pulse width (0.0..1.0) of a rectangle or modified triangle
+      oscillator.
+
+*/
+
+@init
+
+
+function _poly2_setf(f)
+  local(half, third)
+(
+  half  = srate * 0.5;
+  third = srate / 3;
+  f <= third ? 1 : f < half ? sqrt((half - f) / (half - third)) : 0;
+);
+
+function poly2_setf(f)
+  instance(dt, a)
+(
+  a = _poly2_setf(f);
+  dt = f / srate;
+);
+
+function poly2_setdt(dt)
+  instance(a)
+(
+  a = _poly2_setf(dt * srate);
+  this.dt = dt;
+);
+
+function poly2_resetf()
+  instance(dt2)
+(
+  dt2 = 0;
+);
+
+
+function poly2_setpw(pw)
+(
+  this.pw = pw;
+);
+
+
+// Leaky integrator
+
+function poly2_leaky_set(rc)
+  instance(leak.a)
+(
+  rc <= 0 ? rc = 0.022;
+  leak.a = 1 - 1 / (2*rc * srate + 1);
+);
+
+function poly2_leaky_reset()
+  instance(leak.a)
+(
+  leak.a = 0;
+);
+
+function _poly2_leaky(s)
+  instance(leak.a, leak.lp)
+(
+  leak.lp = leak.a * (s + leak.lp);
+);
+
+function _poly2_leaky2(s)
+  instance(leak.a, leak.lp2)
+(
+  leak.lp2 = leak.a * (s + leak.lp2);
+);
+
+
+function _poly2_sync(t)
+(
+  (t >= 0 ? t : t + 1) - (t|0);
+);
+
+function poly2_sync(t)
+(
+  this.t = _poly2_sync(t);
+);
+
+
+function poly2_inc()
+  instance(t, dt)
+(
+  t += dt;
+  t -= t|0;
+);
+
+
+// Adapted from "Phaseshaping Oscillator Algorithms for Musical Sound
+// Synthesis" by Jari Kleimola, Victor Lazzarini, Joseph Timoney, and Vesa
+// Valimaki.
+// http://www.acoustics.hut.fi/publications/papers/smc2010-phaseshaping/
+
+function poly2_blep(t, dt)
+(
+  // 0 <= t < 1
+  t < dt ? (
+    t /= dt;
+    // 2 * (t - t^2/2 - 0.5)
+    t+t - t*t - 1;
+  ) :
+
+  // -1 < t < 0
+  t > 1 - dt ? (
+    t = (t - 1) / dt;
+    // 2 * (t^2/2 + t + 0.5)
+    t*t + t+t + 1;
+  );
+
+  // 0 otherwise
+);
+
+
+// Halfband linear-phase FIR filter
+
+function _poly2_shift()
+  instance(x6, x5, x4, x3, x2, x1, x0)
+(
+  x6 = x4;
+  x5 = x3;
+  x4 = x2;
+  x3 = x1;
+  x2 = x0;
+);
+
+// Coefficients from "Antialiasing Oscillators in Subtractive Synthesis" by
+// Vesa Valimaki and Antti Huovilainen.
+
+function _poly2_fir()
+  instance(x0, x2, x3, x4, x6)
+(
+  -0.0228*x6 + 0.275*x4 + 0.5*x3 + 0.275*x2 + -0.0228*x0;
+);
+
+
+// Sawtooth
+
+function poly2_saw()
+  instance(dt, x1, x0, a)
+  local(t, dt2)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  t = this.t + 0.5 + dt;
+  t -= t|0;
+
+  x1 = 2*t - 1 - poly2_blep(t, dt2);
+
+  t += dt2;
+  t -= t|0;
+
+  x0 = 2*t - 1 - poly2_blep(t, dt2);
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Square
+
+function poly2_sqr()
+  instance(dt, x1, x0, a)
+  local(t1, t2, dt2)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  t1 = this.t + dt;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  x1 = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  t1 += dt2;
+  t1 -= t1|0;
+  t2 += dt2;
+  t2 -= t2|0;
+
+  x0 = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Rectangle
+
+function poly2_rect()
+  instance(dt, pw, x1, x0, a)
+  local(t1, t2, dt2)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  t1 = this.t + dt;
+  t1 -= t1|0;
+  t2 = t1 + 1 - pw;
+  t2 -= t2|0;
+
+  x1 = (t1 < pw ? -2*pw + 2 : -2*pw) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  t1 += dt2;
+  t1 -= t1|0;
+  t2 += dt2;
+  t2 -= t2|0;
+
+  x0 = (t1 < pw ? -2*pw + 2 : -2*pw) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Full-wave rectified sine
+
+function _poly2_init_full(t)
+(
+  -8*t*t + 8*t - 4/3;
+);
+
+function poly2_init_full()
+  instance(leak.a, leak.lp, t)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  leak.lp = _poly2_init_full(t);
+);
+
+function poly2_full()
+  instance(dt, leak.a, leak.lp, x1, x0, a)
+  local(t, dt2, scale)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    leak.lp = _poly2_init_full(this.t);
+  );
+
+  scale = -8*dt2;
+
+  t = this.t + 1.5*dt2;
+  t -= t|0;
+
+  // Integrate saw
+  x1 = this._poly2_leaky(scale * (2*t - 1 - poly2_blep(t, dt2)));
+
+  t += dt2;
+  t -= t|0;
+
+  // Integrate saw
+  x0 = this._poly2_leaky(scale * (2*t - 1 - poly2_blep(t, dt2)));
+
+  t = this.t;
+  this.poly2_inc();
+
+  a * (0.8 * this._poly2_fir() - 0.2 * cos(2*$pi * t));
+);
+
+
+// Triangle
+
+function _poly2_init_tri(t)
+(
+  t *= 4;
+  t >= 3 ? t - 4 : t > 1 ? 2 - t : t;
+);
+
+function poly2_init_tri()
+  instance(leak.a, leak.lp, t)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  leak.lp = _poly2_init_tri(t);
+);
+
+function poly2_tri()
+  instance(dt, leak.a, leak.lp, x1, x0, a)
+  local(t1, t2, dt2, scale)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    leak.lp = _poly2_init_tri(this.t);
+  );
+
+  scale = 4*dt2;
+
+  t1 = this.t + 0.25 + 1.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  // Integrate square
+  x1 = this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += dt2;
+  t1 -= t1|0;
+  t2 += dt2;
+  t2 -= t2|0;
+
+  // Integrate square
+  x0 = this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Modified triangle
+
+function _poly2_init_tri2(t, pw)
+(
+  t *= 4;
+  pw *= 2;
+  t >= 4 - pw ? (t - 4) / pw : t >= pw ? 1 - (t - pw) / (2 - pw) : t / pw;
+);
+
+function poly2_init_tri2()
+  instance(leak.a, leak.lp, t, pw)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  leak.lp = _poly2_init_tri2(t, pw);
+);
+
+function poly2_tri2()
+  instance(dt, pw, leak.a, leak.lp, x1, x0, a)
+  local(t1, t2, dt2, scale)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    leak.lp = _poly2_init_tri2(this.t, pw);
+  );
+
+  pw == 0.5 ? (
+    scale = 4*dt2;
+  ) : (
+    scale = abs(0.5 - pw);
+    scale = 4*dt2 * 0.25/(0.25 - scale*scale);
+  );
+
+  t1 = this.t + 0.5*pw + 1.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 1 - pw;
+  t2 -= t2|0;
+
+  // Integrate rectangle
+  x1 = this._poly2_leaky(scale * ((t1 < pw ? -2*pw + 2 : -2*pw) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += dt2;
+  t1 -= t1|0;
+  t2 += dt2;
+  t2 -= t2|0;
+
+  // Integrate rectangle
+  x0 = this._poly2_leaky(scale * ((t1 < pw ? -2*pw + 2 : -2*pw) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Half-wave rectified sine
+
+function _poly2_init_half(t)
+(
+  t *= 2;
+  t -= t|0;
+  _poly2_init_full(t);
+);
+
+function poly2_init_half()
+  instance(leak.a, leak.lp, t)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  leak.lp = _poly2_init_half(t);
+);
+
+function poly2_half()
+  instance(dt, dt2, leak.a, leak.lp, x1, x0, a, a2)
+  local(t, scale /*, tmp*/)
+(
+  this._poly2_shift();
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    leak.lp = _poly2_init_half(this.t);
+  );
+
+  /* tmp = */ t = 2*dt;
+  t < dt2 || t > dt2 ? (
+    dt2 = t;
+    a2 = 0.5 * _poly2_setf(dt2 * srate);
+  );
+
+  scale = -8*dt;
+
+  t = 2 * this.t + 1.5*dt;
+  t -= t|0;
+
+  // Integrate saw
+  x1 = this._poly2_leaky(scale * (2*t - 1 - poly2_blep(t, dt)));
+
+  t += dt;
+  t -= t|0;
+
+  // Integrate saw
+  x0 = this._poly2_leaky(scale * (2*t - 1 - poly2_blep(t, dt)));
+
+  t = this.t;
+  this.poly2_inc();
+
+  // Sine
+  a * sin(2*$pi * t) +
+  // Full-wave rectified sine
+  a2 * (0.8 * this._poly2_fir() - 0.2 * cos(4*$pi * t));
+);
+
+
+// Circle
+
+function poly2_circ()
+  instance(dt, x1, x0, lp, a)
+  local(t1, t2, dt2, lp.a /*, n*/)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  // t + 0.5/(n = 32) + dt
+  t1 = this.t + 0.015625 + dt;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  x1 = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  t1 += dt2;
+  t1 -= t1|0;
+  t2 += dt2;
+  t2 -= t2|0;
+
+  x0 = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+
+  // Mimic linear-phase filter by mixing 1st order low-pass filtered
+  // square...
+  // 1 / (1/(sqrt(n)*2*$pi*dt) + 1)
+  lp.a = 1 / (0.02813488487991/dt + 1);
+  lp += lp.a * (this._poly2_fir() - lp);
+
+  t1 = this.t;
+  this.poly2_inc();
+
+  // ... with sine.
+  a * 0.5 * (lp + sin(2*$pi * t1));
+);
+
+
+// Trapezoid
+
+function _poly2_init_trap(t)
+  instance(leak.lp, leak.lp2)
+(
+  t += 0.125;
+  t -= t|0;
+  leak.lp = _poly2_init_tri(t);
+
+  t += 0.25;
+  t -= t|0;
+  leak.lp2 = _poly2_init_tri(t);
+);
+
+function poly2_init_trap()
+  instance(leak.a, t)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  this._poly2_init_trap(t);
+);
+
+function poly2_trap()
+  instance(dt, leak.a, leak.lp, leak.lp2, x1, x0, a)
+  local(t1, t2, dt2, scale)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    this._poly2_init_trap(this.t);
+  );
+
+  scale = 4*dt2;
+
+  t1 = this.t + 0.375 + 1.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  // Triangle #1
+  this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += 0.25;
+  t1 -= t1|0;
+  t2 += 0.25;
+  t2 -= t2|0;
+
+  // Triangle #2
+  this._poly2_leaky2(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  x1 = leak.lp - leak.lp2;
+
+  t1 = this.t + 0.375 + 2.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  // Triangle #1
+  this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += 0.25;
+  t1 -= t1|0;
+  t2 += 0.25;
+  t2 -= t2|0;
+
+  // Triangle #2
+  this._poly2_leaky2(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  x0 = leak.lp - leak.lp2;
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Triangular pulse
+
+function _poly2_init_trip(t)
+  instance(leak.lp, leak.lp2, a)
+(
+  t += 0.125;
+  t -= t|0;
+  leak.lp = 0.75 * _poly2_init_tri2(t, 0.75);
+
+  t += 0.25;
+  t -= t|0;
+  leak.lp2 = 0.75 * _poly2_init_tri2(t, 0.75);
+);
+
+function poly2_init_trip()
+  instance(leak.a, t)
+(
+  !leak.a ? this.poly2_leaky_set(0);
+  this._poly2_init_trip(t);
+);
+
+function poly2_trip()
+  instance(dt, leak.a, leak.lp, leak.lp2, x1, x0, a)
+  local(t1, t2, dt2, scale)
+(
+  this._poly2_shift();
+  dt2 = 0.5*dt;
+
+  !leak.a ? (
+    this.poly2_leaky_set(0);
+    this._poly2_init_trip(this.t);
+  );
+
+  scale = 4*dt2;
+
+  t1 = this.t + 0.5 + 1.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 0.25;
+  t2 -= t2|0;
+
+  // Modified triangle #1 (pw = 0.75)
+  this._poly2_leaky(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += 0.25;
+  t1 -= t1|0;
+  t2 += 0.25;
+  t2 -= t2|0;
+
+  // Modified triangle #2 (pw = 0.75)
+  this._poly2_leaky2(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  x1 = leak.lp - leak.lp2;
+
+  t1 = this.t + 0.5 + 2.5*dt2;
+  t1 -= t1|0;
+  t2 = t1 + 0.25;
+  t2 -= t2|0;
+
+  // Modified triangle #1 (pw = 0.75)
+  this._poly2_leaky(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+
+  t1 += 0.25;
+  t1 -= t1|0;
+  t2 += 0.25;
+  t2 -= t2|0;
+
+  // Modified triangle #2 (pw = 0.75)
+  this._poly2_leaky2(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  x0 = leak.lp - leak.lp2;
+
+  this.poly2_inc();
+
+  a * this._poly2_fir();
+);
+
+
+// Staircase
+
+function poly2_stairs()
+  instance(dt, dt2, x1, x0, a, a2)
+  local(t1, t2 /*, dt2_, tmp */)
+(
+  this._poly2_shift();
+  /* dt2_ = */ x0 = 0.5*dt;
+
+  /* tmp = */ t2 = 2*dt;
+  t2 < dt2 || t2 > dt2 ? (
+    dt2 = t2;
+    a2 = 0.5 * _poly2_setf(dt2 * srate);
+  );
+
+  // Square #1
+
+  t1 = this.t + dt;
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  x1 = a * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, x0) - poly2_blep(t2, x0));
+
+  t1 += x0;
+  t1 -= t1|0;
+  t2 += x0;
+  t2 -= t2|0;
+
+  x0 = a * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, x0) - poly2_blep(t2, x0));
+
+  // Square #2
+
+  t1 = 2 * (this.t + dt);
+  t1 -= t1|0;
+  t2 = t1 + 0.5;
+  t2 -= t2|0;
+
+  x1 += a2 * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt) - poly2_blep(t2, dt));
+
+  t1 += dt;
+  t1 -= t1|0;
+  t2 += dt;
+  t2 -= t2|0;
+
+  x0 += a2 * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt) - poly2_blep(t2, dt));
+
+  this.poly2_inc();
+
+  2/3 * this._poly2_fir();
+);
+
+
+// Sine
+
+function poly2_sin()
+  instance(dt, a)
+  local(t)
+(
+  t = this.t;
+  this.poly2_inc();
+
+  a * sin(2*$pi * t);
+);
+
+
+// Hammond 88 8000 000
+
+function poly2_ham()
+  instance(dt, dt2, a, a2, a3)
+  local(t /*, tmp*/)
+(
+  dt < dt2 || dt > dt2 ? (
+    dt2 = dt;
+    /* tmp = */ t = dt * srate;
+    a2 = _poly2_setf(2*t);
+    a3 = _poly2_setf(3*t);
+  );
+
+  t = this.t;
+  this.poly2_inc();
+
+  0.4 * (a * sin(2*$pi * t) + a2 * sin(4*$pi * t) + a3 * sin(6*$pi * t));
+);

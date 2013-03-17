@@ -6,7 +6,7 @@ desc:2nd order RBJ filter
 // Robert Bristow-Johnson.
 // http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
-/* Example:
+/* Example
 
    desc:Low-pass filter
    slider1:1000<20,20000,1>Corner Frequency (Hz)
@@ -20,6 +20,28 @@ desc:2nd order RBJ filter
    @sample
    mono = 0.5 * (spl0 + spl1);
    spl0 = spl1 = lp.rbj_df1(mono);
+
+   Setting Functions
+
+    * rbj_lp(f, q)                  -- Low-pass
+    * rbj_hp(f, q)                  -- High-pass
+    * rbj_bp(f, q)                  -- Band-pass (constant skirt gain)
+    * rbj_bp2(f, q)                 -- Band-pass (constant 0 dB peak gain)
+    * rbj_notch(f, q)               -- Notch
+    * rbj_ap(f, q)                  -- All-pass
+    * rbj_peak(f, q, db_gain)       -- Peaking EQ
+    * rbj_low_shelf(f, q, db_gain)  -- Low-shelf
+    * rbj_high_shelf(f, q, db_gain) -- High-shelf
+      Example: lp.rbj_lp(1000, 0.5);
+      Sets up the filter for the specified cutoff frequency (in Hz) and Q
+      factor.
+
+   Filter Functions
+
+    * rbj_df1(s) -- Direct Form 1
+    * rbj_df2(s) -- Direct Form 2
+      Example: ss = lp.rbj_df2(s);
+      Sends the parameter through the filter, and returns its output.
 
 */
 
@@ -103,7 +125,7 @@ function rbj_bp(f, q)
 );
 
 
-// Band-pass (constant 0.0 dB peak gain)
+// Band-pass (constant 0 dB peak gain)
 
 function rbj_bp2(f, q)
   local(w0, alpha, a0)

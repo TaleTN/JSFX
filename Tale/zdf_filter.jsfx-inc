@@ -6,7 +6,7 @@ desc:2nd order zero-delay feedback state variable filter
 // (in the public domain) on the KVR forum.
 // http://www.kvraudio.com/forum/viewtopic.php?p=5243733#5243733
 
-/* Example #1:
+/* Example #1
 
    desc:Low-pass filter
    slider1:1000<20,20000,1>Corner Frequency (Hz)
@@ -22,7 +22,7 @@ desc:2nd order zero-delay feedback state variable filter
    mono = 0.5 * (spl0 + spl1);
    spl0 = spl1 = lp.zdf_svf(mono);
 
-   Example #2:
+   Example #2
 
    desc:Band-pass filter
    slider1:1000<20,20000,1>Corner Frequency (Hz)
@@ -36,6 +36,34 @@ desc:2nd order zero-delay feedback state variable filter
    @sample
    mono = 0.5 * (spl0 + spl1);
    spl0 = spl1 = bp.zdf_svf(mono);
+
+   Setting Functions
+
+    * zdf_lp(fc, q)             -- Low-pass
+    * zdf_hp(fc, q)             -- High-pass
+    * zdf_bp(fc, q)             -- Band-pass (constant skirt gain)
+    * zdf_bp2(fc, bw)           -- Band-pass (constant peak gain)
+    * zdf_notch(fc, bw)         -- Band-stop (notch)
+    * zdf_peak(fc, q, bw)       -- Bell (peaking EQ)
+    * zdf_low_shelf(fc, q, bw)  -- Low-shelf
+    * zdf_high_shelf(fc, q, bw) -- High-shelf
+    * zdf_ap(fc, bw)            -- All-pass
+      Example: lp.zdf_lp(1000, 0.7);
+      Sets up the filter for the specified cutoff frequency (in Hz), Q
+      factor, and/or bandwidth (in octaves).
+
+   Filter Functions
+
+    * ss = zdf_svf(s)
+      Example: ss = lp.zdf_svf(s);
+      Sends the parameter through the filter, and returns its output.
+
+    * zdf_svf_lp(s) -- Low-pass
+    * zdf_svf_hp(s) -- High-pass
+    * zdf_svf_bp(s) -- Band-pass
+      Example: ss = lp.zdf_svf_lp(s);
+      Specialized versions of zdf_svf(), each optimized for a specific
+      filter type.
 
 */
 

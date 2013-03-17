@@ -73,14 +73,15 @@ tuning = 2^(slider2 / 1200);
 
 slider9|0 != wave ? (
   wave = slider9|0;
-  // Resync leaky integrator
-  tg.leak.a = 0;
+  tg.poly_resetf();
+  // Resync leaky integrator(s)
+  tg.poly_leaky_reset();
 );
 
 // Pulse
 wave == 6 ? tg.poly_setpw(max(0.10, min(0.90, slider10))) :
 // Modified triangle
-wave == 8 ? tg.poly_setpw(max(0.0,  min(1.0,  slider10)));
+wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10)));
 
 noise = slider14 <= -36.0 ? 0.0 : 10^(slider14 / 20);
 

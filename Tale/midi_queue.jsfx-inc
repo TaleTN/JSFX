@@ -1,8 +1,8 @@
 desc:Sample accurate MIDI queue
-// (c) Theo Niessink 2012
+// (c) Theo Niessink 2012, 2013
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-/* Example:
+/* Example
 
    desc:Mono synth
    in_pin:none
@@ -32,7 +32,7 @@ desc:Sample accurate MIDI queue
        // Note On
        q.msg1 == 0x90 && velocity ? (
          note = q.msg23 & 0x7F;
-         dt = 2*$pi / srate * 440.0 * 2^((note - 69) / 12);
+         dt = 440 * 2^((note - 69) / 12) / srate;
        ) :
 
        // Note Off
@@ -42,12 +42,58 @@ desc:Sample accurate MIDI queue
 
        1; // while q.midiq_remove()
      );
-  );
+   );
 
-  // Sine wave oscillator
-  dt > 0 ? spl0 = spl1 = 0.5 * sin(t);
-  t += dt;
-  t >= 2*$pi ? t -= 2*$pi;
+   // Sine wave oscillator
+   dt > 0 ? spl0 = spl1 = 0.5 * sin(2*$pi * t);
+   t += dt;
+   t -= t|0;
+
+   Queue Functions
+
+    * midiq_init(index, size)
+      Example: q.midiq_init(0, 256);
+      Sets the offset and size of the local memory buffer to store the queue
+      in.
+
+      Note: You should call this function from the @init section.
+
+    * midiq_collect()
+      Example: q.midiq_collect();
+      Receives any MIDI messages, and adds them to the queue.
+
+      Note: You should call this function from the @block section.
+
+    * midiq_remove()
+      Example: avail = q.midiq_remove();
+      Checks if a MIDI message is available, removes it from the queue, and
+      stores it in the msg1 and msg23 instance variables.
+
+      Note: You should call this function in a while loop from the @sample
+      section.
+
+   Miscellaneous Functions
+
+    * midiq_rewind()
+      Example: q.midiq_rewind();
+      Rewinds the queue, so new MIDI messages can be added.
+
+      Note: This function is automatically called by midiq_collect().
+
+    * midiq_add(ofs, msg1, msg23)
+      Example: q.midiq_add(ofs, msg1, msg23);
+      Adds a MIDI message to the queue.
+
+   Instance Variables
+
+    * msg1
+    * msg23
+      Example: ch = q.msg1 & 0x0F;
+      The MIDI message that was last removed from the queue.
+
+    * ofs
+      Example: t = q.ofs / srate;
+      The offset within the current sample block, in samples.
 
 */
 

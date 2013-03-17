@@ -1,0 +1,129 @@
+desc:1st order RC filter
+// (c) Theo Niessink 2012, 2013
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:RC filter
+   slider1:1000<20,20000,1>Cutoff Frequency (Hz)
+   slider2:0<0,1,1{Low-pass,High-pass}>Mode
+
+   import rc_filter.jsfx-inc
+
+   @slider
+   lp_hp.rc_setf(slider1);
+
+   @sample
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = (slider2 < 0.5 ? lp_hp.rc_lp(mono) : lp_hp.rc_hp(mono));
+
+   Setting Functions
+
+    * rc_setf(f)
+      Example: lp.rc_setf(1000);
+      Sets the filter cutoff frequency (specified in Hz).
+
+    * rc_set(rc)
+      Example: lp.rc_set(0.00015);
+      Sets the filter cutoff frequency by means of the RC time constant
+      (specified in seconds).
+
+    * rc_sets(t)
+      Example: env.rc_sets(1.0);
+      Sets the filter cutoff frequency so that it takes the specified time
+      (in seconds) to almost fully (99.3%) change from one constant value to
+      another (e.g. from 0.0 to 1.0).
+
+    * rc_leaky_set(rc)
+      Example: sum.rc_leaky_set(0.022);
+      Sets the feedback coefficient of the leaky integrator to the specified
+      RC time constant (in seconds).
+
+   Filter Functions
+
+    * rc_lp(s) -- Low-pass
+    * rc_hp(s) -- High-pass
+    * rc_ap(s) -- All-pass
+      Example: ss = lp.rc_lp(s);
+      Sends the parameter through the filter, and returns its output.
+
+    * rc_leaky(s)
+      Example: ss = sum.rc_leaky(s);
+      Sends the parameter through the leaky integrator, and returns its
+      output.
+
+   Instance Variables
+
+    * a
+      Example: lp2.a = lp1.a;
+      The smoothing factor, as set by rc_set(), rc_setf(), or rc_sets().
+
+    * lp
+      Example: ss = lp.lp;
+      The low-pass filter output value.
+
+*/
+
+@init
+
+
+function rc_set(rc)
+  instance(a)
+(
+  a = 1 / (rc * srate + 1);  
+);
+
+
+function rc_setf(f)
+(
+  this.rc_set(1/(2*$pi * f));
+);
+
+
+function rc_sets(t)
+(
+  // Convert attack/decay/release time to RC time constant
+  this.rc_set(0.2 * t);
+);
+
+
+// Low-pass
+
+function rc_lp(s)
+  instance(lp, a)
+(
+  lp += a * (s - lp);
+);
+
+
+// High-pass
+
+function rc_hp(s)
+(
+  s - this.rc_lp(s);
+);
+
+
+// All-pass
+
+function rc_ap(s)
+  instance(lp)
+(
+  this.rc_lp(s);
+  lp - (s - lp);
+);
+
+
+// Leaky integrator
+
+function rc_leaky_set(rc)
+  instance(a)
+(
+  a = 1 - this.rc_set(rc);
+);
+
+function rc_leaky(s)
+  instance(lp, a)
+(
+  lp = a * (s + lp);
+);

@@ -1,0 +1,320 @@
+desc:Naive (non-bandlimited) low-frequency oscillator
+// (c) Theo Niessink 2012, 2013
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:Tremolo
+   slider1:4.0<0.0,20.0,0.1>Frequency (Hz)
+
+   import lfo.jsfx-inc
+
+   @slider
+   lfo.lfo_setf(slider1);
+
+   @sample
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = mono * (0.67 + 0.33 * lfo.lfo_tri());
+
+   Setting Functions
+
+    * lfo_setf(f)
+      Example: lfo.lfo_setf(4.0);
+      Sets the oscillator frequency (specified in Hz).
+
+    * lfo_setdt(dt)
+      Example: lfo2.lfo_setdt(lfo1.dt);
+      Sets the oscillator frequency (specified in seconds/sample).
+
+      (To convert from Hz to seconds/sample, divide by srate.)
+
+    * lfo_setpw(pw)
+      Example: lfo.lfo_setpw(0.30);
+      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
+      oscillator.
+
+   Waveform Functions
+
+    * lfo_sin()    -- Sine
+    * lfo_half()   -- Half-wave rectified sine
+    * lfo_full()   -- Full-wave rectified sine
+    * lfo_circ()   -- Circle
+    * lfo_tri()    -- Triangle
+    * lfo_tri2()   -- Modified triangle
+    * lfo_trap()   -- Trapezoid
+    * lfo_trip()   -- Triangular pulse
+    * lfo_sqr()    -- Square
+    * lfo_rect()   -- Rectangle (pulse)
+    * lfo_saw()    -- Sawtooth
+    * lfo_stairs() -- Staircase
+    * lfo_ham()    -- Hammond 88 8000 00
+      Example: s = lfo.lfo_tri();
+      Returns a sample of a waveform, and increments its phase.
+
+      Note: You will need to set a pulse width before you can use lfo_tri2()
+      or lfo_rect().
+
+      Note: lfo_ham() might not be suitable for vegetarians.
+
+   Miscellaneous Functions
+
+    * lfo_sync(t)
+      Example: lfo2.lfo_sync(lfo1.t + 0.5);
+      Synchronizes the oscillator with the specified phase.
+
+      Note: You can safely specify out or range (and even negative) values
+      here.
+
+    * lfo_inc()
+      Example: lfo.lfo_inc();
+      Increments the oscillator phase.
+
+      Note: All waveform functions automatically increment the phase.
+
+    * lfo_half_dc() -- Half-wave rectified sine
+    * lfo_full_dc() -- Full-wave rectified sine
+    * lfo_trip_dc() -- Triangular pulse
+      Example: s = lfo.lfo_full() - lfo_full_dc();
+      Returns the constant DC value for a waveform.
+
+    * lfo_rect_dc() -- Rectangle (pulse)
+      Example: s = lfo.lfo_rect() - lfo.lfo_rect_dc();
+      Returns the DC value for a rectangle waveform.
+
+   Instance Variables
+
+    * t
+      Example: phase = lfo.t;
+      The current phase [0.0..1.0) of the oscillator.
+
+    * dt
+      Example: freq = lfo.dt * srate;
+      The oscillator frequency, in seconds/sample.
+
+    * pw
+      Example: duty_cycle = lfo.pw;
+      The pulse width (0.0..1.0) of a rectangle or modified triangle
+      oscillator.
+
+*/
+
+@init
+
+
+function lfo_setf(f)
+  instance(dt)
+(
+  dt = f / srate;
+);
+
+function lfo_setdt(dt)
+(
+  this.dt = dt;
+);
+
+
+function lfo_setpw(pw)
+(
+  this.pw = pw;
+);
+
+
+function lfo_sync(t)
+(
+  t >= 0 ? t -= t|0 : t += 1 - (t|0);
+  this.t = t;
+);
+
+
+function lfo_inc()
+  instance(t, dt)
+(
+  t += dt;
+  t -= t|0;
+);
+
+
+// Sine
+
+function lfo_sin()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  sin(2*$pi * t);
+);
+
+
+// Half-wave rectified sine
+
+function lfo_half()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t < 0.5 ? -1 + 2*sin(2*$pi * t) : -1;
+);
+
+function lfo_half_dc()
+(
+  2/$pi - 1;
+);
+
+
+// Full-wave rectified sine
+
+function lfo_full()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  -1 + 2*sin($pi * t);
+);
+
+function lfo_full_dc()
+(
+  4/$pi - 1;
+);
+
+
+// Circle
+
+function lfo_circ()
+  local(t, t2, s)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t2 = 2*t;
+  t2 -= (t2|0) + 0.5;
+  s = 2 * sqrt(0.25 - t2*t2);
+  t < 0.5 ? s : -s;
+);
+
+
+// Triangle
+
+function lfo_tri()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t *= 4;
+  t >= 3 ? t - 4 : t >= 1 ? 2 - t : t;
+);
+
+
+// Modified triangle
+
+function lfo_tri2()
+  local(t, pw)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t *= 4;
+  pw = 2 * this.pw;
+  t >= 4 - pw ? (t - 4) / pw : t >= pw ? 1 - (t - pw) / (2 - pw) : t / pw;
+);
+
+
+// Trapezoid
+
+function lfo_trap()
+(
+  max(-1, min(1, 2 * this.lfo_tri()));
+);
+
+
+// Triangular pulse
+
+function lfo_trip()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t >= 0.5 ? -1 : (
+    t *= 4;
+    t >= 1 ? 3 - 2*t : 2*t - 1;
+  );
+);
+
+function lfo_trip_dc()
+(
+  -0.5;
+);
+
+
+// Square
+
+function lfo_sqr()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t < 0.5 ? 1 : -1;
+);
+
+
+// Rectangle
+
+function lfo_rect()
+  instance(pw)
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t < pw ? 1 : -1;
+);
+
+function lfo_rect_dc()
+  instance(pw)
+(
+  2*pw - 1;
+);
+
+
+// Sawtooth
+
+function lfo_saw()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t *= 2;
+  t >= 1 ? t - 2 : t;
+);
+
+
+// Staircase
+
+function lfo_stairs()
+  local(t, t2)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t2 = 2*t;
+  t2 -= t2|0;
+  (t < 0.5 ? 2/3 : -2/3) + (t2 < 0.5 ? 2/6 : -2/6);
+);
+
+
+// Hammond 88 8000 00
+
+function lfo_ham()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  0.4 * (sin(2*$pi * t) + sin(4*$pi * t) + sin(6*$pi * t));
+);
