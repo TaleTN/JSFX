@@ -1,5 +1,10 @@
 JS mono_synth & libs
 
+20130321 (21 March 2013)
+ + lcg: Added noise generator
+ + mono_synth: Implemented new noise generator
+ + zdf: Fix denormals in high-pass output
+
 20130317 (St. Paddy's Day 2013)
  + Added documentation to .jsfx-inc libraries
  + lfo/poly/tg: Changed phase and pulse width range to 0..1

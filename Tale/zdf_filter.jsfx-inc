@@ -331,6 +331,8 @@ function zdf_svf(s)
 (
   // compute highpass output via Eq. 5.1:
   yh = (s - r2*s1 - g*s1 - s2) * h;
+  // Zero denormals
+  abs(yh) < 0.00000000000000006 ? yh = 0;
 
   // compute bandpass output by applying 1st integrator to highpass output:
   yb = g*yh + s1;
@@ -353,6 +355,7 @@ function zdf_svf_lp(s)
   local(yl, yb, yh)
 (
   yh = (s - r2*s1 - g*s1 - s2) * h;
+  abs(yh) < 0.00000000000000006 ? yh = 0;
   yb = g*yh + s1; s1 = g*yh + yb;
   yl = g*yb + s2; s2 = g*yb + yl;
   yl;
@@ -363,6 +366,7 @@ function zdf_svf_hp(s)
   local(yl, yb, yh)
 (
   yh = (s - r2*s1 - g*s1 - s2) * h;
+  abs(yh) < 0.00000000000000006 ? yh = 0;
   yb = g*yh + s1; s1 = g*yh + yb;
   yl = g*yb + s2; s2 = g*yb + yl;
   yh;
@@ -373,6 +377,7 @@ function zdf_svf_bp(s)
   local(yl, yb, yh)
 (
   yh = (s - r2*s1 - g*s1 - s2) * h;
+  abs(yh) < 0.00000000000000006 ? yh = 0;
   yb = g*yh + s1; s1 = g*yh + yb;
   yl = g*yb + s2; s2 = g*yb + yl;
   yb;

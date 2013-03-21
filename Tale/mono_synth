@@ -23,6 +23,7 @@ import midi_queue.jsfx-inc
 import rc_filter.jsfx-inc
 import zdf_filter.jsfx-inc
 import poly_blep.jsfx-inc
+import noise_generator.jsfx-inc
 
 
 @init
@@ -190,9 +191,9 @@ adsr <= 0 ? s = 0.0 : (
         wave == 9  ? tg.poly_trip():
         wave == 10 ? tg.poly_ham():
       /*wave == 11*/ tg.poly_stairs();
-    noise > 0.0 ? s = noise * (-1 + rand(2)) + (1.0 - noise) * s;
+    noise > 0.0 ? s = noise * (noise.lcg_white()) + (1.0 - noise) * s;
   ) : (
-    s = -1 + rand(2);
+    s = noise.lcg_white();
   );
 
   s *= gain.lp * env.lp;
