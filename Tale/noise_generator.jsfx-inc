@@ -45,6 +45,12 @@ desc:Noise generator
       Example: s = lcg_rand(x);
       Returns a psuedorandom number between 0 and the parameter.
 
+   Instance Variables
+
+    * seed
+      Example: rng2.lcg_init(rng1.seed);
+      The current seed value.
+
 */
 
 @init
