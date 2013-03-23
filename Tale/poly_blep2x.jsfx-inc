@@ -32,8 +32,8 @@ desc:PolyBLEP 2x oversampled quasi-bandlimited tone generator
 
     * poly2_setpw(pw)
       Example: osc.poly2_setpw(0.30);
-      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
-      oscillator.
+      Sets the pulse width (0.0..1.0) for a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
     * poly2_leaky_set(rc)
       Example: osc.poly2_leaky_set(0.022);
@@ -64,11 +64,6 @@ desc:PolyBLEP 2x oversampled quasi-bandlimited tone generator
     * poly2_ham()    -- Hammond 88 8000 00
       Example: s = osc.poly2_saw();
       Returns a sample of a waveform, and increments its phase.
-      
-      Note: You will need to set a pulse width before you can use
-      poly2_rect() or poly2_tri2().
-      
-      Note: poly2_ham() might not be suitable for vegetarians.
 
    Miscellaneous Functions
 
@@ -124,8 +119,8 @@ desc:PolyBLEP 2x oversampled quasi-bandlimited tone generator
 
     * pw
       Example: duty_cycle = osc.pw;
-      The pulse width (0.0..1.0) of a rectangle or modified triangle
-      oscillator.
+      The pulse width (0.0..1.0) of a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
 */
 
@@ -186,12 +181,6 @@ function _poly2_leaky(s)
   instance(leak.a, leak.lp)
 (
   leak.lp = leak.a * (s + leak.lp);
-);
-
-function _poly2_leaky2(s)
-  instance(leak.a, leak.lp2)
-(
-  leak.lp2 = leak.a * (s + leak.lp2);
 );
 
 
@@ -324,6 +313,8 @@ function poly2_rect()
   this._poly2_shift();
   dt2 = 0.5*dt;
 
+  pw <= 0 ? pw = 0.5;
+
   t1 = this.t + dt;
   t1 -= t1|0;
   t2 = t1 + 1 - pw;
@@ -454,6 +445,8 @@ function _poly2_init_tri2(t, pw)
 function poly2_init_tri2()
   instance(leak.a, leak.lp, t, pw)
 (
+  pw <= 0 ? pw = 0.5;
+
   !leak.a ? this.poly2_leaky_set(0);
   leak.lp = _poly2_init_tri2(t, pw);
 );
@@ -464,6 +457,8 @@ function poly2_tri2()
 (
   this._poly2_shift();
   dt2 = 0.5*dt;
+
+  pw <= 0 ? pw = 0.5;
 
   !leak.a ? (
     this.poly2_leaky_set(0);
@@ -597,34 +592,34 @@ function poly2_circ()
 // Trapezoid
 
 function _poly2_init_trap(t)
-  instance(leak.lp, leak.lp2)
+  local(tmp)
 (
   t += 0.125;
   t -= t|0;
-  leak.lp = _poly2_init_tri(t);
+  tmp = _poly2_init_tri(t);
 
   t += 0.25;
   t -= t|0;
-  leak.lp2 = _poly2_init_tri(t);
+  tmp - _poly2_init_tri(t);
 );
 
 function poly2_init_trap()
-  instance(leak.a, t)
+  instance(leak.a, leak.lp, t)
 (
   !leak.a ? this.poly2_leaky_set(0);
-  this._poly2_init_trap(t);
+  leak.lp = _poly2_init_trap(t);
 );
 
 function poly2_trap()
-  instance(dt, leak.a, leak.lp, leak.lp2, x1, x0, a)
-  local(t1, t2, dt2, scale)
+  instance(dt, leak.a, leak.lp, x1, x0, a)
+  local(t1, t2, dt2, scale, tmp)
 (
   this._poly2_shift();
   dt2 = 0.5*dt;
 
   !leak.a ? (
     this.poly2_leaky_set(0);
-    this._poly2_init_trap(this.t);
+    leak.lp = _poly2_init_trap(this.t);
   );
 
   scale = 4*dt2;
@@ -635,7 +630,7 @@ function poly2_trap()
   t2 -= t2|0;
 
   // Triangle #1
-  this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  tmp = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
 
   t1 += 0.25;
   t1 -= t1|0;
@@ -643,8 +638,8 @@ function poly2_trap()
   t2 -= t2|0;
 
   // Triangle #2
-  this._poly2_leaky2(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
-  x1 = leak.lp - leak.lp2;
+  tmp -= (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+  x1 = this._poly2_leaky(scale * tmp);
 
   t1 = this.t + 0.375 + 2.5*dt2;
   t1 -= t1|0;
@@ -652,7 +647,7 @@ function poly2_trap()
   t2 -= t2|0;
 
   // Triangle #1
-  this._poly2_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  tmp = (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
 
   t1 += 0.25;
   t1 -= t1|0;
@@ -660,8 +655,8 @@ function poly2_trap()
   t2 -= t2|0;
 
   // Triangle #2
-  this._poly2_leaky2(scale * ((t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
-  x0 = leak.lp - leak.lp2;
+  tmp -= (t1 < 0.5 ? 1 : -1) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+  x0 = this._poly2_leaky(scale * tmp);
 
   this.poly2_inc();
 
@@ -671,72 +666,79 @@ function poly2_trap()
 
 // Triangular pulse
 
-function _poly2_init_trip(t)
-  instance(leak.lp, leak.lp2, a)
+function _poly2_init_trip(t, pw)
+  local(tmp, pw2)
 (
-  t += 0.125;
-  t -= t|0;
-  leak.lp = 0.75 * _poly2_init_tri2(t, 0.75);
+  pw2 = 0.5*pw;
+  pw = 1 - pw2;
+  t = _poly2_sync(t + 0.5 - 1.5*pw2);
+  tmp = _poly2_init_tri2(t, pw);
 
-  t += 0.25;
+  t += pw2;
   t -= t|0;
-  leak.lp2 = 0.75 * _poly2_init_tri2(t, 0.75);
+  pw * (tmp - _poly2_init_tri2(t, pw));
 );
 
 function poly2_init_trip()
-  instance(leak.a, t)
+  instance(leak.a, leak.lp, t, pw)
 (
+  pw <= 0 ? pw = 0.5;
+
   !leak.a ? this.poly2_leaky_set(0);
-  this._poly2_init_trip(t);
+  leak.lp = _poly2_init_trip(t, pw);
 );
 
 function poly2_trip()
-  instance(dt, leak.a, leak.lp, leak.lp2, x1, x0, a)
-  local(t1, t2, dt2, scale)
+  instance(dt, leak.a, leak.lp, x1, x0, a)
+  local(t1, t2, dt2, pw, pw2, scale, tmp)
 (
   this._poly2_shift();
   dt2 = 0.5*dt;
 
+  this.pw <= 0 ? this.pw = 0.5;
+
   !leak.a ? (
     this.poly2_leaky_set(0);
-    this._poly2_init_trip(this.t);
+    leak.lp = _poly2_init_trip(this.t, this.pw);
   );
 
-  scale = 4*dt2;
+  pw2 = 0.5 * this.pw;
+  pw = 1 - pw2;
+  scale = dt2/pw2;
 
-  t1 = this.t + 0.5 + 1.5*dt2;
+  t1 = this.t + 1 - this.pw + 1.5*dt2;
   t1 -= t1|0;
-  t2 = t1 + 0.25;
+  t2 = t1 + 1 - pw;
   t2 -= t2|0;
 
-  // Modified triangle #1 (pw = 0.75)
-  this._poly2_leaky(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  // Modified triangle #1
+  tmp = (t1 < pw ? this.pw : this.pw - 2) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
 
-  t1 += 0.25;
+  t1 += pw2;
   t1 -= t1|0;
-  t2 += 0.25;
+  t2 += pw2;
   t2 -= t2|0;
 
-  // Modified triangle #2 (pw = 0.75)
-  this._poly2_leaky2(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
-  x1 = leak.lp - leak.lp2;
+  // Modified triangle #2
+  tmp -= (t1 < pw ? this.pw : this.pw - 2) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+  x1 = this._poly2_leaky(scale * tmp);
 
-  t1 = this.t + 0.5 + 2.5*dt2;
+  t1 = this.t + 1 - this.pw + 2.5*dt2;
   t1 -= t1|0;
-  t2 = t1 + 0.25;
+  t2 = t1 + 1 - pw;
   t2 -= t2|0;
 
-  // Modified triangle #1 (pw = 0.75)
-  this._poly2_leaky(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
+  // Modified triangle #1
+  tmp = (t1 < pw ? this.pw : this.pw - 2) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
 
-  t1 += 0.25;
+  t1 += pw2;
   t1 -= t1|0;
-  t2 += 0.25;
+  t2 += pw2;
   t2 -= t2|0;
 
-  // Modified triangle #2 (pw = 0.75)
-  this._poly2_leaky2(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2)));
-  x0 = leak.lp - leak.lp2;
+  // Modified triangle #2
+  tmp -= (t1 < pw ? this.pw : this.pw - 2) + poly2_blep(t1, dt2) - poly2_blep(t2, dt2);
+  x0 = this._poly2_leaky(scale * tmp);
 
   this.poly2_inc();
 

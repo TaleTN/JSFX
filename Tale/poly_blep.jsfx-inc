@@ -33,8 +33,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
 
     * poly_setpw(pw)
       Example: osc.poly_setpw(0.30);
-      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
-      oscillator.
+      Sets the pulse width (0.0..1.0) for a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
     * poly_leaky_set(rc)
       Example: osc.poly_leaky_set(0.022);
@@ -65,11 +65,6 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_ham()    -- Hammond 88 8000 00
       Example: s = osc.poly_saw();
       Returns a sample of a waveform, and increments its phase.
-
-      Note: You will need to set a pulse width before you can use
-      poly_rect() or poly_tri2().
-
-      Note: poly_ham() might not be suitable for vegetarians.
 
    Miscellaneous Functions
 
@@ -125,8 +120,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
 
     * pw
       Example: duty_cycle = osc.pw;
-      The pulse width (0.0..1.0) of a rectangle or modified triangle
-      oscillator.
+      The pulse width (0.0..1.0) of a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
 */
 
@@ -187,12 +182,6 @@ function _poly_leaky(s)
   instance(leak.a, leak.lp)
 (
   leak.lp = leak.a * (s + leak.lp);
-);
-
-function _poly_leaky2(s)
-  instance(leak.a, leak.lp2)
-(
-  leak.lp2 = leak.a * (s + leak.lp2);
 );
 
 
@@ -277,6 +266,8 @@ function poly_rect()
   instance(dt, pw, a)
   local(t1, t2)
 (
+  pw <= 0 ? pw = 0.5;
+
   t1 = this.t;
   t2 = t1 + 1 - pw;
   t2 -= t2|0;
@@ -371,6 +362,8 @@ function _poly_init_tri2(t, pw)
 function poly_init_tri2()
   instance(leak.a, leak.lp, t, pw)
 (
+  pw <= 0 ? pw = 0.5;
+
   !leak.a ? this.poly_leaky_set(0);
   leak.lp = _poly_init_tri2(t, pw);
 );
@@ -379,6 +372,8 @@ function poly_tri2()
   instance(dt, pw, leak.a, leak.lp, a)
   local(t1, t2, scale)
 (
+  pw <= 0 ? pw = 0.5;
+
   !leak.a ? (
     this.poly_leaky_set(0);
     leak.lp = _poly_init_tri2(this.t, pw);
@@ -479,41 +474,39 @@ function poly_circ()
 // Trapezoid
 
 function _poly_init_trap(t)
-  instance(leak.lp, leak.lp2)
+  local(tmp)
 (
   t += 0.125;
   t -= t|0;
-  leak.lp = _poly_init_tri(t);
+  tmp = _poly_init_tri(t);
 
   t += 0.25;
   t -= t|0;
-  leak.lp2 = _poly_init_tri(t);
+  tmp - _poly_init_tri(t);
 );
 
 function poly_init_trap()
-  instance(leak.a, t)
+  instance(leak.a, leak.lp, t)
 (
   !leak.a ? this.poly_leaky_set(0);
-  this._poly_init_trap(t);
+  leak.lp = _poly_init_trap(t);
 );
 
 function poly_trap()
-  instance(dt, leak.a, leak.lp, leak.lp2, a)
-  local(t1, t2, scale)
+  instance(dt, leak.a, leak.lp, a)
+  local(t1, t2, tmp)
 (
   !leak.a ? (
     this.poly_leaky_set(0);
-    this._poly_init_trap(this.t);
+    leak.lp = _poly_init_trap(this.t);
   );
-
-  scale = 4*dt;
 
   t1 = _poly_sync(this.t + 0.375 - 0.5*dt);
   t2 = t1 + 0.5;
   t2 -= t2|0;
 
   // Triangle #1
-  this._poly_leaky(scale * ((t1 < 0.5 ? 1 : -1) + poly_blep(t1, dt) - poly_blep(t2, dt)));
+  tmp = (t1 < 0.5 ? 1 : -1) + poly_blep(t1, dt) - poly_blep(t2, dt);
 
   t1 += 0.25;
   t1 -= t1|0;
@@ -521,64 +514,71 @@ function poly_trap()
   t2 -= t2|0;
 
   // Triangle #2
-  this._poly_leaky2(scale * ((t1 < 0.5 ? 1 : -1) + poly_blep(t1, dt) - poly_blep(t2, dt)));
+  tmp -= (t1 < 0.5 ? 1 : -1) + poly_blep(t1, dt) - poly_blep(t2, dt);
+  this._poly_leaky(4*dt * tmp);
 
   this.poly_inc();
 
-  a * (leak.lp - leak.lp2);
+  a * leak.lp;
 );
 
 
 // Triangular pulse
 
-function _poly_init_trip(t)
-  instance(leak.lp, leak.lp2, a)
+function _poly_init_trip(t, pw)
+  local(tmp, pw2)
 (
-  t += 0.125;
-  t -= t|0;
-  leak.lp = 0.75 * _poly_init_tri2(t, 0.75);
+  pw2 = 0.5*pw;
+  pw = 1 - pw2;
+  t = _poly_sync(t + 0.5 - 1.5*pw2);
+  tmp = _poly_init_tri2(t, pw);
 
-  t += 0.25;
+  t += pw2;
   t -= t|0;
-  leak.lp2 = 0.75 * _poly_init_tri2(t, 0.75);
+  pw * (tmp - _poly_init_tri2(t, pw));
 );
 
 function poly_init_trip()
-  instance(leak.a, t)
+  instance(leak.a, leak.lp, t, pw)
 (
+  pw <= 0 ? pw = 0.5;
+
   !leak.a ? this.poly_leaky_set(0);
-  this._poly_init_trip(t);
+  leak.lp = _poly_init_trip(t, pw);
 );
 
 function poly_trip()
-  instance(dt, leak.a, leak.lp, leak.lp2, a)
-  local(t1, t2, scale)
+  instance(dt, pw, leak.a, leak.lp, a)
+  local(t1, t2, pw, pw2, tmp)
 (
+  this.pw <= 0 ? this.pw = 0.5;
+
   !leak.a ? (
     this.poly_leaky_set(0);
-    this._poly_init_trip(this.t);
+    leak.lp = _poly_init_trip(this.t, this.pw);
   );
 
-  scale = 4*dt;
-
-  t1 = _poly_sync(this.t + 0.5 - 0.5*dt);
-  t2 = t1 + 0.25;
+  pw2 = 0.5 * this.pw;
+  pw = 1 - pw2;
+  t1 = _poly_sync(this.t + 1 - this.pw - 0.5*dt);
+  t2 = t1 + 1 - pw;
   t2 -= t2|0;
 
-  // Modified triangle #1 (pw = 0.75)
-  this._poly_leaky(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly_blep(t1, dt) - poly_blep(t2, dt)));
+  // Modified triangle #1
+  tmp = (t1 < pw ? this.pw : this.pw - 2) + poly_blep(t1, dt) - poly_blep(t2, dt);
 
-  t1 += 0.25;
+  t1 += pw2;
   t1 -= t1|0;
-  t2 += 0.25;
+  t2 += pw2;
   t2 -= t2|0;
 
-  // Modified triangle #2 (pw = 0.75)
-  this._poly_leaky2(scale * ((t1 < 0.75 ? 0.5 : -1.5) + poly_blep(t1, dt) - poly_blep(t2, dt)));
+  // Modified triangle #2
+  tmp -= (t1 < pw ? this.pw : this.pw - 2) + poly_blep(t1, dt) - poly_blep(t2, dt);
+  this._poly_leaky(dt/pw2 * tmp);
 
   this.poly_inc();
 
-  a * (leak.lp - leak.lp2);
+  a * leak.lp;
 );
 
 

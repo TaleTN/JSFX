@@ -30,8 +30,8 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * lfo_setpw(pw)
       Example: lfo.lfo_setpw(0.30);
-      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
-      oscillator.
+      Sets the pulse width (0.0..1.0) for a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
    Waveform Functions
 
@@ -50,9 +50,6 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_ham()    -- Hammond 88 8000 00
       Example: s = lfo.lfo_tri();
       Returns a sample of a waveform, and increments its phase.
-
-      Note: You will need to set a pulse width before you can use lfo_tri2()
-      or lfo_rect().
 
       Note: lfo_ham() might not be suitable for vegetarians.
 
@@ -73,13 +70,13 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * lfo_half_dc() -- Half-wave rectified sine
     * lfo_full_dc() -- Full-wave rectified sine
-    * lfo_trip_dc() -- Triangular pulse
       Example: s = lfo.lfo_full() - lfo_full_dc();
       Returns the constant DC value for a waveform.
 
     * lfo_rect_dc() -- Rectangle (pulse)
+    * lfo_trip_dc() -- Triangular pulse
       Example: s = lfo.lfo_rect() - lfo.lfo_rect_dc();
-      Returns the DC value for a rectangle waveform.
+      Returns the pulse width dependent DC value for a waveform.
 
    Instance Variables
 
@@ -93,8 +90,8 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * pw
       Example: duty_cycle = lfo.pw;
-      The pulse width (0.0..1.0) of a rectangle or modified triangle
-      oscillator.
+      The pulse width (0.0..1.0) of a rectangle, modified triangle, or
+      triangular pulse oscillator.
 
 */
 
@@ -233,20 +230,24 @@ function lfo_trap()
 // Triangular pulse
 
 function lfo_trip()
+  instance(pw)
   local(t)
 (
+  pw <= 0 ? pw = 0.5;
+
   t = this.t;
   this.lfo_inc();
 
-  t >= 0.5 ? -1 : (
+  t >= pw ? -1 : (
     t *= 4;
-    t >= 1 ? 3 - 2*t : 2*t - 1;
+    t >= 2*pw ? 3 - t/pw : t/pw - 1;
   );
 );
 
 function lfo_trip_dc()
+  instance(pw)
 (
-  -0.5;
+  pw - 1;
 );
 
 
@@ -268,6 +269,8 @@ function lfo_rect()
   instance(pw)
   local(t)
 (
+  pw <= 0 ? pw = 0.5;
+
   t = this.t;
   this.lfo_inc();
 

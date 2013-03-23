@@ -1,5 +1,10 @@
 JS mono_synth & libs
 
+20130323 (23 March 2013):
+ + lfo/poly/poly2: Added variable pulse width to tripulse
+ + lfo/poly/poly2/tg: Automatically set default pulse width
+ + poly/poly2: Merged trapezoid and tripulse integrators
+
 20130322 (22 March 2013):
  + zdf: Prevent denormals, part deux
 

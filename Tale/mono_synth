@@ -82,7 +82,9 @@ slider9|0 != wave ? (
 // Pulse
 wave == 6 ? tg.poly_setpw(max(0.10, min(0.90, slider10))) :
 // Modified triangle
-wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10)));
+wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10))) :
+// Trianglular pulse
+wave == 9 ? tg.poly_setpw(0.5);
 
 noise = slider14 <= -36.0 ? 0.0 : 10^(slider14 / 20);
 

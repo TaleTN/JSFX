@@ -67,8 +67,7 @@ desc:Fourier series bandlimited tone generator
 
     * tg_setpw(pw)
       Example: osc.tg_setpw(0.30);
-      Sets the pulse width (0.0..1.0) for a rectangle or modified triangle
-      oscillator.
+      Sets the pulse width (0.0..1.0) for a rectangle oscillator.
 
     * tg_setbw(bw)
       Example: osc.tg_setbw(12000); // 12 kHz
@@ -94,11 +93,6 @@ desc:Fourier series bandlimited tone generator
     * tg_ham()  -- Hammond 88 8000 00
       Example: s = osc.tg_saw();
       Returns a sample of a waveform, and increments its phase.
-
-      Note: You will need to set a pulse width before you can use
-      tg_rect() or tg_tri2().
-      
-      Note: tg_ham() might not be suitable for vegetarians.
 
    Miscellaneous Functions
 
@@ -127,8 +121,7 @@ desc:Fourier series bandlimited tone generator
 
     * pw
       Example: duty_cycle = osc.pw;
-      The pulse width (0.0..1.0) of a rectangle or modified triangle
-      oscillator.
+      The pulse width (0.0..1.0) of a rectangle oscillator.
 
     * bw
       Example: osc2.tg_setbw(osc1.bw);
@@ -497,6 +490,8 @@ function tg_rect()
   instance(dt, pw, a, cache, size)
   local(t, pw2, n, num, s, i)
 (
+  pw <= 0 ? pw = 0.5;
+
   t = this.t;
   this.tg_inc();
 
