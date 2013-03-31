@@ -51,8 +51,6 @@ desc:Naive (non-bandlimited) low-frequency oscillator
       Example: s = lfo.lfo_tri();
       Returns a sample of a waveform, and increments its phase.
 
-      Note: lfo_ham() might not be suitable for vegetarians.
-
    Miscellaneous Functions
 
     * lfo_sync(t)

@@ -54,7 +54,7 @@ desc:2nd order zero-delay feedback state variable filter
 
    Filter Functions
 
-    * ss = zdf_svf(s)
+    * zdf_svf(s)
       Example: ss = lp.zdf_svf(s);
       Sends the parameter through the filter, and returns its output.
 

@@ -5,7 +5,6 @@ desc:Sample accurate MIDI queue
 /* Example
 
    desc:Mono synth
-   in_pin:none
 
    import midi_queue.jsfx-inc
 
@@ -26,21 +25,21 @@ desc:Sample accurate MIDI queue
      q.midiq_remove() ? (
 
        // Parse MIDI message
-       q.msg1 &= 0xF0;
+       status = q.msg1 & 0xF0;
        velocity = q.msg23 >> 8;
 
        // Note On
-       q.msg1 == 0x90 && velocity ? (
+       status == 0x90 && velocity ? (
          note = q.msg23 & 0x7F;
          dt = 440 * 2^((note - 69) / 12) / srate;
        ) :
 
        // Note Off
-       q.msg1 == 0x80 || (q.msg1 == 0x90 && !velocity) ? (
+       status == 0x80 || (status == 0x90 && !velocity) ? (
          q.msg23 & 0x7F == note ? dt = 0;
        );
 
-       1; // while q.midiq_remove()
+       1; // while midiq_remove()
      );
    );
 
@@ -100,9 +99,9 @@ desc:Sample accurate MIDI queue
 @init
 
 
-function midiq_init(mem, size)
+function midiq_init(index, size)
 (
-  this.buf = mem;
+  this.buf = index;
 
   // Maximum number of MIDI events (0 for unlimited size)
   this.size = size * 3;

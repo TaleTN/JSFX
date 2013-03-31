@@ -66,6 +66,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Example: s = osc.poly_saw();
       Returns a sample of a waveform, and increments its phase.
 
+      Note: poly_ham() might not be suitable for vegetarians.
+
    Miscellaneous Functions
 
     * poly_sync(t)

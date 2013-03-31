@@ -109,6 +109,13 @@ desc:Fourier series bandlimited tone generator
 
       Note: All waveform functions automatically increment the phase.
 
+    * tg_init_circ(mem, lf) -- Circle
+    * tg_init_rect(mem, lf) -- Rectangle (pulse)
+      Example: osc.tg_init_rect(0, 20);
+      Sets the offset of the local memory buffer used to cache calculations,
+      and the lowest frequency (in Hz) to be used. Returns the size of the
+      buffer.
+
    Instance Variables
 
     * t
@@ -128,6 +135,7 @@ desc:Fourier series bandlimited tone generator
       The oscillator bandwidth, in Hz.
 
     * n
+      Example: num_harmonics = osc.n - 1;
       The oscillator bandwidth, in harmonics. A waveform will include up to
       n-1 harmonics.
 
@@ -181,7 +189,7 @@ function tg_setpw(pw)
   instance(cache, size)
 (
   pw < this.pw || pw > this.pw ? (
-    memset(cache, 0, size);
+    size ? memset(cache, 0, size);
     this.pw = pw;
   );
 );
@@ -286,8 +294,10 @@ function tg_init_circ(mem, lf)
 (
   this.tg_setbw(0);
   cache = mem;
-  size = ceil(bw / lf) / 2 |0;
-  memset(cache, 0, size);
+  size = lf > 0 ? ceil(bw / lf) / 2 |0 : 0;
+  size ? memset(cache, 0, size);
+
+  size;
 );
 
 function tg_circ()
@@ -311,18 +321,31 @@ function tg_circ()
     t *= 2*$pi;
     s = 0.0;
     n = 1;
-    num = min(this.n, size * 2);
-    loop((num - 1) / 2,
-      i = n / 2 |0;
-      !cache[i] ? cache[i] = 1/n^(2 - exp(-1));
-      s += sin(n * t) * cache[i];
-      n += 2;
+
+    // Cached
+    size ? (
+      num = min(this.n, size * 2);
+      loop((num - 1) / 2,
+        i = n / 2 |0;
+        !cache[i] ? cache[i] = 1/n^(2 - exp(-1));
+        s += sin(n * t) * cache[i];
+        n += 2;
+      );
+      n < num ? (
+        i = n / 2 |0;
+        !cache[i] ? cache[i] = 1/n^(2 - exp(-1));
+        s += a * sin(n * t) * cache[i];
+      );
+
+    // Cacheless
+    ) : (
+      loop((this.n - 1) / 2,
+        s += sin(n * t) / n^(2 - exp(-1));
+        n += 2;
+      );
+      n < this.n ? s += a * sin(n * t) / n^(2 - exp(-1));
     );
-    n < num ? (
-      i = n / 2 |0;
-      !cache[i] ? cache[i] = 1/n^(2 - exp(-1));
-      s += a * sin(n * t) * cache[i];
-    );
+
     (1 + exp(-2)) * s;
   );
 );
@@ -483,7 +506,10 @@ function tg_init_rect(mem, lf)
 (
   this.tg_setbw(0);
   cache = mem;
-  size = ceil(bw / lf);
+  size = lf > 0 ? ceil(bw / lf) : 0;
+  size ? memset(cache, 0, size);
+
+  size;
 );
 
 function tg_rect()
@@ -506,18 +532,31 @@ function tg_rect()
     pw2 = $pi * pw;
     s = 0.0;
     n = 1;
-    num = min(this.n, size + 1);
-    loop(num - 2,
-      i = n - 1;
-      !cache[i] ? cache[i] = sin(n * pw2) / n;
-      s += cos(n * t) * cache[i];
-      n += 1;
+
+    // Cached
+    size ? (
+      num = min(this.n, size + 1);
+      loop(num - 2,
+        i = n - 1;
+        !cache[i] ? cache[i] = sin(n * pw2) / n;
+        s += cos(n * t) * cache[i];
+        n += 1;
+      );
+      n < num ? (
+        i = n - 1;
+        !cache[i] ? cache[i] = sin(n * pw2) / n;
+        s += a * cos(n * t) * cache[i];
+      );
+
+    // Cacheless
+    ) : (
+      loop(this.n - 2,
+        s += cos(n * t) * sin(n * pw2) / n;
+        n += 1;
+      );
+      n < this.n ? s += a * cos(n * t) * sin(n * pw2) / n;
     );
-    n < num ? (
-      i = n - 1;
-      !cache[i] ? cache[i] = sin(n * pw2) / n;
-      s += a * cos(n * t) * cache[i];
-    );
+
     4/$pi * s;
   );
 );

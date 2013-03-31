@@ -1,5 +1,14 @@
 JS mono_synth & libs
 
+20130401 (1 April 2013):
+ + synth: Added mono synth lib (mono_synth.jsfx-inc)
+ + adsr: Added ADSR envelope (adsr.jsfx-inc)
+ + mono_synth: Fixed sample drift in ADSR
+ + mono_synth: Fixed retriggering filter decay
+ + tg: Added cacheless rectangle and circle (slow!)
+ + tg: Fixed rectangle init not clearing cache
+ + Documentation nitpicks
+
 20130323 (23 March 2013):
  + lfo/poly/poly2: Added variable pulse width to tripulse
  + lfo/poly/poly2/tg: Automatically set default pulse width

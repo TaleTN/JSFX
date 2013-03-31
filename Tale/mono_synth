@@ -19,7 +19,8 @@ slider18:1.0<0.01,4.0,0.01>Filter Q
 out_pin:Synth output
 out_pin:Synth output
 
-import midi_queue.jsfx-inc
+import mono_synth.jsfx-inc
+import adsr.jsfx-inc
 import rc_filter.jsfx-inc
 import zdf_filter.jsfx-inc
 import poly_blep.jsfx-inc
@@ -28,49 +29,41 @@ import noise_generator.jsfx-inc
 
 @init
 
-midiq.midiq_init(0, 0);
-
-inf = 10^(-120.0 / 20);
-step5 = exp(-5);
-
 lpf.m = 50;
 lpf.ln = log(lpf.m);
 
 gain.rc_set(0.0033);
 lpf.rc.a = gain.a;
 
-function set_pitch() ( pitch = pitch_range > 0.0 ? 2^(pitch_wheel / ((pitch_wheel >= 0 ? 8191 : 8192) * pitch_range)) : 1.0; );
-
 function set_freq()
 (
-  tuned_freq = tuning * freq;
-  tg.poly_setf(pitch * tuned_freq);
+  tuned_freq = synth.freq / synth.pitch;
+  tg.poly_setf(synth.freq);
   lpf.env.a <= 0 ? lpf.freq = lpf.n * tuned_freq;
 );
 
-function adsr_a() ( adsr = 1; env.a = adsr.a; lpf.env.lp = lpf.m; );
-function adsr_d() ( adsr = 2; env.a = adsr.d; );
-function adsr_s() ( adsr = 3; env.lp = adsr.s * vel; );
-function adsr_r() ( adsr = 4; env.a = adsr.r; );
-
-pitch_wheel = 0;
-pitch = 1.0;
+function adsr_a()
+(
+  adsr.adsr_a(synth.velocity);
+  lpf.env.lp = lpf.m;
+);
 
 
 @slider
 
-function amp(db) ( db <= -120.0 ? 0.0 : 10^(db / 20); );
-function rc(ms, lo, hi) ( adsr.rc_sets(0.001 * max(lo, min(hi, ms))); );
+function amp(db, inf) ( db <= inf ? 0.0 : 10^(db / 20); );
+function adr(ms, lo, hi) ( 0.001 * max(lo, min(hi, ms)); );
 
-gain.in = amp(slider1);
+gain.in = amp(slider1, -120.0);
 
-adsr.s = amp(slider6);
-adsr.r = rc(slider7, 0, 5000);
-adsr.d = rc(slider5, 1, 15000);
-adsr.a = rc(slider4, 0, 5000);
-adsr & 2 ? adsr_d() : adsr == 4 ? adsr_r() : adsr == 1 ? adsr_a();
+adsr.adsr_seta(adr(slider4, 0, 5000));
+adsr.adsr_setd(adr(slider5, 1, 15000));
+adsr.adsr_sets(amp(slider6, -120.0));
+adsr.adsr_setr(adr(slider7, 0, 5000));
 
-tuning = 2^(slider2 / 1200);
+// Don't call synth_setf() here, instead wait for synth_set_pitch() below to
+// update the note frequency.
+synth.tuning = 440 * 2^(slider2 / 1200);
 
 slider9|0 != wave ? (
   wave = slider9|0;
@@ -86,99 +79,27 @@ wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10))) :
 // Trianglular pulse
 wave == 9 ? tg.poly_setpw(0.5);
 
-noise = slider14 <= -36.0 ? 0.0 : 10^(slider14 / 20);
+noise = amp(slider14, -36.0);
 
 lpf.n = slider16 >= 1.0 ? lpf.m : exp(max(0.0, slider16) * lpf.ln);
 slider17 < 1 ? lpf.env.a = 0 : lpf.env.rc_sets(0.001 * min(15000, slider17));
 
-pitch_range = slider12 > 0.0 ? 1200 / slider12 : 0.0;
-set_pitch();
+synth.synth_set_pitch(max(0.0, slider12));
 set_freq();
 
 lpf.q = max(0.01, min(4.0, slider18));
 lpf.zdf.zdf_lp(lpf.rc.lp, lpf.q);
 
 
-@block
-
-midiq.midiq_collect();
-
-
 @sample
 
-while(
-  midiq.midiq_remove() ? (
-    midiq.msg1 &= 0xF0;
-    midiq.msg2  = midiq.msg23 & 0x7F;
-    midiq.msg23 = midiq.msg23 >> 8;
-
-    // Note On
-    midiq.msg1 == 0x90 && midiq.msg23 ? (
-      note = midiq.msg2;
-      freq = 440.0 * 2^((note - 69) / 12);
-      vel = midiq.msg23 / 127;
-      set_freq();
-      hold = 0;
-      adsr_a();
-    ) :
-
-    // Note Off
-    midiq.msg1 == 0x80 || (midiq.msg1 == 0x90 && !midiq.msg23) ? (
-      midiq.msg2 == note ? !pedal ? adsr_r() : hold = 1;
-    ) :
-
-    // Pitch Wheel
-    midiq.msg1 == 0xE0 ? (
-      pitch_wheel = (midiq.msg23 << 7 | midiq.msg2) - 8192;
-      set_pitch();
-      set_freq();
-    ) :
-
-    // Control Change
-    midiq.msg1 == 0xB0 ? (
-
-      // Damper Pedal (Sustain)
-      midiq.msg2 == 64 ? (
-        pedal = midiq.msg23 >= 64;
-        !pedal && hold ? adsr_r();
-      ) :
-
-      // All Notes Off
-      midiq.msg2 == 123 ? (
-        adsr_r();
-      );
-    );
-
-    1; // while midiq.midiq_remove()
-  );
-);
-
+synth.synth_midi();
 gain.rc_lp(gain.in);
 
-adsr <= 0 ? s = 0.0 : (
-  // Sustain
-  adsr == 3 ? (
-    1;
-  ) :
+synth.note_change ? synth.note_on ? adsr_a() : adsr.adsr_r();
+!adsr.adsr_process() ? s = 0.0 : (
 
-  // Decay
-  adsr == 2 ? (
-    s = adsr.s * vel;
-    env.rc_lp(s);
-    abs(env.lp - s) <= inf ? adsr_s();
-  ) :
-
-  // Release
-  adsr == 4 ? (
-    env.rc_lp(0.0);
-    env.lp <= inf ? adsr = env.lp = 0;;
-  ) :
-
-  // Attack
-  adsr == 1 ? (
-    env.rc_lp(vel);
-    abs(env.lp - vel) <= step5 ? adsr_d();
-  );
+  synth.synth_pitch() || synth.synth_note() ? set_freq();
 
   noise < 1.0 ? (
     s = wave == 7  ? tg.poly_saw():
@@ -198,7 +119,7 @@ adsr <= 0 ? s = 0.0 : (
     s = noise.lcg_white();
   );
 
-  s *= gain.lp * env.lp;
+  s *= gain.lp * adsr.env;
 );
 
 lpf.env.a > 0 ? lpf.freq = lpf.env.rc_lp(lpf.n) * tuned_freq;
