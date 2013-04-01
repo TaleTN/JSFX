@@ -1,28 +1,33 @@
 JS mono_synth & libs
 
-20130401 (1 April 2013):
+v20130401a (1 April 2013):
+ + random_midi_notes: Added random MIDI note generator plug-in
+ + lcg: Added rng.lcg_rand2(x) that uses rng.seed
+ + Windows NSIS installer
+
+v20130401 (1 April 2013):
  + synth: Added mono synth lib (mono_synth.jsfx-inc)
- + adsr: Added ADSR envelope (adsr.jsfx-inc)
+ + adsr: Added ADSR envelope lib (adsr.jsfx-inc)
  + mono_synth: Fixed sample drift in ADSR
  + mono_synth: Fixed retriggering filter decay
  + tg: Added cacheless rectangle and circle (slow!)
  + tg: Fixed rectangle init not clearing cache
  + Documentation nitpicks
 
-20130323 (23 March 2013):
+v20130323 (23 March 2013):
  + lfo/poly/poly2: Added variable pulse width to tripulse
  + lfo/poly/poly2/tg: Automatically set default pulse width
  + poly/poly2: Merged trapezoid and tripulse integrators
 
-20130322 (22 March 2013):
+v20130322 (22 March 2013):
  + zdf: Prevent denormals, part deux
 
-20130321 (21 March 2013):
+v20130321 (21 March 2013):
  + lcg: Added noise generator (noise_generator.jsfx-inc)
  + mono_synth: Implemented new noise generator
  + zdf: Prevent denormals
 
-20130317 (St. Paddy's Day 2013):
+v20130317 (St. Paddy's Day 2013):
  + Added documentation to .jsfx-inc libraries
  + lfo/poly/tg: Changed phase and pulse width range to 0..1
  + lfo/poly/tg: Rewrote waveform functions
@@ -35,7 +40,7 @@ JS mono_synth & libs
  + poly: Fixed triangle leaky integrator not initialising to current phase
  + poly: Fixed initialisers resetting leaky integrator feedback coefficient
 
-20130214 (14 February 2013):
+v20130214 (14 February 2013):
  + zdf: Added zero-delay feedback state variable filter
    (zdf_filter.jsfx-inc)
  + mono_synth: Replaced RBJ with ZDF filter
@@ -43,7 +48,7 @@ JS mono_synth & libs
  + lfo: Fixed rectangular wave, oops!
  + rbj: Automatically limit corner frequency
 
-20130210 (10 February 2013):
+v20130210 (10 February 2013):
  + mono_synth: Replaced Fourier series with faster polyBLEP tone generator
    (poly_blep.jfx-inc)
  + mono_synth: Added new waveforms (modified triangle, triangular pulse,
@@ -54,25 +59,25 @@ JS mono_synth & libs
  + lfo/tg: Minor changes (added lfo_setdt/tg_setdt)
  + rc: Slightly more efficient frequency setting
 
-20120829 (24 January 2013):
+v20120829 (24 January 2013):
  + tg/lfo: Fixed overflow on very high frequencies, part deux
 
-20120828 (28 August 2012):
+v20120828 (28 August 2012):
  + mono_synth: Added Pitch Wheel Range slider
  + tg/lfo: Fixed overflow on very high frequencies
  + tg/lfo: Added sync to negative time values
 
-20120817 (17 August 2012):
+v20120817 (17 August 2012):
  + midiq: Fixed offset/timing bug (thanks Fabrizio Benedetti)
  + mono_synth: Optimize 50% pulse => square wave
 
-20120810 (10 August 2012):
+v20120810 (10 August 2012):
  + tg: Reduced aliasing
 
-20120809a (9 August 2012):
+v20120809a (9 August 2012):
  + Removed denormalization functions
 
-20120809 (9 August 2012):
+v20120809 (9 August 2012):
  + Initial release
 
 

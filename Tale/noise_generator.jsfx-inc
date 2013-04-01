@@ -42,7 +42,9 @@ desc:Noise generator
    Miscellaneous Functions
 
     * lcg_rand(x)
+    * lcg_rand2(x)
       Example: s = lcg_rand(x);
+      Example: s = rng.lcg_rand2(x);
       Returns a psuedorandom number between 0 and the parameter.
 
    Instance Variables
@@ -75,6 +77,13 @@ function lcg_leaky_set(rc)
 
 function lcg_rand(x)
   local(seed)
+(
+  seed = (69069 * seed + 1) & 2147483647;
+  seed / 2147483647 * x;
+);
+
+function lcg_rand2(x)
+  instance(seed)
 (
   seed = (69069 * seed + 1) & 2147483647;
   seed / 2147483647 * x;
