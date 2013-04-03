@@ -15,6 +15,7 @@ slider14:-36.0<-36.0,0.0,1.0>White Noise (dB)
 slider16:1.0<0.0,1.0,0.01>Low-Pass Filter
 slider17:0<0,15000,1>Filter Decay (ms)
 slider18:1.0<0.01,4.0,0.01>Filter Q
+slider20:0<-100,100,1>Pan (%)
 
 out_pin:Synth output
 out_pin:Synth output
@@ -32,8 +33,8 @@ import noise_generator.jsfx-inc
 lpf.m = 50;
 lpf.ln = log(lpf.m);
 
-gain.rc_set(0.0033);
-lpf.rc.a = gain.a;
+gain0.rc_set(0.0033);
+lpf.rc.a = gain1.a = gain0.a;
 
 function set_freq()
 (
@@ -54,7 +55,20 @@ function adsr_a()
 function amp(db, inf) ( db <= inf ? 0.0 : 10^(db / 20); );
 function adr(ms, lo, hi) ( 0.001 * max(lo, min(hi, ms)); );
 
-gain.in = amp(slider1, -120.0);
+function pan(gain, pos)
+(
+  // REAPER default 0 dB pan law (thanks Justin!)
+  // http://www.askjf.com/index.php?q=2342s
+
+  pos *= 0.25*$pi;
+  gain *= sqrt(2) * (1 - sqrt(0.5) * (1 / cos(pos) - 1));
+
+  pos += 0.25*$pi;
+  gain0.in = cos(pos) * gain;
+  gain1.in = sin(pos) * gain;
+);
+
+pan(amp(slider1, -120.0), max(-100, min(100, slider20)) * 0.01);
 
 adsr.adsr_seta(adr(slider4, 0, 5000));
 adsr.adsr_setd(adr(slider5, 1, 15000));
@@ -76,7 +90,7 @@ slider9|0 != wave ? (
 wave == 6 ? tg.poly_setpw(max(0.10, min(0.90, slider10))) :
 // Modified triangle
 wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10))) :
-// Trianglular pulse
+// Triangular pulse
 wave == 9 ? tg.poly_setpw(0.5);
 
 noise = amp(slider14, -36.0);
@@ -94,7 +108,9 @@ lpf.zdf.zdf_lp(lpf.rc.lp, lpf.q);
 @sample
 
 synth.synth_midi();
-gain.rc_lp(gain.in);
+
+gain0.rc_lp(gain0.in);
+gain1.rc_lp(gain1.in);
 
 synth.note_change ? synth.note_on ? adsr_a() : adsr.adsr_r();
 !adsr.adsr_process() ? s = 0.0 : (
@@ -119,7 +135,7 @@ synth.note_change ? synth.note_on ? adsr_a() : adsr.adsr_r();
     s = noise.lcg_white();
   );
 
-  s *= gain.lp * adsr.env;
+  s *= adsr.env;
 );
 
 lpf.env.a > 0 ? lpf.freq = lpf.env.rc_lp(lpf.n) * tuned_freq;
@@ -137,5 +153,5 @@ lpf.skip > 0 ? lpf.skip -= 1 : (
 
 lpf.n < lpf.m ? s = lpf.zdf.zdf_svf_lp(s) : lpf.zdf.zdf_svf_lp(s);
 
-spl0 += s;
-spl1 += s;
+spl0 += gain0.lp * s;
+spl1 += gain1.lp * s;

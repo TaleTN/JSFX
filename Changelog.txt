@@ -1,5 +1,8 @@
 JS mono_synth & libs
 
+v20130404 (4 April 2013):
+ + Added Pan slider (0 dB pan law, thanks Justin!)
+
 v20130401a (1 April 2013):
  + random_midi_notes: Added random MIDI note generator plug-in
  + lcg: Added rng.lcg_rand2(x) that uses rng.seed
