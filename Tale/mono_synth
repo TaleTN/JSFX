@@ -16,6 +16,7 @@ slider16:1.0<0.0,1.0,0.01>Low-Pass Filter
 slider17:0<0,15000,1>Filter Decay (ms)
 slider18:1.0<0.01,4.0,0.01>Filter Q
 slider20:0<-100,100,1>Pan (%)
+slider22:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
 
 out_pin:Synth output
 out_pin:Synth output
@@ -103,6 +104,11 @@ set_freq();
 
 lpf.q = max(0.01, min(4.0, slider18));
 lpf.zdf.zdf_lp(lpf.rc.lp, lpf.q);
+
+slider22|0 != synth.ch ? (
+  synth.synth_setch(slider22|0);
+  synth.synth_all_notes_off();
+);
 
 
 @sample

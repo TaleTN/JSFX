@@ -56,6 +56,10 @@ desc:Mono synth featuring Note On/Off, Pitch Wheel and Sustain
 
       Note: You should call this function from the @sample section.
 
+    * synth_all_notes_off()
+      Example: synth.synth_all_notes_off();
+      Stops the current playing note.
+
    Processing Functions
 
     * synth_pitch()
@@ -193,6 +197,16 @@ function synth_collect()
 );
 
 
+function synth_all_notes_off()
+  instance(note_on, note_off, note_change)
+(
+  note_on ? (
+    note_off = note_change = 1;
+    note_on = 0;
+  );
+);
+
+
 function synth_midi()
   instance(midi, ch, note, note_on, note_off, note_change, velocity, pitch_wheel, pitch_change, sustain)
   local(msg1, msg2, msg3)
@@ -244,10 +258,7 @@ function synth_midi()
 
         // All Notes Off
         msg2 == 123 ? (
-          note_on ? (
-            note_off = note_change = 1;
-            note_on = 0;
-          );
+          this.synth_all_notes_off();
         );
       );
 

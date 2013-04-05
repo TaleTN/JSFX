@@ -1,7 +1,11 @@
 JS mono_synth & libs
 
+v20130405 (5 April 2013):
+ + mono_synth: Added MIDI channel slider
+ + synth: Added synth_all_notes_off() function
+
 v20130404 (4 April 2013):
- + Added Pan slider (0 dB pan law, thanks Justin!)
+ + mono_synth: Added pan slider (0 dB pan law, thanks Justin!)
 
 v20130401a (1 April 2013):
  + random_midi_notes: Added random MIDI note generator plug-in
@@ -47,7 +51,7 @@ v20130214 (14 February 2013):
  + zdf: Added zero-delay feedback state variable filter
    (zdf_filter.jsfx-inc)
  + mono_synth: Replaced RBJ with ZDF filter
- + mono_synth: Added Filter Q slider
+ + mono_synth: Added filter Q slider
  + lfo: Fixed rectangular wave, oops!
  + rbj: Automatically limit corner frequency
 
@@ -66,7 +70,7 @@ v20120829 (24 January 2013):
  + tg/lfo: Fixed overflow on very high frequencies, part deux
 
 v20120828 (28 August 2012):
- + mono_synth: Added Pitch Wheel Range slider
+ + mono_synth: Added Pitch Wheel range slider
  + tg/lfo: Fixed overflow on very high frequencies
  + tg/lfo: Added sync to negative time values
 
