@@ -1,5 +1,5 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
-// (c) Theo Niessink 2012, 2013
+// (c) Theo Niessink 2012-2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -41,13 +41,17 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_circ()   -- Circle
     * lfo_tri()    -- Triangle
     * lfo_tri2()   -- Modified triangle
-    * lfo_trap()   -- Trapezoid
+    * lfo_trap()   -- Trapezoid (fixed 0.5 pulse width)
+    * lfo_trap2()  -- Trapezoid (variable pulse width)
     * lfo_trip()   -- Triangular pulse
     * lfo_sqr()    -- Square
+    * lfo_sqr2()   -- Modified square
     * lfo_rect()   -- Rectangle (pulse)
     * lfo_saw()    -- Sawtooth
     * lfo_stairs() -- Staircase
     * lfo_ham()    -- Hammond 88 8000 00
+    * lfo_sh()     -- Sample and hold noise
+    * lfo_sh2(x)   -- Sample and hold X
       Example: s = lfo.lfo_tri();
       Returns a sample of a waveform, and increments its phase.
 
@@ -55,26 +59,25 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * lfo_sync(t)
       Example: lfo2.lfo_sync(lfo1.t + 0.5);
-      Synchronizes the oscillator with the specified phase.
+      Synchronizes the oscillator with the specified phase, and returns the
+      normalized phase.
 
       Note: You can safely specify out or range (and even negative) values
       here.
 
     * lfo_inc()
       Example: lfo.lfo_inc();
-      Increments the oscillator phase.
+      Increments the oscillator phase, and returns it.
 
       Note: All waveform functions automatically increment the phase.
 
     * lfo_half_dc() -- Half-wave rectified sine
     * lfo_full_dc() -- Full-wave rectified sine
-      Example: s = lfo.lfo_full() - lfo_full_dc();
-      Returns the constant DC value for a waveform.
-
     * lfo_rect_dc() -- Rectangle (pulse)
     * lfo_trip_dc() -- Triangular pulse
-      Example: s = lfo.lfo_rect() - lfo.lfo_rect_dc();
-      Returns the pulse width dependent DC value for a waveform.
+      Example: s = lfo.lfo_full() - lfo_full_dc();
+      Returns the (constant or pulse width dependent) DC value for the
+      waveform.
 
    Instance Variables
 
@@ -217,22 +220,12 @@ function lfo_tri2()
 );
 
 
-// Trapezoid
-
-function lfo_trap()
-(
-  max(-1, min(1, 2 * this.lfo_tri()));
-);
-
-
 // Triangular pulse
 
 function lfo_trip()
   instance(pw)
   local(t)
 (
-  pw <= 0 ? pw = 0.5;
-
   t = this.t;
   this.lfo_inc();
 
@@ -261,14 +254,42 @@ function lfo_sqr()
 );
 
 
+// Trapezoid
+
+function lfo_trap()
+(
+  max(-1, min(1, 2 * this.lfo_tri()));
+);
+
+function lfo_trap2()
+  instance(pw)
+(
+  pw < 1 ? max(-1, min(1, 1/(1 - pw) * this.lfo_tri())) : this.lfo_sqr();
+);
+
+
+// Modified square
+
+function lfo_sqr2()
+  local(t, pw)
+(
+  pw = 0.5*(1 - this.pw);
+
+  t = this.t + 0.25 - 0.5*pw;
+  t -= t|0;
+
+  this.lfo_inc();
+
+  t < 0.5 - pw ? 0 : t < 0.5 ? 1 : t < 1 - pw ? 0 : -1;
+);
+
+
 // Rectangle
 
 function lfo_rect()
   instance(pw)
   local(t)
 (
-  pw <= 0 ? pw = 0.5;
-
   t = this.t;
   this.lfo_inc();
 
@@ -318,4 +339,22 @@ function lfo_ham()
   this.lfo_inc();
 
   0.4 * (sin(2*$pi * t) + sin(4*$pi * t) + sin(6*$pi * t));
+);
+
+
+// Sample and hold noise
+
+function lfo_sh()
+  instance(dt, sh)
+(
+  this.lfo_inc() < dt ? sh = rand(2) - 1 : sh;
+);
+
+
+// Sample and hold X
+
+function lfo_sh2(x)
+  instance(dt, sh)
+(
+  this.lfo_inc() < dt ? sh = x : sh;
 );

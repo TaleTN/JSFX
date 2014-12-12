@@ -1,5 +1,5 @@
 desc:2nd order RBJ filter
-// (c) Theo Niessink 2012, 2013
+// (c) Theo Niessink 2012-2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on "Cookbook formulae for audio EQ biquad filter coefficients" by
@@ -42,6 +42,13 @@ desc:2nd order RBJ filter
     * rbj_df2(s) -- Direct Form 2
       Example: ss = lp.rbj_df2(s);
       Sends the parameter through the filter, and returns its output.
+
+   Miscellaneous Functions
+
+    * rbj_reset1() -- Direct Form 1
+    * rbj_reset2() -- Direct Form 2
+      Example: lp.rbj_reset2();
+      Resets the filter state.
 
 */
 
@@ -264,6 +271,12 @@ function rbj_df1(s)
   y0 = b0*x0 + b1*x1 + b2*x2 - a1*y1 - a2*y2;
 );
 
+function rbj_reset1()
+  instance(x0, x1, y0, y1)
+(
+  x0 = x1 = y0 = y1 = 0;
+);
+
 
 // Direct Form 2
 
@@ -275,4 +288,10 @@ function rbj_df2(s)
   w0 = s - a1*w1 - a2*w2;
 
   b0*w0 + b1*w1 + b2*w2;
+);
+
+function rbj_reset2()
+  instance(w0, w1)
+(
+  w0 = w1 = 0;
 );

@@ -1,0 +1,98 @@
+desc:Colored noise generator
+// (c) Theo Niessink 2014
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// This effect generates different "colours" of noise. Apart from the listed
+// colours it can also generate "black" noise. To do so select white noise
+// and lower the density. Note that density affects only white noise, and is
+// ignored for other colours.
+
+slider1:2<0,5,1{Brown,Pink,White,Blue,Violet,Grey}>Color
+slider2:1.0<0.0,1.0,0.001>Density
+slider3:0<0,1,1{Mono,Stereo}>Mode
+slider4:0.0<-150.0,24.0,0.1>Dry (dB)
+slider5:-24.0<-150.0,24.0,0.1>Wet (dB)
+
+in_pin:Left
+in_pin:Right
+
+out_pin:Left
+out_pin:Right
+
+import noise_generator.jsfx-inc
+import rc_filter.jsfx-inc
+
+@init
+
+function int(x) ( x|0 );
+function pow4(x) ( x*x*x*x );
+function gain(db, inf) ( db <= inf ? 0 : 10^(db / 20) );
+function cache(x) ( x != this ? ( this = x; 1; ); );
+
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+min_inf = -150.0;
+dry.smooth = gain(slider4, min_inf);
+wet.smooth = gain(slider5, min_inf);
+
+rms[0] = 0.075;
+rms[1] = 1/3;
+rms[2] = 1;
+rms[3] = 0.56;
+rms[4] = sqrt(0.5);
+rms[5] = 0.125;
+
+@slider
+
+color = max(0, min(5, int(slider1)));
+gain = rms[color];
+
+rng0.lcg_density(pow4(slider2));
+rng1.lcg_density(rng0.density);
+
+stereo.cache(slider3 >= 0.5) ? (
+  rng0.lcg_init(0);
+  stereo ? rng1.lcg_init(2);
+);
+
+dry = gain(slider4, min_inf);
+wet = gain(slider5, min_inf);
+
+@sample
+
+color == 0 ? (
+  left = rng0.lcg_brown();
+  stereo ? right = rng1.lcg_brown();
+) :
+
+color == 1 ? (
+  left = rng0.lcg_pink();
+  stereo ? right = rng1.lcg_pink();
+) :
+
+color == 3 ? (
+  left = rng0.lcg_blue();
+  stereo ? right = rng1.lcg_blue();
+) :
+
+color == 4 ? (
+  left = rng0.lcg_violet();
+  stereo ? right = rng1.lcg_violet();
+) :
+
+color == 5 ? (
+  left = rng0.lcg_grey();
+  stereo ? right = rng1.lcg_grey();
+) :
+
+/* color == 2 ? */ (
+  left = rng0.lcg_black();
+  stereo ? right = rng1.lcg_black();
+);
+
+left *= gain;
+stereo ? right *= gain : right = left;
+
+spl0 = dry.smooth() * spl0 + wet.smooth() * left;
+spl1 = dry.smooth * spl1 + wet.smooth * right;

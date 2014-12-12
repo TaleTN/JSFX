@@ -1,5 +1,5 @@
 desc:2nd order zero-delay feedback state variable filter
-// (c) Theo Niessink 2013
+// (c) Theo Niessink 2013, 2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the rsStateVariableFilter C++ class by Robin Schmidt, as posted
@@ -64,6 +64,12 @@ desc:2nd order zero-delay feedback state variable filter
       Example: ss = lp.zdf_svf_lp(s);
       Specialized versions of zdf_svf(), each optimized for a specific
       filter type.
+
+   Miscellaneous Functions
+
+    * zdf_reset()
+      Example: lp.zdf_reset();
+      Resets the filter state.
 
 */
 
@@ -385,4 +391,13 @@ function zdf_svf_bp(s)
   yl = g*yb + s2; s2 = g*yb + yl;
   abs(s2) < 0.00000000000000006 ? s2 = 0;
   yb;
+);
+
+
+// Reset SVF state.
+
+function zdf_reset()
+  instance(s1, s2)
+(
+  s1 = s2 = 0;
 );

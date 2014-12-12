@@ -1,5 +1,5 @@
 desc:ADSR envelope
-// (c) Theo Niessink 2013
+// (c) Theo Niessink 2013, 2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -11,31 +11,43 @@ desc:ADSR envelope
    slider4:500<0,5000,1>Release (ms)
 
    import adsr.jsfx-inc
-   import mono_synth.jsfx-inc
+   import midi_queue.jsfx-inc
    import poly_blep.jsfx-inc
 
    @slider
 
    adsr.adsr_seta(slider1 * 0.001);
    adsr.adsr_setd(slider2 * 0.001);
-   adsr.adsr_sets(10^(slider3 / 20));
+   adsr.adsr_sets(10^(0.05 * slider3));
    adsr.adsr_setr(slider4 * 0.001);
+
+   @block
+
+   midiq.midiq_collect();
 
    @sample
 
-   // Parse the MIDI messages in the queue
-   synth.synth_midi();
+   while(midiq.midiq_remove()) (
+     status = midiq.msg1 & 0xF0;
+     velocity = midiq.msg3;
 
-   // Process the ADSR envelope
-   synth.note_change ? synth.note_on ? adsr.adsr_a(synth.velocity) : adsr.adsr_r();
-   adsr.adsr_process() ? (
+     // Note On
+     status == 0x90 && velocity ? (
+       note = midiq.msg2;
+       osc.poly_setf(440 * 2^((note - 69) / 12));
+       // Attack
+       adsr.adsr_a(velocity / 127);
+     ) :
 
-     // Process Pitch Wheel and Note On/Off
-     synth.synth_pitch() || synth.synth_note() ? osc.poly_setf(synth.freq);
-
-     // Apply the ADSR envelope to the output sample
-     spl0 = spl1 = 0.5 * adsr.env * osc.poly_saw();
+     // Note Off
+     status == 0x80 || (status == 0x90 && !velocity) ? (
+       // Release
+       midiq.msg2 == note ? adsr.adsr_r();
+     );
    );
+
+   // Process ADSR envelope and apply it to oscillator.
+   adsr.adsr_process() ? spl0 = spl1 = 0.5 * adsr.env * osc.poly_saw();
 
    Setting Functions
 
@@ -59,10 +71,14 @@ desc:ADSR envelope
       Continues processing the ADSR envelope.
 
     * adsr_process()
-      Example: adsr.adsr_process();
+      Example: state = adsr.adsr_process();
       Processes the ADSR envelope, and returns its state.
 
       Note: You should call this function from the @sample section.
+
+    * adsr_reset()
+      Example: adsr.adsr_reset();
+      Resets the ADSR envelope.
 
    Instance Variables
 
@@ -114,7 +130,7 @@ function adsr_setr(t)
 );
 
 
-function _adsr_end()
+function adsr_reset()
   instance(state, env)
 (
   state = env = 0;
@@ -126,7 +142,7 @@ function adsr_r()
   r < 1 ? (
     state = 8;
   ) : (
-    this._adsr_end();
+    this.adsr_reset();
   );
 );
 
@@ -159,33 +175,33 @@ function adsr_a(scale)
   );
 );
 
+function _adsr_one()
+(
+  1/(1 - exp(-5));
+);
 
 function adsr_process()
   instance(state, a, d, s, r, env, scale)
-  local(tmp)
 (
-  // Sustain
-  state == 4 ? (
-    1;
-  ) :
+  state & (1|2|8) ? (
 
-  // Decay
-  state == 2 ? (
-    tmp = scale * s;
-    env += d * (tmp - env);
-    abs(env - tmp) <= 0.000001 ? this.adsr_s();
-  ) :
+    // Decay
+    state == 2 ? (
+      env += d * (scale * s - env);
+      abs(env - scale * s) <= scale * 0.000001 ? this.adsr_s();
+    ) :
 
-  // Release
-  state == 8 ? (
-    env += r * (0 - env);
-    abs(env) <= 0.000001 ? this._adsr_end();
-  ) :
+    // Release
+    state == 8 ? (
+      env += r * (0 - env);
+      abs(env) <= scale * 0.000001 ? this.adsr_reset();
+    ) :
 
-  // Attack
-  state == 1 ? (
-    env += a * (scale - env);
-    abs(env - scale) <= exp(-5) ? this.adsr_d();
+    // Attack
+    state == 1 ? (
+      env += a * (scale - env);
+      abs(env - scale) <= scale * exp(-5) ? this.adsr_d();
+    );
   );
 
   state;

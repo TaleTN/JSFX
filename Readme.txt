@@ -8,5 +8,9 @@ installation. To navigate to the right location launch REAPER, choose "Show
 REAPER resource path in explorer/finder..." from the Options menu, and then
 open the Effects folder.
 
+System Requirements
 
-(c) Theo Niessink 2012, 2013
+JS mono_synth & libs should run on REAPER 4.25 or newer.
+
+
+(c) Theo Niessink 2012-2014

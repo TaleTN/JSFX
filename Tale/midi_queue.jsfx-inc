@@ -1,5 +1,5 @@
 desc:Sample accurate MIDI queue
-// (c) Theo Niessink 2012, 2013
+// (c) Theo Niessink 2012-2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -7,66 +7,66 @@ desc:Sample accurate MIDI queue
    desc:Mono synth
 
    import midi_queue.jsfx-inc
+   import poly_blep.jsfx-inc
 
    @init
-   
-   // Set MIDI queue local memory index and size
-   q.midiq_init(0, 256);
+
+   // Set MIDI queue local memory index and size.
+   midiq.midiq_init(0, 256);
 
    @block
-   
-   // Receive all MIDI messages and add them to the queue
-   q.midiq_collect();
+
+   // Receive MIDI messages and add them to queue.
+   midiq.midiq_collect();
 
    @sample
 
-   while(
-     // Remove one MIDI message from the head of the queue
-     q.midiq_remove() ? (
+   // Remove MIDI message from the head of queue.
+   while(midiq.midiq_remove()) (
 
-       // Parse MIDI message
-       status = q.msg1 & 0xF0;
-       velocity = q.msg23 >> 8;
+     // Parse MIDI message.
+     status = midiq.msg1 & 0xF0;
+     velocity = midiq.msg3;
 
-       // Note On
-       status == 0x90 && velocity ? (
-         note = q.msg23 & 0x7F;
-         dt = 440 * 2^((note - 69) / 12) / srate;
-       ) :
+     // Note On
+     status == 0x90 && velocity ? (
+       note = midiq.msg2;
+       osc.poly_setf(440 * 2^((note - 69) / 12));
+     ) :
 
-       // Note Off
-       status == 0x80 || (status == 0x90 && !velocity) ? (
-         q.msg23 & 0x7F == note ? dt = 0;
-       );
-
-       1; // while midiq_remove()
+     // Note Off
+     status == 0x80 || (status == 0x90 && !velocity) ? (
+       midiq.msg2 == note ? osc.poly_setf(0);
      );
    );
 
-   // Sine wave oscillator
-   dt > 0 ? spl0 = spl1 = 0.5 * sin(2*$pi * t);
-   t += dt;
-   t -= t|0;
+   // Square wave oscillator.
+   osc.dt > 0 ? spl0 = spl1 = 0.25 * osc.poly_sqr();
 
    Queue Functions
 
-    * midiq_init(index, size)
+    * midiq_init(index[, num])
       Example: q.midiq_init(0, 256);
       Sets the offset and size of the local memory buffer to store the queue
-      in.
+      in. Returns the maximum size of the buffer (i.e. num*3), or 0 for
+      unlimited size.
 
       Note: You should call this function from the @init section.
 
     * midiq_collect()
+    * midiq_collect(ch, mask)
       Example: q.midiq_collect();
-      Receives any MIDI messages, and adds them to the queue.
+      Receives any MIDI messages, optionally filtering by channel (0..15,
+      <0=any) and status byte (1=Note Off, 2=Note On, 4=Poly Aftertouch,
+      8=Control Change, 16=Program Change, 32=Channel Atertouch, 64=Pitch
+      Bend).
 
       Note: You should call this function from the @block section.
 
     * midiq_remove()
       Example: avail = q.midiq_remove();
       Checks if a MIDI message is available, removes it from the queue, and
-      stores it in the msg1 and msg23 instance variables.
+      stores it in the msg1, msg2, and msg3 instance variables.
 
       Note: You should call this function in a while loop from the @sample
       section.
@@ -86,7 +86,8 @@ desc:Sample accurate MIDI queue
    Instance Variables
 
     * msg1
-    * msg23
+    * msg2
+    * msg3
       Example: ch = q.msg1 & 0x0F;
       The MIDI message that was last removed from the queue.
 
@@ -99,12 +100,16 @@ desc:Sample accurate MIDI queue
 @init
 
 
-function midiq_init(index, size)
+function midiq_init(index, num)
+  instance(buf, size)
 (
-  this.buf = index;
+  buf = index;
+  size = num * 3;
+);
 
-  // Maximum number of MIDI events (0 for unlimited size)
-  this.size = size * 3;
+function midiq_init(index)
+(
+  this.midiq_init(index, 0);
 );
 
 
@@ -128,26 +133,33 @@ function midiq_add(ofs, msg1, msg23)
 );
 
 
-function midiq_collect()
+function midiq_collect(ch, mask)
   local(ofs, msg1, msg23)
 (
   this.midiq_rewind();
 
   while(
     midirecv(ofs, msg1, msg23) ? (
-      this.midiq_add(ofs, msg1, msg23);
+      (ch < 0 || msg1 & 0x0F == ch) && mask & (1 << ((msg1 >> 4) - 8)) ? this.midiq_add(ofs, msg1, msg23);
       midisend(ofs, msg1, msg23);
     );
   );
 );
 
+function midiq_collect()
+(
+  this.midiq_collect(-1, 127);
+);
+
 
 function midiq_remove()
-  instance(head, tail, ofs, msg1, msg23)
+  instance(head, tail, ofs, msg1, msg2, msg3, msg23)
 (
   head < tail && head[] <= ofs ? (
     msg1  = head[1];
     msg23 = head[2];
+    msg2 = msg23 & 0x7F;
+    msg3 = msg23 >> 8;
     head += 3;
   ) : (
     ofs += 1;

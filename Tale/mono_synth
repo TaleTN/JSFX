@@ -1,5 +1,5 @@
 desc:Simple mono synth
-// (c) Theo Niessink 2012, 2013
+// (c) Theo Niessink 2012-2014
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
@@ -8,7 +8,7 @@ slider4:3<0,5000,1>Attack (ms)
 slider5:1000<1,15000,1>Decay (ms)
 slider6:0.0<-120.0,24.0,1.0>Sustain (dB)
 slider7:8<0,5000,1>Release (ms)
-slider9:7<0,11,1{Sine,Half-wave rectified sine,Full-wave rectified sine,Triangle,Trapezoid,Square,Pulse,Sawtooth,Modified triangle,Triangular pulse,Hammond,Staircase}>Waveform
+slider9:7<0,14,1{Sine,Half-Wave Rectified Sine,Full-Wave Rectified Sine,Triangle,Trapezoid,Square,Pulse PW,Sawtooth,Modified Triangle PW,Triangular Pulse,Hammond,Staircase,Modified Square PW,Trapezoid PW,Triangular Pulse PW}>Waveform
 slider10:0.30<0.0,1.0,0.01>Pulse Width
 slider12:200.0<0.0,1200.0,1.0>Pitch Wheel Range (cent)
 slider14:-36.0<-36.0,0.0,1.0>White Noise (dB)
@@ -17,46 +17,252 @@ slider17:0<0,15000,1>Filter Decay (ms)
 slider18:1.0<0.01,4.0,0.01>Filter Q
 slider20:0<-100,100,1>Pan (%)
 slider22:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
+slider23:0<0,1,1{Mono,Poly}>Mode
+slider24:100<0,100,1>Velocity Control (%)
+slider26:6.0<0.01,12.0,0.001>LFO Speed (Hz)
+slider27:0<0,100,1>LFO Strength (%)
 
 out_pin:Synth output
 out_pin:Synth output
 
-import mono_synth.jsfx-inc
+import midi_queue.jsfx-inc
 import adsr.jsfx-inc
 import rc_filter.jsfx-inc
 import zdf_filter.jsfx-inc
+import sine_oscillator.jsfx-inc
 import poly_blep.jsfx-inc
 import noise_generator.jsfx-inc
 
-
 @init
+
+note_buf = 0; max_poly = 16; note_size = 13;
+hold_buf = note_buf + max_poly * note_size;
+midiq.midiq_init(hold_buf + 128);
+
+pitch = 1;
 
 lpf.m = 50;
 lpf.ln = log(lpf.m);
 
-gain0.rc_set(0.0033);
-lpf.rc.a = gain1.a = gain0.a;
+function int(x) ( x|0 );
+function gain(db, inf) ( db <= inf ? 0 : 10^(db / 20) );
+function mix(a, b, mix) ( (1.0 - mix) * a + mix * b );
+function cache(x) ( x != this ? ( this = x; 1; ); );
 
-function set_freq()
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+function set_tg(note)
+  // global(tg*)
 (
-  tuned_freq = synth.freq / synth.pitch;
-  tg.poly_setf(synth.freq);
-  lpf.env.a <= 0 ? lpf.freq = lpf.n * tuned_freq;
+  tg.poly_setf(440 * 2^((note - 69) / 12));
 );
 
-function adsr_a()
+function tg_wave(wave)
+  // global(tg*)
 (
-  adsr.adsr_a(synth.velocity);
-  lpf.env.lp = lpf.m;
+  wave == 7  ? tg.poly_saw() :
+  wave == 6  ? tg.poly_rect() :
+  wave == 5  ? tg.poly_sqr() :
+  wave == 4  ? tg.poly_trap() :
+  wave == 3  ? tg.poly_tri() :
+  wave == 2  ? tg.poly_full() :
+  wave == 1  ? tg.poly_half() :
+  wave == 0  ? tg.poly_sin() :
+  wave == 8  ? tg.poly_tri2() :
+  wave == 9  ? tg.poly_trip() :
+  wave == 10 ? tg.poly_ham() :
+  wave == 11 ? tg.poly_stairs() :
+  wave == 12 ? tg.poly_sqr2() :
+  wave == 13 ? tg.poly_trap2() :
+/*wave == 14*/ tg.poly_trip();
 );
 
+function load_adsr(p)
+  // global(adsr*)
+(
+  adsr.state = p[3];
+  adsr.env = p[4];
+  adsr.scale = p[5];
+  adsr.s = p[6];
+);
+
+function store_adsr(p)
+  // global(adsr*)
+(
+  p[3] = adsr.state;
+  p[4] = adsr.env;
+  p[5] = adsr.scale;
+  p[6] = adsr.s;
+);
+
+function load_lpf(p)
+  // global(lpf*)
+(
+  lpf.env.lp = p[7];
+  lpf.freq.smooth = p[8];
+  lpf.zdf.g = p[9];
+  lpf.zdf.h = p[10];
+  lpf.zdf.s1 = p[11];
+  lpf.zdf.s2 = p[12];
+);
+
+function store_lpf(p)
+  // global(lpf*)
+(
+  p[7] = lpf.env.lp;
+  p[8] = lpf.freq.smooth;
+  p[9] = lpf.zdf.g;
+  p[10] = lpf.zdf.h;
+  p[11] = lpf.zdf.s1;
+  p[12] = lpf.zdf.s2;
+);
+
+function lpf_freq(dt)
+  // global(lpf*, srate)
+(
+  (lpf.env.a < 1 ? lpf.env.rc_lp(lpf.n) : lpf.n) * dt * srate;
+);
+
+function reset_lpf(dt)
+  // global(lpf*)
+(
+  lpf.env.lp = 0;
+  lpf.zdf.zdf_reset();
+  lpf.freq.smooth = lpf_freq(dt);
+  lpf.zdf.zdf_lp(lpf.freq.smooth, lpf.q);
+);
+
+function note_on(note, vel)
+  // global(num_poly, mono_note, mono_dt, note_buf, num_notes, note_size, tg*, adsr*, lpf*, tuning)
+  local(p, end)
+(
+  // Optimize for mono (poly code can also play mono, but is slower).
+  num_poly == 1 ? (
+    set_tg(note);
+
+    !num_notes ? (
+      adsr.adsr_reset();
+      reset_lpf(tuning * tg.dt);
+      num_notes = 1;
+    );
+
+    mono_note = note;
+    mono_dt = tg.dt;
+    
+    adsr.adsr_a(vel);
+    lpf.env.lp = lpf.m;
+  ) :
+
+  /* num_poly > 1 ? */ (
+    p = note_buf;
+    end = p + num_notes * note_size;
+    while(p < end && p[] != note ? p += note_size);
+
+    p >= end ? (
+      set_tg(note);
+
+      num_notes >= num_poly ? (
+        // Set oscillator/ADSR state to first played note (to mimic old
+        // mono_synth global state behaviour).
+        tg.t = note_buf[1];
+        load_adsr(note_buf);
+        load_lpf(note_buf);
+
+        p -= note_size;
+        num_notes -= 1;
+        num_notes > 0 ? memcpy(note_buf, note_buf + note_size, num_notes * note_size);
+      ) : (
+        // Don't reset oscillator on first note (old mono_synth behaviour).
+        num_notes > 0 ? tg.t = 0;
+        adsr.adsr_reset();
+        reset_lpf(tuning * tg.dt);
+      );
+
+      num_notes += 1;
+      p[0] = note;
+      p[1] = tg.t;
+      p[2] = tg.dt;
+    ) : (
+      load_adsr(p);
+      load_lpf(p);
+    );
+
+    adsr.adsr_a(vel);
+    lpf.env.lp = lpf.m;
+
+    store_adsr(p);
+    store_lpf(p);
+  );
+);
+
+function note_off(note)
+  // global(num_poly, mono_note, note_buf, note_size, num_notes, adsr*)
+  local(p, end)
+(
+  num_poly == 1 ? (
+    num_notes && note == mono_note ? adsr.adsr_r();
+  ) :
+
+  /* num_poly > 1 ? */ (
+    p = note_buf;
+    end = p + num_notes * note_size;
+    while(p < end && p[] != note ? p += note_size);
+
+    p < end ? (
+      load_adsr(p);
+      adsr.adsr_r();
+      store_adsr(p);
+    );
+  );
+);
+
+function hold_note(note)
+  // global(hold_buf, num_hold)
+  local(p, end)
+(
+  // \todo Limit num_hold to num_poly.
+
+  p = hold_buf;
+  end = p + num_hold;
+  while(p < end && p[] != note ? p += 1);
+
+  p >= end ? (
+    p[] = note;
+    num_hold += 1;
+  );
+);
+
+function release_notes()
+  // global(hold_buf, num_hold)
+  local(p)
+(
+  p = hold_buf;
+  loop(num_hold,
+    note_off(p[]);
+    p += 1;
+  );
+  num_hold = 0;
+);
+
+function all_notes_off()
+  // global(num_notes, num_hold)
+(
+  num_notes = num_hold = 0;
+);
+
+function pitch_bend(pitch_wheel)
+  // global(pitch, pitch_range)
+(
+  pitch = pitch_range < 0.00001 ? 1 : 2^(pitch_wheel * pitch_range);
+);
 
 @slider
 
-function amp(db, inf) ( db <= inf ? 0.0 : 10^(db / 20); );
-function adr(ms, lo, hi) ( 0.001 * max(lo, min(hi, ms)); );
+function adr(ms, lo, hi) ( max(lo, min(hi, ms)) * 0.001 );
 
 function pan(gain, pos)
+  // global(gain0, gain1)
 (
   // REAPER default 0 dB pan law (thanks Justin!)
   // http://www.askjf.com/index.php?q=2342s
@@ -65,99 +271,181 @@ function pan(gain, pos)
   gain *= sqrt(2) * (1 - sqrt(0.5) * (1 / cos(pos) - 1));
 
   pos += 0.25*$pi;
-  gain0.in = cos(pos) * gain;
-  gain1.in = sin(pos) * gain;
+  gain0 = cos(pos) * gain;
+  gain1 = sin(pos) * gain;
 );
 
-pan(amp(slider1, -120.0), max(-100, min(100, slider20)) * 0.01);
+pan(gain(slider1, -120.0), max(-100, min(100, slider20)) * 0.01);
 
-adsr.adsr_seta(adr(slider4, 0, 5000));
+adsr.adsr_seta(adr(slider4, 0.05, 5000));
 adsr.adsr_setd(adr(slider5, 1, 15000));
-adsr.adsr_sets(amp(slider6, -120.0));
+adsr.adsr_sets(gain(slider6, -120.0));
 adsr.adsr_setr(adr(slider7, 0, 5000));
 
-// Don't call synth_setf() here, instead wait for synth_set_pitch() below to
-// update the note frequency.
-synth.tuning = 440 * 2^(slider2 / 1200);
+tuning = 2^(slider2 / 1200);
+wave = int(slider9);
 
-slider9|0 != wave ? (
-  wave = slider9|0;
-  tg.poly_resetf();
-  // Resync leaky integrator(s)
-  tg.poly_leaky_reset();
-);
+// Limit pulse width for pulse, triangular pulse, modified square.
+min_pw = wave == 6 || wave == 14 ? 0.10 : wave == 8 ? 0.01 : wave == 12 ? 0.20 : 0.0;
+max_pw = wave == 6 ? 0.90 : wave == 8 ? 0.99 : 1.0;
+pw = wave == 9 ? 0.5 : max(min_pw, min(max_pw, slider10));
 
-// Pulse
-wave == 6 ? tg.poly_setpw(max(0.10, min(0.90, slider10))) :
-// Modified triangle
-wave == 8 ? tg.poly_setpw(max(0.01, min(0.99, slider10))) :
-// Triangular pulse
-wave == 9 ? tg.poly_setpw(0.5);
-
-noise = amp(slider14, -36.0);
+noise_mix = gain(slider14, -36.0);
 
 lpf.n = slider16 >= 1.0 ? lpf.m : exp(max(0.0, slider16) * lpf.ln);
-slider17 < 1 ? lpf.env.a = 0 : lpf.env.rc_sets(0.001 * min(15000, slider17));
-
-synth.synth_set_pitch(max(0.0, slider12));
-set_freq();
-
+slider17 < 1 ? lpf.env.a = 1 : lpf.env.rc_sets(0.001 * min(15000, slider17));
 lpf.q = max(0.01, min(4.0, slider18));
-lpf.zdf.zdf_lp(lpf.rc.lp, lpf.q);
 
-slider22|0 != synth.ch ? (
-  synth.synth_setch(slider22|0);
-  synth.synth_all_notes_off();
+pitch_range = max(0.0, slider12) / 1200;
+midi_ch.cache(max(0, min(16, int(slider22))) - 1) ? all_notes_off();
+num_poly.cache(slider23 < 0.5 ? 1 : max_poly) ? all_notes_off();
+vel_range = max(0, min(100, slider24)) * 0.01;
+
+lfo_range = max(0, min(100, slider27)) * 0.01;
+lfo_range <= 0 ? (
+  lfo_mod = 0;
+) : wave == 6 || wave == 8 || wave >= 12 ? (
+  lfo_mod = 1;
+  lfo_range *= 0.5 * (max_pw - min_pw);
+  pw = max(min_pw + lfo_range, min(max_pw - lfo_range, pw));
+) : (
+  lfo_mod = 2;
+  lfo_range *= 0.5/12;
 );
+lfo_mod != 1 ? tg.poly_setpw(pw);
+lfo_mod ? lfo.sin_setf(max(0.01, slider26));
 
+@block
+
+midiq.midiq_collect(midi_ch, 3|8|64);
 
 @sample
 
-synth.synth_midi();
+while(midiq.midiq_remove() ? (
+  midiq.msg1 &= 0xF0;
 
-gain0.rc_lp(gain0.in);
-gain1.rc_lp(gain1.in);
+  // Note On
+  midiq.msg1 == 0x90 && midiq.msg3 ? (
+    note_on(midiq.msg2, (1.0 - vel_range) + vel_range * midiq.msg3 / 127);
+  ) :
 
-synth.note_change ? synth.note_on ? adsr_a() : adsr.adsr_r();
-!adsr.adsr_process() ? s = 0.0 : (
+  // Note Off
+  midiq.msg1 == 0x80 || midiq.msg1 == 0x90 ? (
+    hold_pedal ? hold_note(midiq.msg2) : note_off(midiq.msg2);
+  ) :
 
-  synth.synth_pitch() || synth.synth_note() ? set_freq();
+  // Pitch Wheel
+  midiq.msg1 == 0xE0 ? (
+    pitch_bend(((midiq.msg3 << 7 | midiq.msg2) - 8192) / (midiq.msg3 < 64 ? 8192 : 8191));
+  ) :
 
-  noise < 1.0 ? (
-    s = wave == 7  ? tg.poly_saw():
-        wave == 6  ? tg.poly_rect():
-        wave == 5  ? tg.poly_sqr():
-        wave == 4  ? tg.poly_trap():
-        wave == 3  ? tg.poly_tri():
-        wave == 2  ? tg.poly_full():
-        wave == 1  ? tg.poly_half():
-        wave == 0  ? tg.poly_sin():
-        wave == 8  ? tg.poly_tri2():
-        wave == 9  ? tg.poly_trip():
-        wave == 10 ? tg.poly_ham():
-      /*wave == 11*/ tg.poly_stairs();
-    noise > 0.0 ? s = noise * (noise.lcg_white()) + (1.0 - noise) * s;
-  ) : (
-    s = noise.lcg_white();
+  // Control Change
+  midiq.msg1 == 0xB0 ? (
+
+    // Damper Pedal (Sustain)
+    midiq.msg2 == 64 ? (
+      hold_pedal = midiq.msg3 >= 64;
+      !hold_pedal ? release_notes();
+    ) :
+
+    // All Notes Off
+    midiq.msg2 == 123 ? (
+      all_notes_off();
+    );
   );
 
-  s *= adsr.env;
-);
+  1; // while midiq.midiq_remove()
+));
 
-lpf.env.a > 0 ? lpf.freq = lpf.env.rc_lp(lpf.n) * tuned_freq;
-lpf.rc.rc_lp(lpf.freq);
-
-// Recalculate LPF coefficients only every 16 samples
-lpf.skip > 0 ? lpf.skip -= 1 : (
-  lpf.skip = 16 - 1;
-
-  lpf.rc.lp != lpf.zdf.freq ? (
-    lpf.zdf.freq = lpf.rc.lp;
-    lpf.zdf.zdf_lp(lpf.rc.lp, lpf.q);
+function sample_tg(t, dt)
+  // global(adsr*, freq_mod, tg*, wave, white_noise, noise_mix)
+(
+  adsr.state ? (
+    noise_mix < 1.0 ? (
+      tg.t = t;
+      tg.poly_setdt(freq_mod * dt);
+      tg.poly_resetf();
+      adsr.env * mix(tg_wave(wave), white_noise, noise_mix);
+    ) : (
+      adsr.env * white_noise;
+    );    
   );
+  // 0.0 otherwise
 );
 
-lpf.n < lpf.m ? s = lpf.zdf.zdf_svf_lp(s) : lpf.zdf.zdf_svf_lp(s);
+function apply_lpf(in, dt)
+  // global(lpf*, tuning)
+  local(out)
+(
+  lpf.freq = lpf_freq(tuning * dt);
+  lpf.freq.smooth();
 
-spl0 += gain0.lp * s;
-spl1 += gain1.lp * s;
+  // Recalculate LPF coefficients only every 16 samples.
+  lpf.skip <= 0 && lpf.freq.smooth != lpf.zdf.freq ? (
+    lpf.zdf.freq = lpf.freq.smooth;
+    lpf.zdf.zdf_lp(lpf.zdf.freq, lpf.q);
+  );
+
+  out = lpf.zdf.zdf_svf_lp(in);
+  lpf.n < lpf.m ? out : in;
+);
+
+function adsr_lpf_off()
+  // global(adsr*, lpf.zdf*)
+(
+  !adsr.state && lpf.zdf.s1 == 0 && lpf.zdf.s2 == 0;
+);
+
+freq_mod = pitch * tuning;
+lfo_mod ? lfo_mod == 1 ? tg.poly_setpw(pw + lfo_range * lfo.sin_sin()) : freq_mod *= 2^(lfo.sin_sin() * lfo_range);
+
+white_noise = noise_mix > 0.0 ? noise.lcg_white();
+out = 0.0;
+
+num_poly == 1 ? (
+  num_notes ? (
+    adsr.adsr_process();
+    out = apply_lpf(sample_tg(tg.t, mono_dt), mono_dt);
+    adsr_lpf_off() ? num_notes = 0;
+  );
+) :
+
+/* num_poly > 1 ? */ (
+  sus = adsr.s;
+
+  p = note_buf;
+  end = p + num_notes * note_size;
+  while(p < end ? (
+
+    // Functions indexing memory seems to be slow, so manually inline them.
+    /* load_adsr(p); */ adsr.state = p[3]; adsr.env = p[4]; adsr.scale = p[5]; adsr.s = p[6];
+    adsr.s != sus ? adsr.adsr_sets(sus);
+    adsr.adsr_process();
+    /* store_adsr(p); */ p[3] = adsr.state; p[4] = adsr.env; p[5] = adsr.scale; p[6] = adsr.s;
+
+    s = sample_tg(p[1], p[2]);
+    p[1] = tg.t;
+
+    /* load_lpf(p); */ lpf.env.lp = p[7]; lpf.freq.smooth = p[8]; lpf.zdf.g = p[9]; lpf.zdf.h = p[10]; lpf.zdf.s1 = p[11]; lpf.zdf.s2 = p[12];
+    s = apply_lpf(s, p[2]);
+    /* store_lpf(p); */ p[7] = lpf.env.lp; p[8] = lpf.freq.smooth; p[9] = lpf.zdf.g; p[10] = lpf.zdf.h; p[11] = lpf.zdf.s1; p[12] = lpf.zdf.s2;
+
+    out += s;
+
+    adsr_lpf_off() ? (
+      num_notes -= 1;
+      end -= note_size;
+      p < end ? (
+        memcpy(p, p + note_size, end - p);
+        1; // while p < end
+      );
+    ) : (
+      p += note_size;
+    );
+  ));
+);
+
+lpf.skip > 0 ? lpf.skip -= 1 : lpf.skip = 16 - 1;
+
+spl0 += gain0.smooth() * out;
+spl1 += gain1.smooth() * out;
