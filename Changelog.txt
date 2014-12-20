@@ -1,5 +1,11 @@
 JS mono_synth & libs
 
+v20141220 (20 December 2014):
+ + adsr: Fixed instant (0 ms) attack.
+ + adsr: Removed sustain -120 dB lower limit.
+ + adsr: Don't revert to decay when updating sustain.
+ + Added destination folder already exists warning to installer.
+
 v20141212 (12 December 2014):
  + mono_synth: Added mono/poly mode (16 notes max).
  + mono_synth: Added LFO (PWM on PW waveforms, FM otherwise).

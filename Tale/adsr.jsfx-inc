@@ -117,10 +117,9 @@ function adsr_setd(t)
 );
 
 function adsr_sets(g)
-  instance(s, state)
+  instance(s)
 (
-  state == 4 ? state = 2;
-  s = g <= 0.000001 ? 0 : g;
+  s = g;
 );
 
 function adsr_setr(t)
@@ -164,13 +163,14 @@ function adsr_d()
 );
 
 function adsr_a(scale)
-  instance(state, a)
+  instance(state, a, env)
 (
   this.scale = scale;
 
   a < 1 ? (
     state = 1;
   ) : (
+    env = scale;
     this.adsr_d();
   );
 );

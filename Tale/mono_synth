@@ -78,6 +78,13 @@ function tg_wave(wave)
 /*wave == 14*/ tg.poly_trip();
 );
 
+function adsr_sets(g)
+  instance(state)
+(
+  state == 4 ? state = 2;
+  this.adsr_sets(g);
+);
+
 function load_adsr(p)
   // global(adsr*)
 (
@@ -277,7 +284,7 @@ function pan(gain, pos)
 
 pan(gain(slider1, -120.0), max(-100, min(100, slider20)) * 0.01);
 
-adsr.adsr_seta(adr(slider4, 0.05, 5000));
+adsr.adsr_seta(adr(slider4, 0, 5000));
 adsr.adsr_setd(adr(slider5, 1, 15000));
 adsr.adsr_sets(gain(slider6, -120.0));
 adsr.adsr_setr(adr(slider7, 0, 5000));
