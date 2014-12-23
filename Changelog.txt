@@ -1,5 +1,8 @@
 JS mono_synth & libs
 
+v20141223 (23 December 2014):
+ + mono_synth: Workaround for last touched parameter bug.
+
 v20141220 (20 December 2014):
  + adsr: Fixed instant (0 ms) attack.
  + adsr: Removed sustain -120 dB lower limit.
