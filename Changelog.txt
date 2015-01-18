@@ -1,5 +1,8 @@
 JS mono_synth & libs
 
+v20150118 (18 January 2015):
+ + colored_noise: Added LP/BP/HP filter.
+
 v20141223 (23 December 2014):
  + mono_synth: Workaround for last touched parameter bug.
 
@@ -128,4 +131,4 @@ v20120809 (9 August 2012):
  + Initial release.
 
 
-(c) Theo Niessink 2012-2014
+(c) Theo Niessink 2012-2015

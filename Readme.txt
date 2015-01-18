@@ -13,4 +13,4 @@ System Requirements
 JS mono_synth & libs should run on REAPER 4.25 or newer.
 
 
-(c) Theo Niessink 2012-2014
+(c) Theo Niessink 2012-2015

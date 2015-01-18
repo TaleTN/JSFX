@@ -1,5 +1,5 @@
 desc:Colored noise generator
-// (c) Theo Niessink 2014
+// (c) Theo Niessink 2014, 2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // This effect generates different "colours" of noise. Apart from the listed
@@ -12,6 +12,9 @@ slider2:1.0<0.0,1.0,0.001>Density
 slider3:0<0,1,1{Mono,Stereo}>Mode
 slider4:0.0<-150.0,24.0,0.1>Dry (dB)
 slider5:-24.0<-150.0,24.0,0.1>Wet (dB)
+slider6:0<0,3,1{Bypass,Low-Pass,Band-Pass,High-Pass>Filter
+slider7:1000.0<20.0,20000.0,1.0>Cutoff (Hz)
+slider8:2.0<0.01,8.0,0.01>Q
 
 in_pin:Left
 in_pin:Right
@@ -21,6 +24,7 @@ out_pin:Right
 
 import noise_generator.jsfx-inc
 import rc_filter.jsfx-inc
+import zdf_filter.jsfx-inc
 
 @init
 
@@ -59,6 +63,21 @@ stereo.cache(slider3 >= 0.5) ? (
 dry = gain(slider4, min_inf);
 wet = gain(slider5, min_inf);
 
+filter = max(0, min(3, int(slider6)));
+filter ? (
+  fc = max(20, slider7);
+  q = max(0.01, slider8);
+
+  filter == 1 ? zdf0.zdf_lp(fc, q) :
+  filter == 2 ? zdf0.zdf_bp(fc, q) :
+  /* filter == 3 ? */ zdf0.zdf_hp(fc, q);
+
+  stereo ? (
+    zdf1.cb = zdf0.cb; zdf1.ch = zdf0.ch; zdf1.cl = zdf0.cl;
+    zdf1.g = zdf0.g; zdf1.h = zdf0.h; zdf1.r2 = zdf0.r2;
+  );
+);
+
 @sample
 
 color == 0 ? (
@@ -92,7 +111,16 @@ color == 5 ? (
 );
 
 left *= gain;
-stereo ? right *= gain : right = left;
+stereo ? (
+  right *= gain;
+  filter ? (
+    left = zdf0.zdf_svf(left);
+    right = zdf1.zdf_svf(right);
+  );
+) : (
+  filter ? left = zdf0.zdf_svf(left);
+  right = left;
+);
 
 spl0 = dry.smooth() * spl0 + wet.smooth() * left;
 spl1 = dry.smooth * spl1 + wet.smooth * right;
