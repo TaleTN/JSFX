@@ -1,5 +1,5 @@
-desc:Simple mono synth
-// (c) Theo Niessink 2012-2014
+desc:Simple mono/poly synth
+// (c) Theo Niessink 2012-2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)

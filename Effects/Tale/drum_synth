@@ -1,0 +1,415 @@
+desc:Simple drum synth
+// (c) Theo Niessink 2014, 2015
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+slider1:-6.0<-36.0,12.0,0.01>Bass Drum Volume (dB)
+slider2:0.0<-36.0,12.0,0.01>Snare Drum Volume (dB)
+slider3:0.0<-36.0,12.0,0.01>Side Stick Volume (dB)
+slider4:-18.0<-36.0,12.0,0.01>Hi-hat (dB)
+slider5:-6.0<-36.0,12.0,0.01>Low Tom (dB)
+slider6:-6.0<-36.0,12.0,0.01>Mid Tom (dB)
+slider7:-6.0<-36.0,12.0,0.01>High Tom (dB)
+slider8:-18.0<-36.0,12.0,0.01>Ride Cymbal (dB)
+slider9:-18.0<-36.0,12.0,0.01>Crash Cymbal (dB)
+slider10:0<0,1>-Unused
+slider11:0<-100,100,1>Bass Drum Pan (%)
+slider12:0<-100,100,1>Snare Drum Pan (%)
+slider13:0<-100,100,1>Side Stick Pan (%)
+slider14:33<-100,100,1>Hi-hat Pan (%)
+slider15:-50<-100,100,1>Low Tom Pan (%)
+slider16:-10<-100,100,1>Mid Tom Pan (%)
+slider17:25<-100,100,1>High Tom Pan (%)
+slider18:-33<-100,100,1>Ride Cymbal Pan (%)
+slider19:20<-100,100,1>Crash Cymbal Pan (%)
+slider20:0<0,1>-Unused
+slider21:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
+slider22:1<0,2,1{Mono,Stereo,Multichannel}>Output Mode
+slider23:0<0,100,1>Drive (%)
+slider24:0.0<-36.0,12.0,0.01>Volume (dB)
+
+out_pin:Bass Drum
+out_pin:Bass Drum
+out_pin:Snare Drum
+out_pin:Snare Drum
+out_pin:Side Stick
+out_pin:Side Stick
+out_pin:Hi-hat
+out_pin:Hi-hat
+out_pin:Low Tom
+out_pin:Low Tom
+out_pin:Mid Tom
+out_pin:Mid Tom
+out_pin:High Tom
+out_pin:High Tom
+out_pin:Ride Cymbal
+out_pin:Ride Cymbal
+out_pin:Crash Cymbal
+out_pin:Crash Cymbal
+
+import Tale/midi_queue.jsfx-inc
+import Tale/adsr.jsfx-inc
+import Tale/noise_generator.jsfx-inc
+import Tale/sine_oscillator.jsfx-inc
+import Tale/rc_filter.jsfx-inc
+import Tale/rbj_filter.jsfx-inc
+
+@init
+
+function int(x) ( x|0 );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
+
+function tanh(x)
+(
+  x = exp(2*x);
+  (x - 1) / (x + 1);
+);
+
+function pan(gain, pos)
+  // global(multich, vol)
+  instance(ch, gain0, gain1)
+(
+  multich > 0 ? (
+    multich == 1 ? multich = 0;
+    ch = multich;
+    multich += 2;
+  ) : (
+    ch = 0;
+  );
+
+  gain = vol * gain(gain, -36.0);
+  pos = multich >= 0 ? max(-100, min(100, pos)) * 0.01 : 0;
+
+  pos *= 0.25*$pi;
+  gain *= sqrt(2) * (1 - sqrt(0.5) * (1 / cos(pos) - 1));
+
+  pos += 0.25*$pi;
+  gain0 = cos(pos) * gain;
+  gain1 = sin(pos) * gain;
+);
+
+function sample(out)
+  // global(drive)
+  instance(ch, gain0, gain1)
+(
+  drive > 1 ? out = tanh(drive * out);
+
+  spl(ch) += gain0 * out;
+  spl(ch + 1) += gain1 * out;
+);
+
+// Bass Drum
+
+kick.env.adsr_seta(0.012);
+kick.env.adsr_setd(0);
+kick.env.adsr_sets(1);
+kick.env.adsr_setr(0.300);
+
+kick.osc.sin_setf(50);
+
+function kick(note, vel)
+  instance(env)
+(
+  note == 35 || note == 36 ? env.adsr_a(vel / 127);
+);
+
+function kick()
+  instance(env, osc)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    env.env * osc.sin_sin();
+  );
+);
+
+// Snare Drum
+
+snare_drum.env.adsr_seta(0.005);
+snare_drum.env.adsr_setd(0.025);
+snare_drum.env.adsr_sets(0.5);
+snare_drum.env.adsr_setr(0.350);
+
+snare_drum.lp.rc_setf(200);
+
+function snare_drum(note, vel)
+  instance(env, lp, dry)
+(
+  // Snare Drum 1
+  note == 38 ? (
+    dry = 0.045;
+  ) :
+  // Snare Drum 2
+  note == 40 ? (
+    dry = 0.1;
+  ) : (
+    note = 0;
+  );
+
+  note ? (
+    lp.lp = 0;
+    env.adsr_a(vel / 127);
+  );
+);
+
+function snare_drum()
+  // global(noise)
+  instance(env, lp, dry)
+  local(out)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    out = env.env * noise;
+    lp.rc_lp(out) + dry * out;
+  );
+);
+
+// Side Stick/Rimshot
+
+side_stick.env.adsr_seta(0);
+side_stick.env.adsr_setd(0.100);
+side_stick.env.adsr_sets(0);
+side_stick.env.adsr_setr(0);
+
+side_stick.hp.rc_setf(1000);
+side_stick.lp.rc_setf(1500);
+
+function side_stick(note, vel)
+  instance(env, hp, lp)
+(
+  note == 37 ? (
+    hp.lp = lp.lp = 0;
+    env.adsr_a(vel / 127);
+  );
+);
+
+function side_stick()
+  // global(noise)
+  instance(env, hp, lp)
+  local(out)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    out = env.env * noise;
+    lp.rc_lp(hp.rc_hp(out));
+  );
+);
+
+// Hi-hat
+
+hihat.env.adsr_seta(0);
+hihat.hp.rc_setf(6000);
+
+function hihat(note, vel)
+  instance(env)
+  local(d, s, r)
+(
+  // Closed Hi-hat
+  note == 42 ? (
+    d = 0.085;
+    s =
+    r = 0;
+  ) :
+  // Pedal Hi-hat
+  note == 44 ? (
+    d = 0.008;
+    s = 0.15;
+    r = 0.050;
+  ) :
+  // Open Hi-hat
+  note == 46 ? (
+    d = 0.085;
+    s = 0.15;
+    r = 1.5;
+  ) : (
+    note = 0;
+  );
+
+  note ? (
+    env.adsr_setd(d);
+    env.adsr_sets(s);
+    env.adsr_setr(r);
+
+    env.adsr_a(vel / 127);
+  );
+);
+
+function hihat()
+  // global(noise)
+  instance(env, hp)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    hp.rc_hp(env.env * noise);
+  );
+);
+
+// Low Tom
+
+low_tom.env.adsr_seta(0.015);
+low_tom.env.adsr_setd(0);
+low_tom.env.adsr_sets(1);
+low_tom.env.adsr_setr(1.5);
+
+low_tom.osc.sin_setf(75);
+
+function low_tom(note, vel)
+  instance(env)
+(
+  note == 41 || note == 43 ? env.adsr_a(vel / 127);
+);
+
+function low_tom()
+(
+  this.kick();
+);
+
+// Mid Tom
+
+mid_tom.env.adsr_seta(0.015);
+mid_tom.env.adsr_setd(0);
+mid_tom.env.adsr_sets(1);
+mid_tom.env.adsr_setr(1.25);
+
+mid_tom.osc.sin_setf(100);
+
+function mid_tom(note, vel)
+  instance(env)
+(
+  note == 45 || note == 47 ? env.adsr_a(vel / 127);
+);
+
+function mid_tom()
+(
+  this.kick();
+);
+
+// High Tom
+
+high_tom.env.adsr_seta(0.015);
+high_tom.env.adsr_setd(0);
+high_tom.env.adsr_sets(1);
+high_tom.env.adsr_setr(1.0);
+
+high_tom.osc.sin_setf(115);
+
+function high_tom(note, vel)
+  instance(env)
+(
+  note == 48 || note == 50 ? env.adsr_a(vel / 127);
+);
+
+function high_tom()
+(
+  this.kick();
+);
+
+// Ride Cymbal
+
+ride_cymbal.env.adsr_seta(0);
+ride_cymbal.env.adsr_setd(0.015);
+ride_cymbal.env.adsr_sets(0.25);
+ride_cymbal.env.adsr_setr(1.5);
+
+function ride_cymbal(note, vel)
+  instance(env, bp)
+(
+  // Ride Cymbal
+  note == 51 || note == 59 ? (
+    bp.rbj_bp(6000, 2.0);
+  ) :
+  // Ride Bell
+  note == 53 ? (
+    bp.rbj_bp(5300, 5.0);
+  ) : (
+    note = 0;
+  );
+
+  note ? env.adsr_a(vel / 127);
+);
+
+function ride_cymbal()
+  instance(env, bp)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    bp.rbj_df1(env.env * noise);
+  );
+);
+
+// Crash Cymbal
+
+crash_cymbal.env.adsr_seta(0);
+crash_cymbal.env.adsr_setd(0.100);
+crash_cymbal.env.adsr_sets(0.9);
+crash_cymbal.env.adsr_setr(2.5);
+
+crash_cymbal.bp.rbj_bp(4000, 2.5);
+
+function crash_cymbal(note, vel)
+  instance(env)
+(
+  note == 49 || note == 52 || note == 55 || note == 57 ? env.adsr_a(vel / 127);
+);
+
+function crash_cymbal()
+(
+  this.ride_cymbal();
+);
+
+@slider
+
+midi_ch = max(0, min(16, int(slider21))) - 1;
+multich = max(0, min(2, int(slider22))) - 1;
+
+drive = 10^(0.012 * max(0, slider23));
+vol = gain(slider24, -36.0);
+drive > 1 ? vol *= drive^(-0.5);
+
+kick.pan(slider1, slider11);
+snare_drum.pan(slider2, slider12);
+side_stick.pan(slider3, slider13);
+hihat.pan(slider4, slider14);
+low_tom.pan(slider5, slider15);
+mid_tom.pan(slider6, slider16);
+high_tom.pan(slider7, slider17);
+ride_cymbal.pan(slider8, slider18);
+crash_cymbal.pan(slider9, slider19);
+
+@block
+
+midiq.midiq_collect(midi_ch, 2);
+
+@sample
+
+while(midiq.midiq_remove() ? (
+  /* status = midiq.msg1 & 0xF0;
+
+  status == 0x90 && */ midiq.msg3 ? (
+    kick.kick(midiq.msg2, midiq.msg3) ||
+    snare_drum.snare_drum(midiq.msg2, midiq.msg3) ||
+    side_stick.side_stick(midiq.msg2, midiq.msg3) ||
+    hihat.hihat(midiq.msg2, midiq.msg3) ||
+    low_tom.low_tom(midiq.msg2, midiq.msg3) ||
+    mid_tom.mid_tom(midiq.msg2, midiq.msg3) ||
+    high_tom.high_tom(midiq.msg2, midiq.msg3) ||
+    ride_cymbal.ride_cymbal(midiq.msg2, midiq.msg3) ||
+    crash_cymbal.crash_cymbal(midiq.msg2, midiq.msg3);
+  // ) :
+
+  // status == 0x80 || status == 0x90 ? (
+    // status == 0x90 ? midiq.msg3 = 64;
+  );
+  
+  1; // while
+));
+
+noise = rng.lcg_white();
+
+kick.sample(kick.kick());
+snare_drum.sample(snare_drum.snare_drum());
+side_stick.sample(side_stick.side_stick());
+hihat.sample(hihat.hihat());
+low_tom.sample(low_tom.low_tom());
+mid_tom.sample(mid_tom.mid_tom());
+high_tom.sample(high_tom.high_tom());
+ride_cymbal.sample(ride_cymbal.ride_cymbal());
+crash_cymbal.sample(crash_cymbal.crash_cymbal());

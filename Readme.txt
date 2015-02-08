@@ -1,16 +1,17 @@
-JS mono_synth & libs
+Tale's JSFX Pack
 
 Installation
 
-To install JS mono_synth & libs copy the entire Tale folder to your REAPER
-JS Effects folder. The exact location of this folder depends on your REAPER
-installation. To navigate to the right location launch REAPER, choose "Show
-REAPER resource path in explorer/finder..." from the Options menu, and then
-open the Effects folder.
+To install Tale's JSFX Pack copy the Effects/Tale folder to your REAPER JS
+Effects folder, and copy the Data/Tale folder to your REAPER Data folder.
+The exact location of these folders depends on your REAPER installation. To
+navigate to the right location launch REAPER, choose "Show REAPER resource
+path in explorer/finder..." from the Options menu.
 
 System Requirements
 
-JS mono_synth & libs should run on REAPER 4.25 or newer.
+Tale's JSFX Pack should run on REAPER 4.25 or newer.
 
 
 (c) Theo Niessink 2012-2015
+License: GPL - http://www.gnu.org/licenses/gpl.html
