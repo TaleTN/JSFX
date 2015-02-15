@@ -59,9 +59,10 @@ function int(x) ( x|0 );
 function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 
 function tanh(x)
+  local(x2)
 (
-  x = exp(2*x);
-  (x - 1) / (x + 1);
+  x2 = x*x;
+  max(-1, min(1, (((x2 + 378)*x2 + 17325)*x2 + 135135)*x / (((28*x2 + 3150)*x2 + 62370)*x2 + 135135)));
 );
 
 function pan(gain, pos)
@@ -93,8 +94,13 @@ function sample(out)
 (
   drive > 1 ? out = tanh(drive * out);
 
-  spl(ch) += gain0 * out;
-  spl(ch + 1) += gain1 * out;
+  !ch ? (
+    spl0 += gain0 * out;
+    spl1 += gain1 * out;
+  ) : (
+    spl(ch) += gain0 * out;
+    spl(ch + 1) += gain1 * out;
+  );
 );
 
 // Bass Drum
@@ -184,12 +190,10 @@ function side_stick(note, vel)
 function side_stick()
   // global(noise)
   instance(env, hp, lp)
-  local(out)
 (
   env.adsr_process() ? (
     env.state == 4 ? env.adsr_r();
-    out = env.env * noise;
-    lp.rc_lp(hp.rc_hp(out));
+    lp.rc_lp(hp.rc_hp(env.env * noise));
   );
 );
 
@@ -250,16 +254,31 @@ low_tom.env.adsr_sets(1);
 low_tom.env.adsr_setr(1.5);
 
 low_tom.osc.sin_setf(75);
+low_tom.lp.rc_setf(115);
+
+function low_tom(a, b, note, vel)
+  instance(env, lp, lp2)
+(
+  note == a || note == b ? (
+    lp.lp = lp2.lp = 0;
+    lp2.a = lp.a;
+    env.adsr_a(vel / 127);
+  );
+);
 
 function low_tom(note, vel)
-  instance(env)
 (
-  note == 41 || note == 43 ? env.adsr_a(vel / 127);
+  this.low_tom(41, 43, note, vel);
 );
 
 function low_tom()
+  // global(noise)
+  instance(env, osc, lp, lp2)
 (
-  this.kick();
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    env.env * (osc.sin_sin() + lp2.rc_lp(lp.rc_lp(noise)));
+  );
 );
 
 // Mid Tom
@@ -270,16 +289,16 @@ mid_tom.env.adsr_sets(1);
 mid_tom.env.adsr_setr(1.25);
 
 mid_tom.osc.sin_setf(100);
+mid_tom.lp.rc_setf(125);
 
 function mid_tom(note, vel)
-  instance(env)
 (
-  note == 45 || note == 47 ? env.adsr_a(vel / 127);
+  this.low_tom(45, 47, note, vel);
 );
 
 function mid_tom()
 (
-  this.kick();
+  this.low_tom();
 );
 
 // High Tom
@@ -290,16 +309,16 @@ high_tom.env.adsr_sets(1);
 high_tom.env.adsr_setr(1.0);
 
 high_tom.osc.sin_setf(115);
+high_tom.lp.rc_setf(115);
 
 function high_tom(note, vel)
-  instance(env)
 (
-  note == 48 || note == 50 ? env.adsr_a(vel / 127);
+  this.low_tom(48, 50, note, vel);
 );
 
 function high_tom()
 (
-  this.kick();
+  this.low_tom();
 );
 
 // Ride Cymbal

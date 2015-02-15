@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20150215 (15 February 2015)
+
+ + drum_synth: Improved low/mid/high tom sound.
+ + drum_synth: Optimised drive algorithm, non-multichannel output.
+ + wavetable_synth: Extended filter Q range.
+ + wavetable_synth: Implemented tuning.
+
 v20150208 (8 February 2015)
 
  + drum_synth: Added simple drum synth (GM compatible, although incomplete).

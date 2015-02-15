@@ -2,11 +2,11 @@ desc:Paraphonic wavetable synth
 // (c) Theo Niessink 2014, 2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-// \todo Implement pan and tuning, maybe sustain pedal and pitch bend.
+// \todo Implement pan, maybe sustain pedal and pitch bend.
 
 slider1:-12.0<-120.0,24.0,0.1>Volume (dB)
 slider2:0<-100,100,1>-Pan (%)
-slider3:0<-1200,1200,1>-Tuning (cent)
+slider3:0<-1200,1200,1>Tuning (cent)
 slider4:0<0,1>-Unused
 slider5:3<0,5000,1>Attack (ms)
 slider6:1000<1,15000,1>Decay (ms)
@@ -21,7 +21,7 @@ slider14:1000<1,15000,1>Filter Decay (ms)
 slider15:100<0,100,1>Filter Sustain (%)
 slider16:8<0,5000,1>Filter Release (ms)
 slider17:100<0,100,1>Filter Cutoff (%)
-slider18:1.0<0.5,4.0,0.01>Filter Q
+slider18:1.0<0.5,8.0,0.01>Filter Q
 slider19:0<0,1>-Unused
 slider20:<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
 
@@ -90,7 +90,7 @@ function set_wavetbl(p, note, t)
   // global(srate, wavetbl, num_wavetbls, wavetbl_len)
   local(dt, n, tbl)
 (
-  dt = 440 * 2^((note - 69) / 12) / srate;
+  dt = 440 * 2^((tuning + note - 69) / 12) / srate;
   n = ceil(0.5 / dt) - 1;
   tbl = n > 0 ? wavetbl + wavetbl_len * min(num_wavetbls - 1, int(log(n) / log(2))) : -1;
 
@@ -290,6 +290,7 @@ function process_midi()
 @slider
 
 vol = gain(slider1, min_inf);
+tuning = slider3 * 0.01;
 
 env0.adsr_seta(slider5 * 0.001);
 env0.adsr_setd(slider6 * 0.001);
@@ -300,7 +301,7 @@ load_wavetbl(); // slider10
 
 vcf_amount = 1 - slider12 * 0.01;
 vcf_fc = slider17 * 0.01;
-vcf_q = slider18;
+vcf_q = max(0.01, slider18);
 
 env1.adsr_seta(slider13 * 0.001);
 env1.adsr_setd(slider14 * 0.001);
