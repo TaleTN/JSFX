@@ -53,7 +53,7 @@ lpf.m = 50;
 lpf.ln = log(lpf.m);
 
 function int(x) ( x|0 );
-function gain(db, inf) ( db <= inf ? 0 : 10^(db / 20) );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 function mix(a, b, mix) ( (1.0 - mix) * a + mix * b );
 function cache(x) ( x != this ? ( this = x; 1; ); );
 

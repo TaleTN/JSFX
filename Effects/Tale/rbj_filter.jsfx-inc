@@ -1,5 +1,5 @@
 desc:2nd order RBJ filter
-// (c) Theo Niessink 2012-2014
+// (c) Theo Niessink 2012-2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on "Cookbook formulae for audio EQ biquad filter coefficients" by
@@ -260,7 +260,8 @@ function rbj_high_shelf(f, q, db_gain)
 // Direct Form 1
 
 function rbj_df1(s)
-  instance(a1, a2, b0, b1, b2, x0, x1, x2, y0, y1, y2)
+  instance(a1, a2, b0, b1, b2, x0, x1, y0, y1)
+  local(x2, y2)
 (
   x2 = x1;
   x1 = x0;
@@ -281,7 +282,8 @@ function rbj_reset1()
 // Direct Form 2
 
 function rbj_df2(s)
-  instance(a1, a2, b0, b1, b2, w0, w1, w2)
+  instance(a1, a2, b0, b1, b2, w0, w1)
+  local(w2)
 (
   w2 = w1;
   w1 = w0;

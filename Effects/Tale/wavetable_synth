@@ -24,6 +24,9 @@ slider17:100<0,100,1>Filter Cutoff (%)
 slider18:1.0<0.5,8.0,0.01>Filter Q
 slider19:0<0,1>-Unused
 slider20:<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
+slider21:100<0,100,1>Velocity Control (%)
+slider22:0<0,1>-Unused
+slider23:0<0,1,1{Off,On}>Phase Lock
 
 import midi_queue.jsfx-inc
 import adsr.jsfx-inc
@@ -46,7 +49,7 @@ keyboard_size = 128 * key_size;
 midiq.midiq_init(keyboard + keyboard_size);
 
 function int(x) ( x|0 );
-function gain(db, inf) ( db <= inf ? 0 : 10^(db / 20) );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 function cache(x) ( x != this ? ( this = x; 1; ); );
 
 smooth.rc_set(0.0033);
@@ -168,18 +171,32 @@ function smooth_adsr(g)
 );
 
 function note_on(note, velocity)
-  // global(keyboard, num_keys, num_release, key_size, env0*, env1*)
-  local(p, end)
+  // global(keyboard, num_keys, num_release, key_size, env0*, env1*, phase_lock)
+  local(t, osc, sync, p, end)
 (
   num_release >= num_keys ? env1.adsr_a(1);
 
+  t = 0;
+  osc = note % 12;
+  sync = 128;
+
   p = keyboard;
   end = p + num_keys * key_size;
-  while(p < end && p[] != note ? p += key_size);
+  while(p < end && p[] != note ? (
+    phase_lock && p[] < sync && p[] % 12 == osc ? (
+      sync = p[];
+      t = p[1];
+    );
+    p += key_size;
+  ));
+
   p >= end ? (
     num_keys += 1;
 
-    set_wavetbl(p, note, 0);
+    t *= 2^((note - sync) / 12);
+    t -= t|0;
+
+    set_wavetbl(p, note, t);
     reset_velocity(p, velocity);
     env0.adsr_reset();
   ) : (
@@ -266,7 +283,7 @@ function process_midi()
 
     // Note On
     status == 0x90 && midiq.msg3 ? (
-      note_on(midiq.msg2, midiq.msg3 / 127);
+      note_on(midiq.msg2, (1.0 - vel_range) + vel_range * midiq.msg3 / 127);
     ) :
 
     // Note Off
@@ -309,6 +326,9 @@ env1.adsr_sets(slider15 * 0.01);
 env1.adsr_setr(slider16 * 0.001);
 
 midi_ch.cache(max(0, min(16, int(slider20))) - 1) ? all_notes_off();
+vel_range = max(0, min(100, slider21)) * 0.01;
+
+phase_lock = slider23 >= 0.5;
 
 @block
 

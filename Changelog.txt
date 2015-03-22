@@ -1,5 +1,15 @@
 Tale's JSFX Pack
 
+v20150322 (22 March 2015)
+
+ + rc_filter: Added a multimode RC filter effect.
+ + malloc: Added dynamic memory management library (malloc.jsfx-inc).
+ + wavetable_synth: Added velocity control, phase lock.
+ + wavetable_synth: Added Combo Organ, Full Organ wavetables.
+ + colored_noise/mono_synth/wavetable_synth: Nitpicked gain calculation.
+ + rbj: Removed Direct Form I/II instance variables.
+ + zdf: Nitpicked gain over Q in documentation.
+
 v20150215 (15 February 2015)
 
  + drum_synth: Improved low/mid/high tom sound.

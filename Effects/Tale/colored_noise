@@ -30,7 +30,7 @@ import zdf_filter.jsfx-inc
 
 function int(x) ( x|0 );
 function pow4(x) ( x*x*x*x );
-function gain(db, inf) ( db <= inf ? 0 : 10^(db / 20) );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 function cache(x) ( x != this ? ( this = x; 1; ); );
 
 smooth.rc_set(0.0033);

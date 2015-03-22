@@ -1,0 +1,160 @@
+desc:Dynamic memory management
+// (c) Theo Niessink 2015
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:Delay
+   slider1:300<0,1000,1>Delay (ms)
+
+   import Tale/malloc.jsfx-inc
+
+   @slider
+
+   len = floor(srate * slider1 * 0.001);
+   len > 0 ? (
+     buf = realloc(buf, len);
+     idx %= len;
+   ) : (
+     buf = free(buf);
+   );
+
+   @sample
+
+   in = 0.5 * (spl0 + spl1);
+   buf ? buf[idx] = in + 0.5 * buf[idx];
+   idx = (idx + 1) % len;
+
+   out = buf ? 0.5 * buf[idx];
+   spl0 += out;
+   spl1 += out;
+
+   Memory Management Functions
+
+    * malloc(size)
+      Example: buf = malloc(128);
+      Example: top = malloc(0);
+      Allocates a block of local memory, and returns its index. If size is
+      0, then returns the next available index.
+
+    * calloc(num, size)
+      Example: buf = calloc(64, 2);
+      Allocates a block of local memory of num*size items, and initializes
+      it to zero.
+
+    * realloc(ptr, size)
+      Example: buf = realloc(buf, 256);
+      Changes the size of the memory block, moving it to a new location if
+      necessary. If ptr is 0, then it calls malloc(size).
+
+    * free(ptr)
+      Example: free(buf);
+      Deallocates the memory block, and returns 0.
+
+*/
+
+@init
+
+
+function malloc(size)
+  static(top, alloc, in_use)
+  local(ptr)
+(
+  (size |= 0) > 0 ? (
+    top = 0; alloc = -2; in_use = -1;
+
+    ptr = top + 3;
+    while(ptr < top[] && (ptr[alloc] < size || ptr[in_use] > 0) ? ptr += ptr[alloc] + 2);
+
+    ptr >= top[] ? (
+      ptr[alloc] = size;
+      top[] = ptr + size;
+    );
+    ptr[in_use] = size;
+    ptr;
+  ) : (
+    top[];
+  );
+);
+
+
+function calloc(num, size)
+  local(ptr)
+(
+  size = (size|0) * (num|0);
+  memset(ptr = malloc(size), 0, size);
+  ptr;
+);
+
+
+function realloc(ptr, size)
+  static(top, alloc, in_use)
+  local(new_ptr)
+(
+  (ptr |= 0) > 0 ? (
+    top = 0; alloc = -2; in_use = -1;
+
+    (size |= 0) <= ptr[alloc] ? (
+      ptr[in_use] = size;
+      ptr;
+    ) : ptr + ptr[alloc] >= top[] ? (
+      ptr[alloc] = ptr[in_use] = size;
+      top[] = ptr + size;
+      ptr;
+    ) : (
+      new_ptr = malloc(size);
+      memcpy(new_ptr, ptr, ptr[in_use]);
+      ptr[in_use] = 0;
+      new_ptr;
+    );
+  ) : (
+    malloc(size);
+  );
+);
+
+
+function free(ptr)
+  static(top, alloc, in_use)
+(
+  (ptr |= 0) > 0 ? (
+    top = 0; alloc = -2; in_use = -1;
+
+    ptr + ptr[alloc] >= top[] ? (
+      freembuf(top[] = ptr - 2);
+      0;
+    ) : (
+      ptr[in_use] = 0;
+    );
+  );
+);
+
+
+/* function _malloc_dump()
+  local(ptr, top, alloc, in_use)
+(
+  top = malloc(0);
+
+  gfx_g = gfx_a = 1;
+  gfx_r = gfx_b = 0;
+  gfx_x = gfx_y = gfx_texth;
+
+  gfx_drawchar($'['); gfx_drawnumber(0, 0); gfx_drawchar($']');
+  gfx_drawchar($'='); gfx_drawnumber(top, 0);
+
+  ptr = 3;
+  while(ptr < top ? (
+    alloc = ptr[-2];
+    in_use = ptr[-1];
+
+    gfx_x = gfx_texth;
+    gfx_y += gfx_texth * 5/4;
+
+    gfx_drawchar($'['); gfx_drawnumber(ptr - 2, 0); gfx_drawchar($']');
+    gfx_drawchar($'='); gfx_drawnumber(alloc, 0);
+    gfx_drawchar($' ');
+    gfx_drawchar($'['); gfx_drawnumber(ptr - 1, 0); gfx_drawchar($']');
+    gfx_drawchar($'='); gfx_drawnumber(in_use, 0);
+
+    alloc > 0 && in_use >= 0 ? ptr += alloc + 2;
+  ));
+); */

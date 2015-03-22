@@ -1,0 +1,111 @@
+desc:Multimode RC filter
+// (c) Theo Niessink 2015
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// This effect filters the input signal using a single 1st order RC filter
+// stage for 6 dB low/high/all-pass, and two filter stages for 12 dB or
+// notch/band-pass.
+
+// You can select the cutoff/center frequency using both the linear
+// Frequency slider (for typing exact values), and the logarithmic Scale
+// slider (for automation).
+
+slider1:0<0,4,1{Low-Pass,High-Pass,All-Pass,Notch,Band-Pass}>Type
+slider2:1000<20,24000,1>Frequency (Hz)
+slider3:100<0,100,1>Scale (%)
+slider4:2.0<0.0,6.0,0.01>Bandwidth (oct)
+slider5:0<0,1,1{6 dB,12 dB}>Slope (dB/oct)
+slider6:-120.0<-120.0,24.0,0.1>Dry (dB)
+slider7:0.0<-120.0,24.0,0.1>Wet (dB)
+
+import Tale/rc_filter.jsfx-inc
+
+@init
+
+function int(x) ( x|0 );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
+function scale(x) ( 1/1200 + 1199/1200 * (exp(6*x) - 1) / (exp(6) - 1) );
+
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+min_inf = -120.0;
+dry.smooth = gain(slider6, min_inf);
+wet.smooth = gain(slider7, min_inf);
+
+min_fc = 20 * scale(0);
+
+@slider
+
+type = max(0, min(4, int(slider1)));
+
+slope0 = slider5 < 0.5;
+slope1 = 1.0 - slope0;
+
+fc1 = max(min_fc, slider2 * scale(slider3 * 0.01));
+
+// Low/High/All-Pass
+type < 3 ? (
+  rc0.a = rc1.a =
+  rc2.a = rc3.rc_setf(fc0 = fc1);
+) :
+
+// Notch/Band-Pass
+/* type >= 3 ? */ (
+  bw = 2^(0.5 * slider4);
+  rc0.a = rc1.rc_setf(fc0 = max(min_fc, fc1 / bw));
+  rc2.a = rc3.rc_setf(fc1 = max(min_fc, fc1 * bw));
+);
+
+dry = gain(slider6, min_inf);
+wet = gain(slider7, min_inf);
+
+@sample
+
+// Low-Pass
+type == 0 ? (
+  left = rc0.rc_lp(spl0);
+  right = rc1.rc_lp(spl1);
+
+  left = slope0 * left + slope1 * rc2.rc_lp(left);
+  right = slope0 * right + slope1 * rc3.rc_lp(right);
+) :
+
+// High-Pass
+type == 1 ? (
+  left = rc0.rc_hp(spl0);
+  right = rc1.rc_hp(spl1);
+
+  left = slope0 * left + slope1 * rc2.rc_hp(left);
+  right = slope0 * right + slope1 * rc3.rc_hp(right);
+) :
+
+// All-Pass
+type == 2 ? (
+  left = rc0.rc_ap(spl0);
+  right = rc1.rc_ap(spl1);
+
+  left = slope0 * left + slope1 * rc2.rc_ap(left);
+  right = slope0 * right + slope1 * rc3.rc_ap(right);
+) :
+
+// Notch
+type == 3 ? (
+  left = rc0.rc_lp(spl0);
+  right = rc1.rc_lp(spl1);
+
+  left += rc2.rc_hp(spl0);
+  right += rc3.rc_hp(spl1);
+) :
+
+// Band-Pass
+/* type == 4 ? */ (
+  left = rc0.rc_hp(spl0);
+  right = rc1.rc_hp(spl1);
+
+  left = rc2.rc_lp(left);
+  right = rc3.rc_lp(right);
+);
+
+spl0 = dry.smooth() * spl0 + wet.smooth() * left;
+spl1 = dry.smooth * spl1 + wet.smooth * right;

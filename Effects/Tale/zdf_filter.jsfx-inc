@@ -1,5 +1,5 @@
 desc:2nd order zero-delay feedback state variable filter
-// (c) Theo Niessink 2013, 2014
+// (c) Theo Niessink 2013-2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the rsStateVariableFilter C++ class by Robin Schmidt, as posted
@@ -39,18 +39,18 @@ desc:2nd order zero-delay feedback state variable filter
 
    Setting Functions
 
-    * zdf_lp(fc, q)             -- Low-pass
-    * zdf_hp(fc, q)             -- High-pass
-    * zdf_bp(fc, q)             -- Band-pass (constant skirt gain)
-    * zdf_bp2(fc, bw)           -- Band-pass (constant peak gain)
-    * zdf_notch(fc, bw)         -- Band-stop (notch)
-    * zdf_peak(fc, q, bw)       -- Bell (peaking EQ)
-    * zdf_low_shelf(fc, q, bw)  -- Low-shelf
-    * zdf_high_shelf(fc, q, bw) -- High-shelf
-    * zdf_ap(fc, bw)            -- All-pass
+    * zdf_lp(fc, q)                -- Low-pass
+    * zdf_hp(fc, q)                -- High-pass
+    * zdf_bp(fc, q)                -- Band-pass (constant skirt gain)
+    * zdf_bp2(fc, bw)              -- Band-pass (constant peak gain)
+    * zdf_notch(fc, bw)            -- Band-stop (notch)
+    * zdf_ap(fc, bw)               -- All-pass
+    * zdf_peak(fc, gain, bw)       -- Bell (peaking EQ)
+    * zdf_low_shelf(fc, gain, bw)  -- Low-shelf
+    * zdf_high_shelf(fc, gain, bw) -- High-shelf
       Example: lp.zdf_lp(1000, 0.7);
       Sets up the filter for the specified cutoff frequency (in Hz), Q
-      factor, and/or bandwidth (in octaves).
+      factor, bandwidth (in octaves), and/or gain.
 
    Filter Functions
 
@@ -234,7 +234,7 @@ function zdf_notch(fc, bw)
 
 // Bell (peaking EQ)
 
-function zdf_peak(fc, q, bw)
+function zdf_peak(fc, gain, bw)
   instance(g, r2, cl, cb, ch)
   local(fl, wl, r)
 (
@@ -249,9 +249,9 @@ function zdf_peak(fc, q, bw)
   r = g / wl;
   r *= r;
 
-  r2 = 2 * sqrt(((r*r + 1) / r - 2) / (4 * q));
+  r2 = 2 * sqrt(((r*r + 1) / r - 2) / (4 * gain));
   cl = 1;
-  cb = r2 * q;
+  cb = r2 * gain;
   ch = 1;
 
   this._zdf_seth();
@@ -266,17 +266,17 @@ function _zdf_sinh(x)
   0.5 * (x - 1/x);
 );
 
-function zdf_low_shelf(fc, q, bw)
+function zdf_low_shelf(fc, gain, bw)
   instance(g, r2, cl, cb, ch)
   local(a)
 (
   this._zdf_setfc(fc);
 
-  a = sqrt(q);
+  a = sqrt(gain);
   // scale SVF-cutoff frequency for shelvers
   g /= sqrt(a);
   r2 = 2 * _zdf_sinh(0.5 * log(2) * bw);
-  cl = q;
+  cl = gain;
   cb = r2 * a;
   ch = 1;
 
@@ -286,19 +286,19 @@ function zdf_low_shelf(fc, q, bw)
 
 // High-shelf
 
-function zdf_high_shelf(fc, q, bw)
+function zdf_high_shelf(fc, gain, bw)
   instance(g, r2, cl, cb, ch)
   local(a)
 (
   this._zdf_setfc(fc);
 
-  a = sqrt(q);
+  a = sqrt(gain);
   // scale SVF-cutoff frequency for shelvers
   g *= sqrt(a);
   r2 = 2 * _zdf_sinh(0.5 * log(2) * bw);
   cl = 1;
   cb = r2 * a;
-  ch = q;
+  ch = gain;
 
   this._zdf_seth();
 );
