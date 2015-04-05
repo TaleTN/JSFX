@@ -47,16 +47,24 @@ rms[3] = 0.56;
 rms[4] = sqrt(0.5);
 rms[5] = 0.125;
 
+ratio = 6;
+ratio[3] = srate / 44100;
+ratio[5] =
+ratio[2] = sqrt(ratio[3]);
+ratio[4] = ratio[2] * ratio[3];
+ratio[0] = 1/ratio[2];
+ratio[1] = 1;
+
 @slider
 
 color = max(0, min(5, int(slider1)));
-gain = rms[color];
+gain = rms[color] * ratio[color];
 
 rng0.lcg_density(pow4(slider2));
 rng1.lcg_density(rng0.density);
 
 stereo.cache(slider3 >= 0.5) ? (
-  rng0.lcg_init(0);
+  rng0.lcg_init(2147483646);
   stereo ? rng1.lcg_init(2);
 );
 

@@ -1,5 +1,15 @@
 Tale's JSFX Pack
 
+v20150405 (5 April 2015)
+
+ + lcg: Reimplemented using Lehmer random number generator (MINSTD).
+ + lcg: Optimised random/white noise generators.
+ + lcg: Added unit testing.
+ + colored_noise/drum_synth/mono_synth: Fixed noise gain depending on sample
+   rate.
+ + poly: Optimised waveform generators.
+ + poly: Restored REAPER 4.25..4.591 support.
+
 v20150322 (22 March 2015)
 
  + rc_filter: Added a multimode RC filter effect.

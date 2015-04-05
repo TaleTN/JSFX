@@ -55,6 +55,8 @@ import Tale/rbj_filter.jsfx-inc
 
 @init
 
+noise_gain = sqrt(srate / 44100);
+
 function int(x) ( x|0 );
 function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 
@@ -346,6 +348,7 @@ function ride_cymbal(note, vel)
 );
 
 function ride_cymbal()
+  // global(noise)
   instance(env, bp)
 (
   env.adsr_process() ? (
@@ -421,7 +424,7 @@ while(midiq.midiq_remove() ? (
   1; // while
 ));
 
-noise = rng.lcg_white();
+noise = noise_gain * rng.lcg_white();
 
 kick.sample(kick.kick());
 snare_drum.sample(snare_drum.snare_drum());

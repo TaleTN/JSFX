@@ -1,5 +1,5 @@
 desc:Noise generator
-// (c) Theo Niessink 2013, 2014
+// (c) Theo Niessink 2013-2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -16,7 +16,7 @@ desc:Noise generator
     * lcg_init(seed)
       Example: rng.lcg_init(12345);
       Initializes the random number generator with the specified seed value
-      (an integer in the range 0 through 2^31-1).
+      (an integer in the range 1 through 2^31-2).
 
     * lcg_density(density)
       Example: black.lcg_density(0.25);
@@ -70,9 +70,20 @@ import rbj_filter.jsfx-inc
 @init
 
 
+// Recommended range is 1..2^31-2, but for legacy's sake supports at least
+// 0..2^31-1.
+
 function lcg_init(seed)
 (
-  this.seed = seed & 2147483647;
+  seed >= 1 ? (
+    // seed = (seed - 1) % (2^31 - 2) + 1
+    seed -= 1;
+    seed -= (seed / 2147483646 |0) * 2147483646;
+    seed += 1;
+  ) : (
+    seed = 2147483646;
+  );
+  this.seed = seed;
 );
 
 
@@ -90,28 +101,40 @@ function lcg_leaky_set(rc)
 );
 
 
-// LCG pseudorandom number generator, parameter values from Wikipedia.
-// http://en.wikipedia.org/wiki/Linear_congruential_generator
+// Lehmer pseudorandom number generator, parameter values from Wikipedia.
+// http://en.wikipedia.org/wiki/Lehmer_random_number_generator
 
 function lcg_rand(x)
-  local(seed)
+  static(seed)
 (
-  seed = (69069 * seed + 1) & 2147483647;
-  seed / 2147483647 * x;
+  !seed ? seed = 1;
+
+  // seed = (seed * 48271) % (2^31 - 1)
+  seed *= 48271;
+  seed -= (seed * 0.000000000465661287524579692309600886801 |0) * 2147483647;
+
+  // (seed - 1) / (2^31 - 3) * x
+  (seed - 1) * 0.000000000465661287958260561303802660404 * x;
+);
+
+function _lcg_rand2()
+  instance(seed)
+(
+  !seed ? seed = 1;
+
+  seed *= 48271;
+  seed -= (seed * 0.000000000465661287524579692309600886801 |0) * 2147483647;
 );
 
 function lcg_rand2(x)
-  instance(seed)
 (
-  seed = (69069 * seed + 1) & 2147483647;
-  seed / 2147483647 * x;
+  (this._lcg_rand2() - 1) * 0.000000000465661287958260561303802660404 * x;
 );
 
 function lcg_white()
-  instance(seed)
 (
-  seed = (69069 * seed + 1) & 2147483647;
-  seed / 1073741824 - 1;
+  // (seed - 1) / (2^31 - 3) * 2 - 1
+  (this._lcg_rand2() - 1) * 0.000000000931322575916521122607605320809 - 1;
 );
 
 
@@ -180,3 +203,83 @@ function lcg_black()
   white = this.lcg_white();
   abs(white) >= (1 - density) ? white : 0;
 );
+
+
+/* @gfx
+// _lcg_test(1000000);
+
+function _lcg_test(count)
+  instance(seed)
+  static(ok1, ok2, n, i, j, first, prev)
+  local(m, k, x, y, tmp)
+(
+  !i ? i += 1;
+  n = 2;
+
+  loop(i <= n ? count,
+
+    i == 1 ? (
+      this.lcg_init(j);
+
+      j == 0 ? ok1 = 1;
+      ok1 &= j == 0 ? seed == 2^31 - 2 :
+      j < 2^31 - 1 ? seed == j :
+      // j < 2^32 - 3 ? seed == j - (2^31 - 2) :
+      // j < 2^32 ? seed == j - (2^32 - 4);
+      j < 2^31 ? seed == j - (2^31 - 2);
+
+      j += 1;
+      // m = 2^32;
+      m = 2^31;
+      j >= m || !ok1 ? ( i += 1; j = 0; );
+    ) :
+
+    i == 2 ? (
+      j == 0 ? (
+        this.lcg_init(1);
+        first = prev = seed;
+      );
+      tmp = seed; x = this.lcg_rand2(1);
+      seed = tmp; y = this.lcg_white();
+
+      j == 0 ? ok2 = 1;
+      ok2 &= seed >= 1 && seed <= 2^31 - 2;
+      ok2 &= seed != prev;
+      ok2 &= j < 2^31 - 3 ? seed != first : seed == first;
+      ok2 &= x >= 0.0 && x <= 1.0;
+      ok2 &= y >= -1.0 && y <= 1.0;
+      prev = seed;
+
+      j += 1;
+      m = 2^31 - 2;
+      j >= m || !ok2 ? ( i += 1; j = 0; );
+    );
+  );
+
+  gfx_g = gfx_a = 1;
+  gfx_r = gfx_b = 0;
+  gfx_x = gfx_y = gfx_texth;
+
+  gfx_drawchar($'1'); gfx_drawchar($'.'); gfx_drawchar($'.');
+  gfx_drawnumber(n, 0);
+
+  k = 1;
+  loop(n,
+    gfx_x = gfx_texth;
+    gfx_y += gfx_texth * 5/4;
+
+    k == i ? (
+      gfx_drawnumber(min(j / m * 100, 99), 0); gfx_drawchar($'%');
+    ) : k < i ? (
+      tmp = k == 1 ? ok1 : k == 2 ? ok2;
+      !tmp ? ( gfx_drawchar($'n'); gfx_drawchar($'o'); gfx_drawchar($'t'); gfx_drawchar($' '); );
+
+      gfx_drawchar($'o'); gfx_drawchar($'k'); gfx_drawchar($' ');
+      gfx_drawnumber(k, 0); gfx_drawchar($' ');
+
+      k == 1 ? ( gfx_drawchar($'S'); gfx_drawchar($'e'); gfx_drawchar($'e'); gfx_drawchar($'d'); ) :
+      k == 2 ? ( gfx_drawchar($'R'); gfx_drawchar($'a'); gfx_drawchar($'n'); gfx_drawchar($'d'); gfx_drawchar($'o'); gfx_drawchar($'m'); );
+    );
+    k += 1;
+  );
+); */

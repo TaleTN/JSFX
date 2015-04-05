@@ -49,6 +49,8 @@ midiq.midiq_init(hold_buf + 128);
 
 pitch = 1;
 
+noise_gain = sqrt(srate / 44100);
+
 lpf.m = 50;
 lpf.ln = log(lpf.m);
 
@@ -414,7 +416,7 @@ function adsr_lpf_off()
 freq_mod = pitch * tuning;
 lfo_mod ? lfo_mod == 1 ? tg.poly_setpw(pw + lfo_range * lfo.sin_sin()) : freq_mod *= 2^(lfo.sin_sin() * lfo_range);
 
-white_noise = noise_mix > 0.0 ? noise.lcg_white();
+white_noise = noise_mix > 0.0 ? noise_gain * noise.lcg_white();
 out = 0.0;
 
 num_poly == 1 ? (

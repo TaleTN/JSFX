@@ -129,7 +129,10 @@ function free(ptr)
 );
 
 
-/* function _malloc_dump()
+/* @gfx
+// _malloc_dump();
+
+function _malloc_dump()
   local(ptr, top, alloc, in_use)
 (
   top = malloc(0);
