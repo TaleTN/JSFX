@@ -2,30 +2,53 @@ desc:Simple drum synth
 // (c) Theo Niessink 2014, 2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-slider1:-6.0<-36.0,12.0,0.01>Bass Drum Volume (dB)
-slider2:0.0<-36.0,12.0,0.01>Snare Drum Volume (dB)
-slider3:0.0<-36.0,12.0,0.01>Side Stick Volume (dB)
-slider4:-18.0<-36.0,12.0,0.01>Hi-hat (dB)
-slider5:-6.0<-36.0,12.0,0.01>Low Tom (dB)
-slider6:-6.0<-36.0,12.0,0.01>Mid Tom (dB)
-slider7:-6.0<-36.0,12.0,0.01>High Tom (dB)
-slider8:-18.0<-36.0,12.0,0.01>Ride Cymbal (dB)
-slider9:-18.0<-36.0,12.0,0.01>Crash Cymbal (dB)
+slider1:-5318008<-36.0,12.0,0.01>-[Deprecated] Bass Drum (dB)
+slider2:-5318008<-36.0,12.0,0.01>-[Deprecated] Snare Drum (dB)
+slider3:-5318008<-36.0,12.0,0.01>-[Deprecated] Side Stick (dB)
+slider4:-5318008<-36.0,12.0,0.01>-[Deprecated] Hi-hat (dB)
+slider5:-5318008<-36.0,12.0,0.01>-[Deprecated] Low Tom (dB)
+slider6:-5318008<-36.0,12.0,0.01>-[Deprecated] Mid Tom (dB)
+slider7:-5318008<-36.0,12.0,0.01>-[Deprecated] High Tom (dB)
+slider8:-5318008<-36.0,12.0,0.01>-[Deprecated] Ride Cymbal (dB)
+slider9:-5318008<-36.0,12.0,0.01>-[Deprecated] Crash Cymbal (dB)
 slider10:0<0,1>-Unused
-slider11:0<-100,100,1>Bass Drum Pan (%)
-slider12:0<-100,100,1>Snare Drum Pan (%)
-slider13:0<-100,100,1>Side Stick Pan (%)
-slider14:33<-100,100,1>Hi-hat Pan (%)
-slider15:-50<-100,100,1>Low Tom Pan (%)
-slider16:-10<-100,100,1>Mid Tom Pan (%)
-slider17:25<-100,100,1>High Tom Pan (%)
-slider18:-33<-100,100,1>Ride Cymbal Pan (%)
-slider19:20<-100,100,1>Crash Cymbal Pan (%)
+slider11:-5318008<-100,100,1>-[Deprecated] Bass Drum (%)
+slider12:-5318008<-100,100,1>-[Deprecated] Snare Drum (%)
+slider13:-5318008<-100,100,1>-[Deprecated] Side Stick (%)
+slider14:-5318008<-100,100,1>-[Deprecated] Hi-hat (%)
+slider15:-5318008<-100,100,1>-[Deprecated] Low Tom (%)
+slider16:-5318008<-100,100,1>-[Deprecated] Mid Tom (%)
+slider17:-5318008<-100,100,1>-[Deprecated] High Tom (%)
+slider18:-5318008<-100,100,1>-[Deprecated] Ride Cymbal (%)
+slider19:-5318008<-100,100,1>-[Deprecated] Crash Cymbal (%)
 slider20:0<0,1>-Unused
 slider21:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
 slider22:1<0,2,1{Mono,Stereo,Multichannel}>Output Mode
 slider23:0<0,100,1>Drive (%)
 slider24:0.0<-36.0,12.0,0.01>Volume (dB)
+slider25:0<0,1>-Unused
+slider26:-6.0<-36.0,12.0,0.01>Bass Drum (dB)
+slider27:0<-100,100,1>Bass Drum (%)
+slider28:0.0<-36.0,12.0,0.01>Snare Drum (dB)
+slider29:0<-100,100,1>Snare Drum (%)
+slider30:0.0<-36.0,12.0,0.01>Side Stick (dB)
+slider31:0<-100,100,1>Side Stick (%)
+slider32:-18.0<-36.0,12.0,0.01>Hi-hat (dB)
+slider33:33<-100,100,1>Hi-hat (%)
+slider34:-6.0<-36.0,12.0,0.01>Low Tom (dB)
+slider35:-50<-100,100,1>Low Tom (%)
+slider36:-6.0<-36.0,12.0,0.01>Mid Tom (dB)
+slider37:-10<-100,100,1>Mid Tom (%)
+slider38:-6.0<-36.0,12.0,0.01>High Tom (dB)
+slider39:25<-100,100,1>High Tom (%)
+slider40:-18.0<-36.0,12.0,0.01>Ride Cymbal (dB)
+slider41:-33<-100,100,1>Ride Cymbal (%)
+slider42:-18.0<-36.0,12.0,0.01>Crash Cymbal (dB)
+slider43:20<-100,100,1>Crash Cymbal (%)
+slider44:-12.0<-36.0,12.0,0.01>Tambourine (dB)
+slider45:0<-100,100,1>Tambourine (%)
+slider46:-6.0<-36.0,12.0,0.01>Cowbell (dB)
+slider47:0<-100,100,1>Cowbell (%)
 
 out_pin:Bass Drum
 out_pin:Bass Drum
@@ -45,11 +68,16 @@ out_pin:Ride Cymbal
 out_pin:Ride Cymbal
 out_pin:Crash Cymbal
 out_pin:Crash Cymbal
+out_pin:Tambourine
+out_pin:Tambourine
+out_pin:Cowbell
+out_pin:Cowbell
 
 import Tale/midi_queue.jsfx-inc
 import Tale/adsr.jsfx-inc
 import Tale/noise_generator.jsfx-inc
 import Tale/sine_oscillator.jsfx-inc
+import Tale/poly_blep.jsfx-inc
 import Tale/rc_filter.jsfx-inc
 import Tale/rbj_filter.jsfx-inc
 
@@ -59,6 +87,7 @@ noise_gain = sqrt(srate / 44100);
 
 function int(x) ( x|0 );
 function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
+function legacy(i, j) ( slider(i) == -5318008 ? slider(j) : slider(j) = slider(i) );
 
 function tanh(x)
   local(x2)
@@ -93,8 +122,12 @@ function pan(gain, pos)
 function sample(out)
   // global(drive)
   instance(ch, gain0, gain1)
+  static(dc, tanh_dc)
 (
-  drive > 1 ? out = tanh(drive * out);
+  drive > 1 ? (
+    !dc ? tanh_dc = tanh(dc = 0.05);
+    out = tanh(drive * out + dc) - tanh_dc;
+  );
 
   !ch ? (
     spl0 += gain0 * out;
@@ -377,6 +410,58 @@ function crash_cymbal()
   this.ride_cymbal();
 );
 
+// Tambourine
+
+tambourine.env.adsr_seta(0.040);
+tambourine.env.adsr_setd(0.060);
+tambourine.env.adsr_sets(0.1);
+tambourine.env.adsr_setr(0.120);
+
+tambourine.hp.rbj_hp(5500, 10.0);
+tambourine.lp.rc_setf(1833);
+
+function tambourine(note, vel)
+  instance(env)
+(
+  note == 54 ? env.adsr_a(vel / 127);
+);
+
+function tambourine()
+  // global(noise)
+  instance(env, hp, lp)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    lp.rc_lp(hp.rbj_df1(env.env * noise));
+  );
+);
+
+// Cowbell
+
+cowbell.env.adsr_seta(0.003);
+cowbell.env.adsr_setd(0.350);
+cowbell.env.adsr_sets(0);
+cowbell.env.adsr_setr(0);
+
+cowbell.osc.poly_setf(465);
+cowbell.bp.rbj_bp(1860, sqrt(0.5));
+
+function cowbell(note, vel)
+  instance(env)
+(
+  note == 56 ? env.adsr_a(vel / 127);
+);
+
+function cowbell()
+  // global(noise)
+  instance(env, osc, bp)
+(
+  env.adsr_process() ? (
+    env.state == 4 ? env.adsr_r();
+    sqr(env.env) * bp.rbj_df1(osc.poly_trap() + 0.1 * noise);
+  );
+);
+
 @slider
 
 midi_ch = max(0, min(16, int(slider21))) - 1;
@@ -386,15 +471,17 @@ drive = 10^(0.012 * max(0, slider23));
 vol = gain(slider24, -36.0);
 drive > 1 ? vol *= drive^(-0.5);
 
-kick.pan(slider1, slider11);
-snare_drum.pan(slider2, slider12);
-side_stick.pan(slider3, slider13);
-hihat.pan(slider4, slider14);
-low_tom.pan(slider5, slider15);
-mid_tom.pan(slider6, slider16);
-high_tom.pan(slider7, slider17);
-ride_cymbal.pan(slider8, slider18);
-crash_cymbal.pan(slider9, slider19);
+kick.pan(legacy(1, 26), legacy(11, 27));
+snare_drum.pan(legacy(2, 28), legacy(12, 29));
+side_stick.pan(legacy(3, 30), legacy(13, 31));
+hihat.pan(legacy(4, 32), legacy(14, 33));
+low_tom.pan(legacy(5, 34), legacy(15, 35));
+mid_tom.pan(legacy(6, 36), legacy(16, 37));
+high_tom.pan(legacy(7, 38), legacy(17, 39));
+ride_cymbal.pan(legacy(8, 40), legacy(18, 41));
+crash_cymbal.pan(legacy(9, 42), legacy(19, 43));
+tambourine.pan(slider44, slider45);
+cowbell.pan(slider46, slider47);
 
 @block
 
@@ -414,7 +501,9 @@ while(midiq.midiq_remove() ? (
     mid_tom.mid_tom(midiq.msg2, midiq.msg3) ||
     high_tom.high_tom(midiq.msg2, midiq.msg3) ||
     ride_cymbal.ride_cymbal(midiq.msg2, midiq.msg3) ||
-    crash_cymbal.crash_cymbal(midiq.msg2, midiq.msg3);
+    crash_cymbal.crash_cymbal(midiq.msg2, midiq.msg3) ||
+    tambourine.tambourine(midiq.msg2, midiq.msg3) ||
+    cowbell.cowbell(midiq.msg2, midiq.msg3);
   // ) :
 
   // status == 0x80 || status == 0x90 ? (
@@ -435,3 +524,5 @@ mid_tom.sample(mid_tom.mid_tom());
 high_tom.sample(high_tom.high_tom());
 ride_cymbal.sample(ride_cymbal.ride_cymbal());
 crash_cymbal.sample(crash_cymbal.crash_cymbal());
+tambourine.sample(tambourine.tambourine());
+cowbell.sample(cowbell.cowbell());

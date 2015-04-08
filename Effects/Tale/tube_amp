@@ -1,0 +1,107 @@
+desc:Tube amp
+// (c) Theo Niessink 2015
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+slider1:0.0<-12.0,48.0,0.1>Drive (dB)
+slider2:20000<20,20000,1>Cutoff (Hz)
+slider3:1<0,1,1{Mono,Stereo}>Processing
+slider4:1<0,3,1{Off,2x,4x,8x}>Oversampling
+
+import rc_filter.jsfx-inc
+import oversampler.jsfx-inc
+
+@init
+
+function int(x) ( x|0 );
+function drive(db) ( 10^(0.05 * db) );
+
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+drive.smooth = drive(slider1);
+
+function tanh(x)
+  local(x2)
+(
+  x2 = x*x;
+  max(-1, min(1, (((x2 + 378)*x2 + 17325)*x2 + 135135)*x / (((28*x2 + 3150)*x2 + 62370)*x2 + 135135)));
+);
+
+tanh_dc = tanh(dc = 0.05);
+
+function amp(x)
+(
+  (tanh(drive.smooth * x + dc) - tanh_dc) * gain;
+);
+
+function amp2(x)
+  instance(os2.y1, os2.y0)
+(
+  this.os2.os_up2(x);
+  os2.y1 = amp(os2.y1);
+  os2.y0 = amp(os2.y0);
+  this.os2.os_down2();
+);
+
+function amp4(x)
+  instance(os4.y1, os4.y0)
+(
+  this.os4.os_up2(x);
+  os4.y1 = this.amp2(os4.y1);
+  os4.y0 = this.amp2(os4.y0);
+  this.os4.os_down2();
+);
+
+function amp8(x)
+  instance(os8.y1, os8.y0)
+(
+  this.os8.os_up2(x);
+  os8.y1 = this.amp4(os8.y1);
+  os8.y0 = this.amp4(os8.y0);
+  this.os8.os_down2();
+);
+
+pdc_bot_ch = 0; pdc_top_ch = 2;
+
+delay[0] = 0;
+delay[1] = 3; // int(n = ((fir_len = 7) - 1) / 2)
+delay[2] = 4; // int(n + n/2)
+delay[3] = 5; // int(n + n/2 + n/4)
+
+hp0.a = hp1.rc_set(0.022);
+
+@slider
+
+drive = drive(slider1);
+lp0.a = lp1.rc_setf(slider2);
+stereo = slider3 >= 0.5;
+
+os = max(0, min(3, int(slider4)));
+pdc_delay = delay[os];
+
+@sample
+
+drive.smooth();
+gain = 9/50 + 1/(drive.smooth + 9/41 * sqr(drive.smooth));
+
+!stereo ? spl0 = 0.5 * (spl0 + spl1);
+
+os == 0 ? (
+  spl0 = left.amp(spl0);
+  stereo ? spl1 = right.amp(spl1);
+) :
+os == 1 ? (
+  spl0 = left.amp2(spl0);
+  stereo ? spl1 = right.amp2(spl1);
+) :
+os == 2 ? (
+  spl0 = left.amp4(spl0);
+  stereo ? spl1 = right.amp4(spl1);
+) :
+/* os == 3 ? */ (
+  spl0 = left.amp8(spl0);
+  stereo ? spl1 = right.amp8(spl1);
+);
+
+spl0 = lp0.rc_lp(hp0.rc_hp(spl0));
+spl1 = stereo? lp1.rc_lp(hp1.rc_hp(spl1)) : spl0;

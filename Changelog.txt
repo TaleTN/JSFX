@@ -1,5 +1,13 @@
 Tale's JSFX Pack
 
+v20150408 (8 April 2015)
+
+ + drum_synth: Added tambourine, cowbell.
+ + drum_synth: Moved/interleaved volume/pan sliders.
+ + drum_synth: Tweaked drive.
+ + tube_amp: Added tube amp effect.
+ + os: Added 2x oversampler library (oversampler.jsfx-inc).
+
 v20150405 (5 April 2015)
 
  + lcg: Reimplemented using Lehmer random number generator (MINSTD).

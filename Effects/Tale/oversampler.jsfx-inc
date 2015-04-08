@@ -1,0 +1,97 @@
+desc:2x oversampler
+// (c) Theo Niessink 2015
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:Frequency doubler
+   slider1:1<0,1,1{Off,2x}>Oversampling
+
+   import Tale/oversampler.jsfx-inc
+   import Tale/rc_filter.jsfx-inc
+
+   @init
+
+   function double(in)
+   (
+     in = 2 * abs(in);
+   );
+
+   function double2(in)
+   (
+     os.os_up2(in);
+     os.y1 = double(os.y1);
+     os.y0 = double(os.y0);
+     os.os_down2();
+   );
+
+   dc.rc_setf(20);
+
+   pdc_bot_ch = 0; pdc_top_ch = 2;
+
+   @slider
+
+   pdc_delay = slider1 < 0.5 ? 0 : 3;
+
+   @sample
+
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = dc.rc_hp(slider1 < 0.5 ? double(mono) : double2(mono));
+
+   Upsample/Downsample Functions
+
+    * os_up2(s)
+      Example: os.os_up2(spl0);
+      Upsamples the signal 2x.
+
+    * os_down2()
+      Example: spl0 = os.os_down2();
+      Downsamples the signal 2x.
+
+   Miscellaneous Functions
+
+    * os_reset2()
+      Example: os.os_reset2();
+      Resets the oversampler filter state.
+
+   Instance Variables
+
+    * y1
+    * y0
+      Example: os.y1 = abs(os.y1);
+      Example: os.y0 = abs(os.y0);
+      The current (y1) and the next (y0) oversampled sample.
+
+*/
+
+@init
+
+
+// Coefficients from "Antialiasing Oscillators in Subtractive Synthesis" by
+// Vesa Valimaki and Antti Huovilainen.
+
+function os_up2(x)
+  instance(x3, x2, x1, x0, y6, y5, y4, y3, y2, y1, y0)
+(
+  x3 = x2; x2 = x1; x1 = x0;
+  x0 = x * 1.98255352894528158458342659287; // 0.5 / (-0.0228 + 0.275)
+
+  y6 = y4; y5 = y3; y4 = y2; y3 = y1; y2 = y0;
+  y1 = -0.0228*(x0 + x3) + 0.275*(x1 + x2);
+  y0 = 0.5*x1;
+);
+
+
+function os_down2()
+  instance(y6, y4, y3, y2, y0)
+(
+  -0.0228*(y0 + y6) + 0.275*(y2 + y4) + 0.5*y3;
+);
+
+
+function os_reset2()
+  instance(x2, x1, x0, y4, y3, y2, y1, y0)
+(
+  x2 = x1 = x0 =
+  y4 = y3 = y2 = y1 = y0 = 0;
+);
