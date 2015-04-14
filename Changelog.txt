@@ -1,5 +1,9 @@
 Tale's JSFX Pack
 
+v20150414 (14 April 2015)
+
+ + poly_mono_midi_router: Added round robin.
+
 v20150408 (8 April 2015)
 
  + drum_synth: Added tambourine, cowbell.

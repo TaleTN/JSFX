@@ -1,5 +1,5 @@
 desc:Dynamic poly/mono MIDI router
-// (c) Theo Niessink 2013, 2014
+// (c) Theo Niessink 2013-2015
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // This effect distributes incoming MIDI Note On/Off messages equally over
@@ -10,6 +10,7 @@ desc:Dynamic poly/mono MIDI router
 slider1:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Input Channel
 slider2:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Output Channel Min
 slider3:15<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Output Channel Max
+slider4:0<0,1,1{Off,On}>Round Robin
 
 @init
 
@@ -28,6 +29,8 @@ min_ch > max_ch ? (
   max_ch = ch;
 );
 
+rr_ch = slider4 >= 0.5 ? max(min_ch, min(max_ch, rr_ch)) : -1;
+
 @block
 
 while(midirecv(ofs, msg1, msg23) ? (
@@ -39,8 +42,19 @@ while(midirecv(ofs, msg1, msg23) ? (
 
     // Note On
     status == 0x90 && msg3 ? (
-      ch = note_buf[msg2];
-      !ch ? (
+      rr_ch >= 0 ? (
+        ch = rr_ch;
+        rr_ch += 1;
+        rr_ch > max_ch ? rr_ch = min_ch;
+
+        ch_buf[ch] += 1;
+        note_buf[msg2] = ch + 1;
+        num_note += 1;
+      ) :
+
+      (ch = note_buf[msg2]) ? (
+        ch -= 1;
+      ) : (
         ch = i = min_ch;
         n = ch_buf[ch];
         while(n && ((i += 1) <= max_ch) ? (
@@ -51,11 +65,10 @@ while(midirecv(ofs, msg1, msg23) ? (
           );
           1; // while
         ));
+
         ch_buf[ch] += 1;
         note_buf[msg2] = ch + 1;
         num_note += 1;
-      ) : (
-        ch -= 1;
       );
       msg1 = status | ch;
     ) :
