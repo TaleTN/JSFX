@@ -1,8 +1,13 @@
 Tale's JSFX Pack
 
+v20150415 (15 April 2015)
+
+ + poly_mono_midi_router: Fixed hanging duplicate notes in round-robin mode.
+ + poly_mono_midi_router: Safer MIDI status byte parsing.
+
 v20150414 (14 April 2015)
 
- + poly_mono_midi_router: Added round robin.
+ + poly_mono_midi_router: Added round-robin.
 
 v20150408 (8 April 2015)
 
