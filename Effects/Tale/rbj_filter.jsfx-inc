@@ -1,5 +1,5 @@
 desc:2nd order RBJ filter
-// (c) Theo Niessink 2012-2015
+// Copyright (C) 2012-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on "Cookbook formulae for audio EQ biquad filter coefficients" by

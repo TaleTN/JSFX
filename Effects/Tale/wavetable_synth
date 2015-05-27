@@ -1,5 +1,5 @@
 desc:Paraphonic wavetable synth
-// (c) Theo Niessink 2014, 2015
+// Copyright (C) 2014, 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // \todo Implement pan, maybe sustain pedal and pitch bend.

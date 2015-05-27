@@ -1,5 +1,5 @@
 desc:Random MIDI note generator
-// (c) Theo Niessink 2011-2013
+// Copyright (C) 2011-2013 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // This effect generates random MIDI notes while playing or recording (but

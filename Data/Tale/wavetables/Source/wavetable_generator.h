@@ -1,5 +1,5 @@
 // Wavetable generator for JS: Tale/wavetable_synth
-// (c) Theo Niessink 2014, 2015
+// Copyright (C) 2014, 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* REQUIRES WDL

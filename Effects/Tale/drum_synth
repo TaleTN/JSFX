@@ -1,5 +1,5 @@
 desc:Simple drum synth
-// (c) Theo Niessink 2014, 2015
+// Copyright (C) 2014, 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-5318008<-36.0,12.0,0.01>-[Deprecated] Bass Drum (dB)

@@ -1,5 +1,5 @@
 desc:PolyBLEP quasi-bandlimited tone generator
-// (c) Theo Niessink 2013-2015
+// Copyright (C) 2013-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -320,7 +320,7 @@ function poly_tri()
 
 // Modified triangle
 
-function poly_tri2() // 13.3
+function poly_tri2()
   instance(dt, a)
   local(pw, y, t1, t2, pw2)
 (

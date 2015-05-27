@@ -1,5 +1,5 @@
 desc:Simple mono/poly synth
-// (c) Theo Niessink 2012-2015
+// Copyright (C) 2012-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
@@ -24,7 +24,7 @@ slider19:0<0,1>-Unused
 slider20:0<-100,100,1>Pan (%)
 slider21:0<0,1>-Unused
 slider22:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
-slider23:0<0,1,1{Mono,Poly}>Mode
+slider23:2<0,2,1{[Deprecated] Mono,Poly,Mono}>Mode
 slider24:100<0,100,1>Velocity Control (%)
 slider25:0<0,1>-Unused
 slider26:6.0<0.01,12.0,0.001>LFO Speed (Hz)
@@ -43,8 +43,9 @@ import noise_generator.jsfx-inc
 
 @init
 
-note_buf = 0; max_poly = 16; note_size = 13;
-hold_buf = note_buf + max_poly * note_size;
+osc_buf = 0; max_poly = 16; osc_size = 13;
+note_buf = osc_buf + max_poly * osc_size;
+hold_buf = note_buf + 128;
 midiq.midiq_init(hold_buf + 128);
 
 pitch = 1;
@@ -150,84 +151,103 @@ function reset_lpf(dt)
   lpf.zdf.zdf_lp(lpf.freq.smooth, lpf.q);
 );
 
-function note_on(note, vel)
-  // global(num_poly, mono_note, mono_dt, note_buf, num_notes, note_size, tg*, adsr*, lpf*, tuning)
-  local(p, end)
+function set_buf(buf, num, size)
+  // global(p, end)
 (
-  // Optimize for mono (poly code can also play mono, but is slower).
-  num_poly == 1 ? (
+  p = buf;
+  end = p + num * size;
+);
+
+function remove_buf(size)
+  // global(p, end)
+(
+  end -= size;
+  p < end ? memcpy(p, p + size, end - p);
+);
+
+function find_note(note, buf, num, size)
+  // global(p, end)
+(
+  set_buf(buf, num, size);
+  while(p < end && p[] != note ? p += size);
+);
+
+function note_on(note, vel)
+  // global(p, end, note_buf, num_notes, hold_buf, num_hold, osc_buf, num_osc, osc_size, num_poly, tuning, tg*, adsr*, lpf*)
+(
+  find_note(note, note_buf, num_notes, 1);
+  p >= end ? (
+    p[] = note;
+    num_notes += 1;
+  );
+
+  find_note(note, hold_buf, num_hold, 1);
+  p < end ? (
+    remove_buf(1);
+    num_hold -= 1;
+  );
+
+  find_note(note, osc_buf, num_osc, osc_size);
+  p >= end ? (
     set_tg(note);
 
-    !num_notes ? (
-      adsr.adsr_reset();
-      reset_lpf(tuning * tg.dt);
-      num_notes = 1;
-    );
-
-    mono_note = note;
-    mono_dt = tg.dt;
-    
-    adsr.adsr_a(vel);
-    lpf.env.lp = lpf.m;
-  ) :
-
-  /* num_poly > 1 ? */ (
-    p = note_buf;
-    end = p + num_notes * note_size;
-    while(p < end && p[] != note ? p += note_size);
-
-    p >= end ? (
-      set_tg(note);
-
-      num_notes >= num_poly ? (
+    num_osc >= num_poly ? (
+      p = osc_buf;
+      num_poly > 1 ? (
         // Set oscillator/ADSR state to first played note (to mimic old
         // mono_synth global state behaviour).
-        tg.t = note_buf[1];
-        load_adsr(note_buf);
-        load_lpf(note_buf);
-
-        p -= note_size;
-        num_notes -= 1;
-        num_notes > 0 ? memcpy(note_buf, note_buf + note_size, num_notes * note_size);
-      ) : (
-        // Don't reset oscillator on first note (old mono_synth behaviour).
-        num_notes > 0 ? tg.t = 0;
-        adsr.adsr_reset();
-        reset_lpf(tuning * tg.dt);
+        tg.t = p[1];
+        load_adsr(p);
+        load_lpf(p);
       );
 
-      num_notes += 1;
+      remove_buf(osc_size);
+      p = end;
+      num_osc -= 1;
+    ) : (
+      // Don't reset oscillator on first note (old mono_synth behaviour).
+      num_osc > 0 ? tg.t = 0;
+      adsr.adsr_reset();
+      reset_lpf(tuning * tg.dt);
+    );
+
+    num_osc += 1;
+    p[0] = note;
+    p[1] = tg.t;
+    p[2] = tg.dt;
+  ) : num_poly > 1 ? (
+    load_adsr(p);
+    load_lpf(p);
+  );
+
+  adsr.adsr_a(vel);
+  lpf.env.lp = lpf.m;
+
+  store_adsr(p);
+  store_lpf(p);
+);
+
+function note_off(note)
+  // global(p, end, note_buf, num_notes, osc_buf, num_osc, osc_size, num_poly, note_prio, tg*, adsr*)
+(
+  find_note(note, note_buf, num_notes, 1);
+  p < end ? (
+    remove_buf(1);
+    num_notes -= 1;
+  );
+
+  find_note(note, osc_buf, num_osc, osc_size);
+  p < end ? (
+    // Mono, last-note priority
+    num_poly == 1 && num_notes > 0 && note_prio ? (
+      note = note_buf[num_notes - 1];
+      set_tg(note);
       p[0] = note;
       p[1] = tg.t;
       p[2] = tg.dt;
     ) : (
-      load_adsr(p);
-      load_lpf(p);
-    );
-
-    adsr.adsr_a(vel);
-    lpf.env.lp = lpf.m;
-
-    store_adsr(p);
-    store_lpf(p);
-  );
-);
-
-function note_off(note)
-  // global(num_poly, mono_note, note_buf, note_size, num_notes, adsr*)
-  local(p, end)
-(
-  num_poly == 1 ? (
-    num_notes && note == mono_note ? adsr.adsr_r();
-  ) :
-
-  /* num_poly > 1 ? */ (
-    p = note_buf;
-    end = p + num_notes * note_size;
-    while(p < end && p[] != note ? p += note_size);
-
-    p < end ? (
-      load_adsr(p);
+      // Release
+      num_poly > 1 ? load_adsr(p);
       adsr.adsr_r();
       store_adsr(p);
     );
@@ -235,15 +255,9 @@ function note_off(note)
 );
 
 function hold_note(note)
-  // global(hold_buf, num_hold)
-  local(p, end)
+  // global(p, end, hold_buf, num_hold)
 (
-  // \todo Limit num_hold to num_poly.
-
-  p = hold_buf;
-  end = p + num_hold;
-  while(p < end && p[] != note ? p += 1);
-
+  find_note(note, hold_buf, num_hold, 1);
   p >= end ? (
     p[] = note;
     num_hold += 1;
@@ -263,9 +277,9 @@ function release_notes()
 );
 
 function all_notes_off()
-  // global(num_notes, num_hold)
+  // global(num_notes, num_hold, num_osc)
 (
-  num_notes = num_hold = 0;
+  num_notes = num_hold = num_osc = 0;
 );
 
 function pitch_bend(pitch_wheel)
@@ -315,7 +329,8 @@ lpf.q = max(0.01, min(4.0, slider18));
 
 pitch_range = max(0.0, slider12) / 1200;
 midi_ch.cache(max(0, min(16, int(slider22))) - 1) ? all_notes_off();
-num_poly.cache(slider23 < 0.5 ? 1 : max_poly) ? all_notes_off();
+num_poly.cache(slider23 < 0.5 || slider23 >= 1.5 ? 1 : max_poly) ? all_notes_off();
+note_prio.cache(slider23 >= 0.5) ? all_notes_off();
 vel_range = max(0, min(100, slider24)) * 0.01;
 
 lfo_range = max(0, min(100, slider27)) * 0.01;
@@ -419,19 +434,19 @@ lfo_mod ? lfo_mod == 1 ? tg.poly_setpw(pw + lfo_range * lfo.sin_sin()) : freq_mo
 white_noise = noise_mix > 0.0 ? noise_gain * noise.lcg_white();
 out = 0.0;
 
+// Optimise for mono i.e. don't load/store oscillator/ADSR/filter state.
 num_poly == 1 ? (
-  num_notes ? (
+  num_osc ? (
     adsr.adsr_process();
-    out = apply_lpf(sample_tg(tg.t, mono_dt), mono_dt);
-    adsr_lpf_off() ? num_notes = 0;
+    out = apply_lpf(sample_tg(tg.t, osc_buf[2]), osc_buf[2]);
+    adsr_lpf_off() ? num_osc = 0;
   );
 ) :
 
 /* num_poly > 1 ? */ (
   sus = adsr.s;
 
-  p = note_buf;
-  end = p + num_notes * note_size;
+  set_buf(osc_buf, num_osc, osc_size);
   while(p < end ? (
 
     // Functions indexing memory seems to be slow, so manually inline them.
@@ -450,14 +465,10 @@ num_poly == 1 ? (
     out += s;
 
     adsr_lpf_off() ? (
-      num_notes -= 1;
-      end -= note_size;
-      p < end ? (
-        memcpy(p, p + note_size, end - p);
-        1; // while p < end
-      );
+      remove_buf(osc_size);
+      num_osc -= 1;
     ) : (
-      p += note_size;
+      p += osc_size;
     );
   ));
 );

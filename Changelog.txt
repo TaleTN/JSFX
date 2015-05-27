@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20150527 (27 May 2015)
+
+ + mono_synth: Added last-note priority to mono mode.
+ + mono_synth: Fixed hold pedal releasing replaying notes.
+ + os: Added os_os2() for 2x downsampling only.
+ + os: Simplified existing example, added second example.
+
 v20150415 (15 April 2015)
 
  + poly_mono_midi_router: Fixed hanging duplicate notes in round-robin mode.
@@ -201,5 +208,5 @@ v20120809 (9 August 2012)
  + Initial release.
 
 
-(c) Theo Niessink 2012-2015
+Copyright (C) 2012-2015 Theo Niessink
 License: GPL - http://www.gnu.org/licenses/gpl.html

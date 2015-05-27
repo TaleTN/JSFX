@@ -1,5 +1,5 @@
 desc:MIDI sustain emulator
-// (c) Theo Niessink 2014
+// Copyright (C) 2014 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // This effect emulates the MIDI sustain pedal, i.e. it holds off Note Off

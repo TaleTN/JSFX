@@ -1,5 +1,5 @@
 desc:Tube amp
-// (c) Theo Niessink 2015
+// Copyright (C) 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:0.0<-12.0,48.0,0.1>Drive (dB)

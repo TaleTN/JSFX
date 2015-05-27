@@ -1,5 +1,5 @@
 desc:2nd order zero-delay feedback state variable filter
-// (c) Theo Niessink 2013-2015
+// Copyright (C) 2013-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the rsStateVariableFilter C++ class by Robin Schmidt, as posted

@@ -1,48 +1,59 @@
 desc:2x oversampler
-// (c) Theo Niessink 2015
+// Copyright (C) 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-/* Example
+/* Example #1
 
    desc:Frequency doubler
-   slider1:1<0,1,1{Off,2x}>Oversampling
 
    import Tale/oversampler.jsfx-inc
    import Tale/rc_filter.jsfx-inc
 
    @init
 
-   function double(in)
-   (
-     in = 2 * abs(in);
-   );
-
-   function double2(in)
-   (
-     os.os_up2(in);
-     os.y1 = double(os.y1);
-     os.y0 = double(os.y0);
-     os.os_down2();
-   );
+   pdc_bot_ch = 0; pdc_top_ch = 2;
+   pdc_delay = 3;
 
    dc.rc_setf(20);
-
-   pdc_bot_ch = 0; pdc_top_ch = 2;
-
-   @slider
-
-   pdc_delay = slider1 < 0.5 ? 0 : 3;
 
    @sample
 
    mono = 0.5 * (spl0 + spl1);
-   spl0 = spl1 = dc.rc_hp(slider1 < 0.5 ? double(mono) : double2(mono));
+
+   os.os_up2(mono);
+   os.y1 = 2 * abs(os.y1);
+   os.y0 = 2 * abs(os.y0);
+   spl0 = spl1 = dc.rc_hp(os.os_down2());
+
+   Example #2
+
+   desc:Oversampled oscillator
+   slider1:440<20,12000,1>Frequency (Hz)
+
+   import oversampler.jsfx-inc
+   import poly_blep.jsfx-inc
+
+   @slider
+
+   osc.poly_setf(slider1 * 0.5);
+
+   @sample
+
+   os.os_os2();
+   os.y1 = osc.poly_saw();
+   os.y0 = osc.poly_saw();
+   spl0 = spl1 = 0.25 * os.os_down2();
 
    Upsample/Downsample Functions
 
     * os_up2(s)
       Example: os.os_up2(spl0);
       Upsamples the signal 2x.
+
+    * os_os2()
+      Example: os.os_os2();
+      Skips upsampling, so you can generate a signal at 2x oversampling
+      rather than upsample a signal.
 
     * os_down2()
       Example: spl0 = os.os_down2();
@@ -67,6 +78,13 @@ desc:2x oversampler
 @init
 
 
+function os_os2()
+  instance(y6, y5, y4, y3, y2, y1, y0)
+(
+  y6 = y4; y5 = y3; y4 = y2; y3 = y1; y2 = y0;
+);
+
+
 // Coefficients from "Antialiasing Oscillators in Subtractive Synthesis" by
 // Vesa Valimaki and Antti Huovilainen.
 
@@ -76,7 +94,7 @@ function os_up2(x)
   x3 = x2; x2 = x1; x1 = x0;
   x0 = x * 1.98255352894528158458342659287; // 0.5 / (-0.0228 + 0.275)
 
-  y6 = y4; y5 = y3; y4 = y2; y3 = y1; y2 = y0;
+  this.os_os2();
   y1 = -0.0228*(x0 + x3) + 0.275*(x1 + x2);
   y0 = 0.5*x1;
 );

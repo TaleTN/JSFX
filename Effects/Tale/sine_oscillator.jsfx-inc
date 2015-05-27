@@ -1,5 +1,5 @@
 desc:Efficient sine/cosine wave oscillator
-// (c) Theo Niessink 2014
+// Copyright (C) 2014 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the linear trapezoidal integrated SVF implementation as posted
