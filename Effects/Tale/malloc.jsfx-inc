@@ -161,3 +161,27 @@ function _malloc_dump()
     alloc > 0 && in_use >= 0 ? ptr += alloc + 2;
   ));
 ); */
+
+
+// Actually part of array.jsfx-inc and midi_queue.jsfx-inc, but included
+// here to avoid dependency issues.
+
+function array_alloc(rows, cols)
+  instance(buf, num, size)
+(
+  num = 0;
+  size = cols;
+  buf = malloc(rows * cols);
+);
+
+function array_alloc(rows)
+(
+  this.array_alloc(rows, 1);
+);
+
+function midiq_alloc(num)
+  instance(buf, size)
+(
+  size = num * 3;
+  buf = malloc(size);
+);

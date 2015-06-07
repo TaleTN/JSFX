@@ -53,6 +53,11 @@ desc:Sample accurate MIDI queue
 
       Note: You should call this function from the @init section.
 
+    * midiq_alloc(num)
+      Example: q.midiq_alloc(256);
+      Allocates a block of local memory to store the queue in. Requires
+      malloc.jsfx-inc.
+
     * midiq_collect()
     * midiq_collect(ch, mask)
       Example: q.midiq_collect();
@@ -111,6 +116,16 @@ function midiq_init(index)
 (
   this.midiq_init(index, 0);
 );
+
+
+// See malloc.jsfx-inc.
+
+// function midiq_alloc(num)
+  // instance(buf, size)
+// (
+  // size = num * 3;
+  // buf = malloc(size);
+// );
 
 
 function midiq_rewind()

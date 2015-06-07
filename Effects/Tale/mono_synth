@@ -63,6 +63,9 @@ function cache(x) ( x != this ? ( this = x; 1; ); );
 smooth.rc_set(0.0033);
 function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
 
+min_inf = -120.0;
+gain0.smooth = gain1.smooth = gain(slider1, min_inf);
+
 function set_tg(note)
   // global(tg*)
 (
@@ -306,11 +309,11 @@ function pan(gain, pos)
   gain1 = sin(pos) * gain;
 );
 
-pan(gain(slider1, -120.0), max(-100, min(100, slider20)) * 0.01);
+pan(gain(slider1, min_inf), max(-100, min(100, slider20)) * 0.01);
 
 adsr.adsr_seta(adr(slider4, 0, 5000));
 adsr.adsr_setd(adr(slider5, 1, 15000));
-adsr.adsr_sets(gain(slider6, -120.0));
+adsr.adsr_sets(gain(slider6, min_inf));
 adsr.adsr_setr(adr(slider7, 0, 5000));
 
 tuning = 2^(slider2 / 1200);

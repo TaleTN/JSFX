@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20150607 (7 June 2015)
+
+ + wavetable_synth: Implemented pan.
+ + mono_synth: Fixed initial volume/pan gain.
+ + array: Added simple two-dimensional array library (array.jsfx-inc).
+ + midiq: Added midiq_alloc().
+
 v20150527 (27 May 2015)
 
  + mono_synth: Added last-note priority to mono mode.

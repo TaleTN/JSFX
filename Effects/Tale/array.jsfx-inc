@@ -1,0 +1,199 @@
+desc:Simple two-dimensional array interface
+// Copyright (C) 2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+/* Example
+
+   desc:Last-note priority mono synth
+
+   import malloc.jsfx-inc
+   import array.jsfx-inc
+   import midi_queue.jsfx-inc
+   import poly_blep.jsfx-inc
+
+   @init
+
+   array.array_alloc(128, 2);
+   midiq.midiq_alloc(256);
+
+   @block
+
+   midiq.midiq_collect();
+
+   @sample
+
+   while(midiq.midiq_remove()) (
+     status = midiq.msg1 & 0xF0;
+     note = cc = midiq.msg2;
+     velocity = midiq.msg3;
+
+     // Note On
+     status == 0x90 && velocity ? (
+       // Remove the note if somehow it is already playing.
+       ptr = array.array_find(note);
+       ptr >= 0 ? array.array_remove(ptr);
+       // Add the note, and set the pointer to it.
+       ptr = array.array_add();
+       ptr[0] = note;
+       ptr[1] = freq = 440 * 2^((note - 69) / 12);
+     ) :
+
+     // Note Off
+     status == 0x80 || (status == 0x90 && !velocity) ? (
+       // Remove the note.
+       ptr = array.array_find(note);
+       ptr >= 0 ? (
+         array.array_remove(ptr);
+         // Update the pointer the new last note.
+         ptr = array.array_get(array.num - 1);
+       );
+     ) :
+
+     // All Notes Off
+     status == 0xB0 && cc == 123 ? (
+       array.array_clear();
+     );
+   );
+
+   array.num > 0 ? (
+     osc.poly_setf(freq = ptr[1]);
+     spl0 = spl1 = 0.25 * osc.poly_saw();
+   );
+
+   Two-dimensional Array Functions
+
+    * array_init(buf, rows[, cols])
+      Example: array.array_init(0, 64, 2);
+      Sets the offset and size of the local memory buffer to store the array
+      in. If cols is omitted, then it defaults to 1.
+
+    * array_alloc(rows[, cols])
+      Example: array.array_alloc(64, 2);
+      Allocates a block of local memory to store the array in. Requires
+      malloc.jsfx-inc.
+
+    * array_get(row)
+      Example: ptr = array.array_get(0);
+      Returns a pointer to the local memory index of the specified row.
+
+    * array_add()
+      Example: ptr = array.array_add();
+      Adds a row to the end of the array and returns its local memory index.
+      Note that the row is added but not initialised (i.e. it does not
+      contain any data yet).
+
+    * array_insert(ptr)
+      Example: array.array_insert(array.array_get(0));
+      Inserts a row into the array. Note that the row is inserted but not
+      initialised (i.e. it does not contain any data yet).
+
+    * array_remove(ptr)
+      Example: array.array_remove(array.array_get(0));
+      Removes a row from the array.
+
+    * array_find(value[, col])
+      Example: ptr = array_find(123);
+      Finds a value in the array at the specified column (0 by default), and
+      returns the local memory index of the entire row, or -1 if the value
+      was not found.
+
+    * array_clear()
+      Example: array.array_clear();
+      Removes all rows from the array.
+
+*/
+
+@init
+
+
+function array_init(buf, rows, cols)
+  instance(num, size)
+(
+  num = rows;
+  size = cols;
+  this.buf = buf;
+);
+
+function array_init(buf, rows)
+(
+  this.array_init(buf, rows, 1);
+);
+
+
+// See malloc.jsfx-inc.
+
+// function array_alloc(rows, cols)
+  // instance(buf, num, size)
+// (
+  // num = 0;
+  // size = cols;
+  // buf = malloc(rows * cols);
+// );
+
+// function array_alloc(rows)
+// (
+  // this.array_alloc(rows, 1);
+// );
+
+
+function array_get(row)
+  instance(buf, size)
+(
+  buf + row * size;
+);
+
+
+function array_add()
+  instance(buf, num, size)
+(
+  buf + ((num += 1) - 1) * size;
+);
+
+
+function array_insert(ptr)
+  instance(buf, num, size)
+  local(end)
+(
+  end = buf + num * size;
+  num += 1;
+  ptr < end ? memcpy(ptr + size, ptr, end - ptr);
+
+  // Returning the pointer here might not be very useful, but it is
+  // consistent with array_add().
+  ptr;
+);
+
+
+function array_remove(ptr)
+  instance(buf, num, size)
+  local(end)
+(
+  end = buf + (num -= 1) * size;
+  ptr < end ? memcpy(ptr, ptr + size, end - ptr);
+
+  // Again, returning the pointer here is not very useful; meh.
+  ptr;
+);
+
+
+function array_find(value, col)
+  instance(buf, num, size)
+  local(ptr, end)
+(
+  ptr = buf;
+  end = ptr + num * size;
+  while(ptr < end && ptr[col] != value ? ptr += size);
+  ptr < end ? ptr : -1;
+);
+
+function array_find(value)
+(
+  this.array_find(value, 0);
+);
+
+
+function array_clear()
+  instance(num)
+(
+  num = 0;
+);
