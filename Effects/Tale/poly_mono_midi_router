@@ -1,4 +1,7 @@
 desc:Dynamic poly/mono MIDI router
+//tags: MIDI processing routing
+//author: Tale
+
 // Copyright (C) 2013-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 

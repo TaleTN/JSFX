@@ -1,0 +1,15 @@
+// Copyright (C) 2012-2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:RC filter
+slider1:1000<20,20000,1>Cutoff Frequency (Hz)
+slider2:0<0,1,1{Low-pass,High-pass}>Mode
+
+import Tale/rc_filter.jsfx-inc
+
+@slider
+lp_hp.rc_setf(slider1);
+
+@sample
+mono = 0.5 * (spl0 + spl1);
+spl0 = spl1 = (slider2 < 0.5 ? lp_hp.rc_lp(mono) : lp_hp.rc_hp(mono));

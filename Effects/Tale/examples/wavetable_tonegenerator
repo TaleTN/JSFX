@@ -1,0 +1,31 @@
+// Copyright (C) 2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Sine wave oscillator
+slider1:440<20,20000,1>Frequency (Hz)
+
+import Tale/wavetable_oscillator.jsfx-inc
+
+@init
+
+function render_sin(buf, size)
+  local(i, t)
+(
+  i = 0;
+  loop(size,
+    t = i / size;
+    osc.buf[i] = sin(2*$pi * t);
+    i += 1;
+  );
+);
+
+osc.wave_init(0, 1024);
+render_sin(osc.buf, osc.size);
+
+@slider
+
+osc.wave_setf(slider1);
+
+@sample
+
+spl0 = spl1 = 0.25 * osc.wave_lerp();

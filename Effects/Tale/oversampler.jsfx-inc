@@ -6,8 +6,8 @@ desc:2x oversampler
 
    desc:Frequency doubler
 
-   import Tale/oversampler.jsfx-inc
-   import Tale/rc_filter.jsfx-inc
+   import oversampler.jsfx-inc
+   import rc_filter.jsfx-inc
 
    @init
 
@@ -46,7 +46,7 @@ desc:2x oversampler
 
    Upsample/Downsample Functions
 
-    * os_up2(s)
+    * os_up2(sample)
       Example: os.os_up2(spl0);
       Upsamples the signal 2x.
 
@@ -88,11 +88,11 @@ function os_os2()
 // Coefficients from "Antialiasing Oscillators in Subtractive Synthesis" by
 // Vesa Valimaki and Antti Huovilainen.
 
-function os_up2(x)
+function os_up2(sample)
   instance(x3, x2, x1, x0, y6, y5, y4, y3, y2, y1, y0)
 (
   x3 = x2; x2 = x1; x1 = x0;
-  x0 = x * 1.98255352894528158458342659287; // 0.5 / (-0.0228 + 0.275)
+  x0 = sample * 1.98255352894528158458342659287; // 0.5 / (-0.0228 + 0.275)
 
   this.os_os2();
   y1 = -0.0228*(x0 + x3) + 0.275*(x1 + x2);

@@ -1,0 +1,47 @@
+// Copyright (C) 2013-2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Mono synth with ADSR
+slider1:3<0,5000,1>Attack (ms)
+slider2:1000<1,15000,1>Decay (ms)
+slider3:-12.0<-120.0,24.0,1.0>Sustain (dB)
+slider4:500<0,5000,1>Release (ms)
+
+import Tale/adsr.jsfx-inc
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@slider
+
+adsr.adsr_seta(slider1 * 0.001);
+adsr.adsr_setd(slider2 * 0.001);
+adsr.adsr_sets(10^(0.05 * slider3));
+adsr.adsr_setr(slider4 * 0.001);
+
+@block
+
+midiq.midiq_collect();
+
+@sample
+
+while(midiq.midiq_remove()) (
+  status = midiq.msg1 & 0xF0;
+  velocity = midiq.msg3;
+
+  // Note On
+  status == 0x90 && velocity ? (
+    note = midiq.msg2;
+    osc.poly_setf(440 * 2^((note - 69) / 12));
+    // Attack
+    adsr.adsr_a(velocity / 127);
+  ) :
+
+  // Note Off
+  status == 0x80 || (status == 0x90 && !velocity) ? (
+    // Release
+    midiq.msg2 == note ? adsr.adsr_r();
+  );
+);
+
+// Process ADSR envelope and apply it to oscillator.
+adsr.adsr_process() ? spl0 = spl1 = 0.5 * adsr.env * osc.poly_saw();

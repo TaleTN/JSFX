@@ -1,5 +1,5 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
-// Copyright (C) 2012-2014 Theo Niessink
+// Copyright (C) 2012-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -18,49 +18,92 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
    Setting Functions
 
-    * lfo_setf(f)
+    * lfo_setf(freq)
       Example: lfo.lfo_setf(4.0);
-      Sets the oscillator frequency (specified in Hz).
+      Sets the oscillator frequency (specified in Hz), and returns the
+      frequency in seconds/sample.
 
-    * lfo_setdt(dt)
+      (To convert from Hz to seconds/sample, divide by srate. To convert
+      from seconds/sample to Hz, multiply with srate.)
+
+    * lfo_setdt(time)
       Example: lfo2.lfo_setdt(lfo1.dt);
-      Sets the oscillator frequency (specified in seconds/sample).
-
-      (To convert from Hz to seconds/sample, divide by srate.)
+      Sets the oscillator frequency (specified in seconds/sample), and
+      returns this value.
 
     * lfo_setpw(pw)
       Example: lfo.lfo_setpw(0.30);
-      Sets the pulse width (0.0..1.0) for a rectangle, modified triangle, or
-      triangular pulse oscillator.
+      Sets the pulse width [0.0..1.0] of the waveform, and returns this
+      value.
+
+    * lfo_setf2(freq)
+    * lfo_setfc(freq)
+      Example: lfo.lfo_setf2(6.0);
+      Example: lfo.lfo_setfc(6.0);
+      Sets the slave/cutoff frequency (specified in Hz) of the hard sync or
+      filtered waveform, and returns the slave/master frequency ratio.
+
+      Note: You should always first set the master oscillator frequency, and
+      then set the slave/cutoff frequency. If you change the master
+      frequency, then you will probably also want to update the slave
+      frequency.
+
+    * lfo_setn(num_steps)
+      Example: lfo.lfo_setn(3);
+      Sets the integer number of steps (>=1) for the stepped waveform, and
+      returns this value.
 
    Waveform Functions
 
     * lfo_sin()    -- Sine
-    * lfo_half()   -- Half-wave rectified sine
-    * lfo_full()   -- Full-wave rectified sine
-    * lfo_circ()   -- Circle
+    * lfo_cos()    -- Cosine
     * lfo_tri()    -- Triangle
+    * lfo_sqr()    -- Square (fixed 0.5 pulse width)
+    * lfo_rect()   -- Rectangle (variable pulse width)
+    * lfo_saw()    -- Sawtooth
+    * lfo_ramp()   -- Ramp
+
     * lfo_tri2()   -- Modified triangle
+    * lfo_sqr2()   -- Modified square
+
+    * lfo_half()   -- Half-wave rectified sine (fixed 0.5 pulse width)
+    * lfo_half2()  -- Half-wave rectified sine (variable pulse width)
+    * lfo_full()   -- Full-wave rectified sine
+    * lfo_trip()   -- Triangular pulse
+    * lfo_hwsaw()  -- Half-wave rectified sawtooth
+
+    * lfo_circ()   -- Circle
     * lfo_trap()   -- Trapezoid (fixed 0.5 pulse width)
     * lfo_trap2()  -- Trapezoid (variable pulse width)
-    * lfo_trip()   -- Triangular pulse
-    * lfo_sqr()    -- Square
-    * lfo_sqr2()   -- Modified square
-    * lfo_rect()   -- Rectangle (pulse)
-    * lfo_saw()    -- Sawtooth
+
+    * lfo_lpsqr()  -- Low-pass filtered square
+    * lfo_hpsaw()  -- High-pass filtered sawtooth
+
+    * lfo_sinn()   -- Stepped sine
+    * lfo_trin()   -- Stepped triangle
+    * lfo_sawn()   -- Stepped sawtooth
+    * lfo_yawn()   -- Very boring :-O
+
+    * lfo_ham()    -- Hammond 88 8000 000
     * lfo_stairs() -- Staircase
-    * lfo_ham()    -- Hammond 88 8000 00
+    * lfo_hssaw()  -- Hard sync sawtooth
+
     * lfo_sh()     -- Sample and hold noise
     * lfo_sh2(x)   -- Sample and hold X
-      Example: s = lfo.lfo_tri();
+      Example: sample = lfo.lfo_tri();
       Returns a sample of a waveform, and increments its phase.
+
+      Note: After v20150607 the phase of lfo_full() and lfo_trip() has been
+      corrected. To convert code relying on the old behaviour, synchronise
+      the phase to t-0.25 for lfo_full(), and t-(0.75+0.5*pw) for
+      lfo_trip().
 
    Miscellaneous Functions
 
-    * lfo_sync(t)
+    * lfo_sync(phase)
       Example: lfo2.lfo_sync(lfo1.t + 0.5);
-      Synchronizes the oscillator with the specified phase, and returns the
-      normalized phase.
+      Synchronises the oscillator with the specified phase, and returns the
+      normalised phase.
 
       Note: You can safely specify out or range (and even negative) values
       here.
@@ -71,13 +114,30 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
       Note: All waveform functions automatically increment the phase.
 
-    * lfo_half_dc() -- Half-wave rectified sine
-    * lfo_full_dc() -- Full-wave rectified sine
-    * lfo_rect_dc() -- Rectangle (pulse)
-    * lfo_trip_dc() -- Triangular pulse
-      Example: s = lfo.lfo_full() - lfo_full_dc();
+    * lfo_rect_dc()  -- Rectangle
+
+    * lfo_half_dc()  -- Half-wave rectified sine (fixed 0.5 pulse width)
+    * lfo_half2_dc() -- Half-wave rectified sine (variable pulse width)
+    * lfo_full_dc()  -- Full-wave rectified sine
+    * lfo_trip_dc()  -- Triangular pulse
+    * lfo_hwsaw_dc() -- Half-wave rectified sawtooth
+
+    * lfo_hpsaw_dc() -- High-pass filtered sawtooth
+    * lfo_hssaw_dc() -- Hard sync sawtooth
+      Example: sample = lfo.lfo_rect() - lfo.lfo_rect_dc();
       Returns the (constant or pulse width dependent) DC value for the
       waveform.
+
+    * _lfo_sin(x)
+    * _lfo_cos(x)
+      Example: y = _lfo_sin(x);
+      Example: y = _lfo_cos(x);
+      Fast approximations (Maclaurin series) of sin(x) and cos(x) for x in
+      the range of [-$pi..2*$pi].
+
+    * _lfo_exp()
+      Example: y = _lfo_exp(x);
+      Fast exp(x) approximation ((1 + x/n)^n).
 
    Instance Variables
 
@@ -91,23 +151,32 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * pw
       Example: duty_cycle = lfo.pw;
-      The pulse width (0.0..1.0) of a rectangle, modified triangle, or
-      triangular pulse oscillator.
+      The pulse width [0.0..1.0] of the waveform.
+
+    * fc
+      Example: cutoff = lfo.fc * lfo.dt * srate;
+      The cutoff/oscillator frequency ratio of the filtered waveform.
+
+    * n
+      Example: num_steps = lfo.n;
+      The integer number of steps (>=1) of the stepped waveform.
 
 */
 
 @init
 
 
-function lfo_setf(f)
+function lfo_setf(freq)
+  // global(srate)
   instance(dt)
 (
-  dt = f / srate;
+  dt = freq / srate;
 );
 
-function lfo_setdt(dt)
+function lfo_setdt(time)
+  instance(dt)
 (
-  this.dt = dt;
+  dt = time;
 );
 
 
@@ -117,10 +186,50 @@ function lfo_setpw(pw)
 );
 
 
-function lfo_sync(t)
+function lfo_setf2(freq)
+  // global(srate)
+  instance(fc, dt)
 (
+  fc = dt > 0 ? freq / (dt * srate);
+);
+
+function _lfo_exp(x)
+  // local(n)
+(
+  // n = 8;
+
+  // abs(x) < ((2 << n) - 2*$pi) ? (
+  abs(x) < ((2 << 8) - 2*$pi) ? (
+    // x = x / (1 << n) + 1;
+    x = x / (1 << 8) + 1;
+    // loop(n, x *= x); x;
+    x *= x; x *= x; x *= x; x *= x; x *= x; x *= x; x *= x; x *= x;
+  ) : (
+    exp(x);
+  );
+);
+
+function lfo_setfc(freq)
+  instance(fc, exp_fc)
+(
+  this.lfo_setf2(freq);
+  exp_fc = _lfo_exp(-$pi * fc);
+  fc;
+);
+
+
+function lfo_setn(num_steps)
+  instance(n)
+(
+  n = num_steps|0;
+);
+
+
+function lfo_sync(phase)
+  instance(t)
+(
+  t = phase;
   t >= 0 ? t -= t|0 : t += 1 - (t|0);
-  this.t = t;
 );
 
 
@@ -134,14 +243,84 @@ function lfo_inc()
 
 // Sine
 
+function _lfo_sin(x)
+(
+  // Maclaurin series
+  x >= $pi ? x -= 2*$pi;
+  x*(1 - 1/6*x*x *(1 - 1/20*x*x * (1 - 1/42*x*x * (1 - 1/72*x*x))));
+);
+
 function lfo_sin()
   local(t)
 (
   t = this.t;
   this.lfo_inc();
 
-  sin(2*$pi * t);
+  _lfo_sin(2*$pi * t);
 );
+
+// dc = 0;
+// rms = sqrt(0.5);
+
+
+// Cosine
+
+function _lfo_cos(x)
+(
+  // Maclaurin series
+  x >= $pi ? x -= 2*$pi;
+  1 - 1/2*x*x * (1 - 1/12*x*x * (1 - 1/30*x*x * (1 - 1/56*x*x)));
+);
+
+function lfo_cos()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  _lfo_cos(2*$pi * t);
+
+  // Alternate definition
+
+  // t += 0.25;
+  // t -= t|0;
+
+  // lfo._lfo_sin(2*$pi * t);
+);
+
+// dc = 0;
+// rms = sqrt(0.5);
+
+
+// Stepped sine
+
+function lfo_sinn()
+  instance(n)
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  n >= 2 ? (
+    t += 0.25/n;
+    t -= t|0;
+
+    n >= 3 ? (
+      // Stepped sine
+      _lfo_sin(2*$pi * ((t * 2*n)|0) / (2*n));
+    ) : (
+      // Modified square
+      t *= 2;
+      t < 0.5 ? 0 : t < 1 ? 1 : t < 1.5 ? 0 : -1;
+    );
+  ) : (
+    // Square
+    sqrt(0.5) * (t < 0.5 ? 1 : -1);
+  );
+);
+
+// dc = 0;
+// rms = sqrt(0.5);
 
 
 // Half-wave rectified sine
@@ -152,7 +331,17 @@ function lfo_half()
   t = this.t;
   this.lfo_inc();
 
-  t < 0.5 ? -1 + 2*sin(2*$pi * t) : -1;
+  t < 0.5 ? 2 * _lfo_sin(2*$pi * t) - 1 : -1;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t);
+
+  // lfo2.lfo_setdt(2*dt);
+  // lfo2.lfo_sync(2*t + 0.75);
+
+  // lfo1.lfo_sin() + 0.5 * (lfo2.lfo_full() - 1);
 );
 
 function lfo_half_dc()
@@ -160,16 +349,38 @@ function lfo_half_dc()
   2/$pi - 1;
 );
 
+function lfo_half2()
+  instance(pw)
+  local(t)
+(
+  t = this.t + 0.75 + 0.5*pw;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  t < pw ? 2 * _lfo_sin($pi * t / pw) - 1 : -1;
+);
+
+function lfo_half2_dc()
+  instance(pw)
+(
+  4/$pi * pw - 1;
+);
+
+// rms = ?
+
 
 // Full-wave rectified sine
 
 function lfo_full()
   local(t)
 (
-  t = this.t;
+  t = this.t + 0.25;
   this.lfo_inc();
 
-  -1 + 2*sin($pi * t);
+  t -= t|0;
+
+  2 * _lfo_sin($pi * t) - 1;
 );
 
 function lfo_full_dc()
@@ -177,20 +388,22 @@ function lfo_full_dc()
   4/$pi - 1;
 );
 
+// rms = ?
+
 
 // Circle
 
 function lfo_circ()
-  local(t, t2, s)
+  local(t)
 (
   t = this.t;
   this.lfo_inc();
 
-  t2 = 2*t;
-  t2 -= (t2|0) + 0.5;
-  s = 2 * sqrt(0.25 - t2*t2);
-  t < 0.5 ? s : -s;
+  t < 0.5 ? 2 * sqrt((2 - 4*t)*t) : -2 * sqrt((6 - 4*t)*t - 2);
 );
+
+// dc = 0;
+// rms = sqrt(2/3);
 
 
 // Triangle
@@ -205,19 +418,44 @@ function lfo_tri()
   t >= 3 ? t - 4 : t >= 1 ? 2 - t : t;
 );
 
+// dc = 0;
+// rms = sqrt(1/3);
+
+
+// Stepped triangle
+
+function lfo_trin()
+  instance(n)
+  local(t, y)
+(
+  t = this.t + 0.25 + 0.25/n;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  y = 2 * ((t * 2*n)|0) / n;
+  t < 0.5 ? y - 1 : 3 - y;
+);
+
+// dc = 0;
+// rms = sqrt(int((n + 1) / 2) / n);
+
 
 // Modified triangle
 
 function lfo_tri2()
-  local(t, pw)
+  instance(pw)
+  local(t)
 (
   t = this.t;
   this.lfo_inc();
 
-  t *= 4;
-  pw = 2 * this.pw;
-  t >= 4 - pw ? (t - 4) / pw : t >= pw ? 1 - (t - pw) / (2 - pw) : t / pw;
+  t *= 2;
+  t >= 2 - pw ? (t - 2) / pw : t >= pw ? 1 - (t - pw) / (1 - pw) : t / pw;
 );
+
+// dc = 0;
+// rms = sqrt(1/3);
 
 
 // Triangular pulse
@@ -226,13 +464,28 @@ function lfo_trip()
   instance(pw)
   local(t)
 (
-  t = this.t;
+  t = this.t + 0.75 + 0.5*pw;
   this.lfo_inc();
+
+  t -= t|0;
 
   t >= pw ? -1 : (
     t *= 4;
     t >= 2*pw ? 3 - t/pw : t/pw - 1;
   );
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t + 0.25 - 0.25*pw);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.25 + 0.25*pw);
+
+  // lfo1.lfo_setpw(1 - 0.5*pw);
+  // lfo2.lfo_setpw(lfo1.pw);
+
+  // lfo1.pw * (lfo1.lfo_tri2() - lfo2.lfo_tri2());
 );
 
 function lfo_trip_dc()
@@ -240,6 +493,61 @@ function lfo_trip_dc()
 (
   pw - 1;
 );
+
+// rms = sqrt(1 - 2/3 * pw);
+
+
+// Trapezoid
+
+function lfo_trap()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t *= 4;
+  max(-1, min(1, 2 * (t >= 3 ? t - 4 : t >= 1 ? 2 - t : t)));
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t - 0.125);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.125);
+
+  // lfo1.lfo_tri() + lfo2.lfo_tri();
+);
+
+function lfo_trap2()
+  instance(pw)
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  pw < 1 ? (
+    // Trapezoid
+    t *= 4;
+    max(-1, min(1, (t >= 3 ? t - 4 : t >= 1 ? 2 - t : t) / (1 - pw)));
+  ) : (
+    // Square
+    t < 0.5 ? 1 : -1;
+  );
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t - 0.25*pw);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.25*pw);
+
+  // 0.5 * (lfo1.lfo_tri() + lfo2.lfo_tri()) / (1 - pw);
+);
+
+// dc = 0;
+// rms = sqrt(1/3 + 2/3 * pw);
 
 
 // Square
@@ -251,37 +559,80 @@ function lfo_sqr()
   this.lfo_inc();
 
   t < 0.5 ? 1 : -1;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.5);
+
+  // lfo1.lfo_saw() - lfo2.lfo_saw();
 );
 
+// dc = 0;
+// rms = 1;
 
-// Trapezoid
 
-function lfo_trap()
+// Low-pass filtered square
+
+function lfo_lpsqr()
+  instance(fc, exp_fc)
+  local(t, a)
 (
-  max(-1, min(1, 2 * this.lfo_tri()));
+  t = this.t; // + 0.5*dt;
+  // t -= t|0;
+
+  this.lfo_inc();
+
+  fc > 0 ? (
+    // Low-pass filtered square
+    t < 0.5 ? (
+      a = 2;
+    ) : (
+      t -= 0.5;
+      a = -2;
+    );
+    // a * ((exp(-2*$pi * fc * t) - 1) / (exp(-$pi * fc) - 1) - 0.5)
+    a * ((_lfo_exp(-2*$pi * fc * t) - 1) / (exp_fc - 1) - 0.5);
+  ) : (
+    // Triangle
+    t < 0.5 ? 4*t - 1 : 3 - 4*t;
+  );
 );
 
-function lfo_trap2()
-  instance(pw)
-(
-  pw < 1 ? max(-1, min(1, 1/(1 - pw) * this.lfo_tri())) : this.lfo_sqr();
-);
+// dc = 0;
+// rms = ?
 
 
 // Modified square
 
 function lfo_sqr2()
-  local(t, pw)
+  instance(pw)
+  local(t)
 (
-  pw = 0.5*(1 - this.pw);
-
-  t = this.t + 0.25 - 0.5*pw;
-  t -= t|0;
-
+  t = this.t + 0.25 - 0.25*pw;
   this.lfo_inc();
 
-  t < 0.5 - pw ? 0 : t < 0.5 ? 1 : t < 1 - pw ? 0 : -1;
+  t -= t|0;
+
+  t *= 2;
+  t < 1 - pw ? 0 : t < 1 ? 1 : t < 2 - pw ? 0 : -1;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t + 0.75 + 0.25*pw);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.25 - 0.25*pw);
+
+  // 0.5 * (lfo1.lfo_sqr() + lfo2.lfo_sqr());
 );
+
+// dc = 0;
+// rms = sqrt(pw);
 
 
 // Rectangle
@@ -290,10 +641,22 @@ function lfo_rect()
   instance(pw)
   local(t)
 (
-  t = this.t;
+  t = this.t; // + 0.75 + 0.5*pw;
+  // t -= t|0;
+
   this.lfo_inc();
 
   t < pw ? 1 : -1;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t + 0.5 + 1 - pw);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.5);
+
+  // lfo1.lfo_saw() - lfo2.lfo_saw();
 );
 
 function lfo_rect_dc()
@@ -301,6 +664,8 @@ function lfo_rect_dc()
 (
   2*pw - 1;
 );
+
+// rms = 1;
 
 
 // Sawtooth
@@ -315,46 +680,197 @@ function lfo_saw()
   t >= 1 ? t - 2 : t;
 );
 
-
-// Staircase
-
-function lfo_stairs()
-  local(t, t2)
-(
-  t = this.t;
-  this.lfo_inc();
-
-  t2 = 2*t;
-  t2 -= t2|0;
-  (t < 0.5 ? 2/3 : -2/3) + (t2 < 0.5 ? 2/6 : -2/6);
-);
+// dc = 0;
+// rms = sqrt(1/3);
 
 
-// Hammond 88 8000 00
+// Ramp
 
-function lfo_ham()
+function lfo_ramp()
   local(t)
 (
   t = this.t;
   this.lfo_inc();
 
-  0.4 * (sin(2*$pi * t) + sin(4*$pi * t) + sin(6*$pi * t));
+  1 - 2*t;
 );
+
+// dc = 0;
+// rms = sqrt(1/3);
+
+
+// High-pass filtered sawtooth
+
+function lfo_hpsaw()
+  instance(fc, exp_fc)
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  fc > 0 ? (
+    t += 0.5;
+    t -= t|0;
+
+    // 2 * (exp(-2*$pi * fc * t) - 1) / (exp(-2*$pi * fc) - 1) - 1
+    2 * (_lfo_exp(-2*$pi * fc * t) - 1) / (exp_fc * exp_fc - 1) - 1;
+  ) : (
+    t *= 2;
+    t >= 1 ? t - 2 : t;
+  );
+);
+
+function lfo_hpsaw_dc()
+  instance(fc)
+(
+  // Approximation
+  ((8.044 + (11.6 + 14.3*fc)*fc)*fc) / (7.686 + (11.26 + (16.39 + 14.3*fc)*fc)*fc);
+);
+
+// rms = ?
+
+
+// Stepped sawtooth
+
+function lfo_sawn()
+  instance(n)
+  local(t)
+(
+  t = this.t + 0.5;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  2 * ((t * (n + 1))|0) / n - 1;
+);
+
+// dc = 0;
+// rms = sqrt((1 + 2 / n) / 3);
+
+function lfo_yawn() ( 0 );
+
+
+// Half-wave rectified sawtooth
+
+function lfo_hwsaw()
+  instance(pw)
+  local(t)
+(
+  t = this.t + 0.5 + pw;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  t < pw ? 2*t/pw - 1 : -1;
+);
+
+function lfo_hwsaw_dc()
+  instance(pw)
+(
+  pw - 1;
+);
+
+// rms = sqrt(1 - 2/3 * pw);
+
+
+// Hard sync sawtooth
+
+function lfo_hssaw()
+  instance(fc)
+  local(t)
+(
+  t = this.t + 0.5;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  t *= fc;
+  t -= t|0;
+
+  2*t - 1;
+);
+
+function lfo_hssaw_dc()
+  instance(fc)
+(
+  fc > 0 ? (1 - (fc|0) / fc) * (fc - ceil(fc - 1) - 1) : -1;
+);
+
+// rms = ?
+
+
+// Staircase
+
+function lfo_stairs()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t *= 2;
+  t < 0.5 ? 1 : t < 1 ? 1/3 : t < 1.5 ? -1/3 : -1;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t);
+
+  // lfo2.lfo_setdt(2*dt);
+  // lfo2.lfo_sync(2*t);
+
+  // 2/3 * (lfo1.lfo_sqr() + 0.5 * lfo2.lfo_sqr());
+);
+
+// dc = 0;
+// rms = sqrt(5/9);
+
+
+// Hammond 88 8000 000
+
+function lfo_ham()
+  local(t1, t2, t3)
+(
+  t1 = this.t;
+  this.lfo_inc();
+
+  t2 = 2*t1;
+  t2 -= t2|0;
+
+  t3 = 3*t1;
+  t3 -= t3|0;
+
+  0.4 // Approximation
+  * (_lfo_sin(2*$pi * t1) + _lfo_sin(2*$pi * t2) + _lfo_sin(2*$pi * t3));
+);
+
+// dc = 0;
+// rms = sqrt(0.24);
 
 
 // Sample and hold noise
 
 function lfo_sh()
   instance(dt, sh)
+  local(t)
 (
-  this.lfo_inc() < dt ? sh = rand(2) - 1 : sh;
+  t = this.t;
+  this.lfo_inc();
+
+  t < dt ? sh = rand(2) - 1 : sh;
 );
+
+// dc = 0;
+// rms = sqrt(1/3);
 
 
 // Sample and hold X
 
 function lfo_sh2(x)
   instance(dt, sh)
+  local(t)
 (
-  this.lfo_inc() < dt ? sh = x : sh;
+  t = this.t;
+  this.lfo_inc();
+
+  t < dt ? sh = x : sh;
 );

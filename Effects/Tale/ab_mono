@@ -1,5 +1,8 @@
 desc:A/B two mono channels
-// Copyright (C) 2011-2013 Theo Niessink
+//tags: utility processing routing
+//author: Tale
+
+// Copyright (C) 2011-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // In "normal" mode this effect lets you switch between two mono input
@@ -19,7 +22,7 @@ import rc_filter.jsfx-inc
 
 @init
 
-ch.a = mode.rc_sets(0.0075);
+ch.a = mode.rc_sett(0.0075);
 
 @slider
 

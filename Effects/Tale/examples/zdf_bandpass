@@ -1,0 +1,16 @@
+// Copyright (C) 2013-2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Band-pass filter
+slider1:1000<20,20000,1>Frequency (Hz)
+slider2:2.0<0.01,4.0,0.01>Bandwidth (oct)
+
+import Tale/zdf_filter.jsfx-inc
+
+@slider
+q = zdf_bwtoq(slider2);
+lp.zdf_bp2(slider1, q);
+
+@sample
+mono = 0.5 * (spl0 + spl1);
+spl0 = spl1 = lp.zdf_svf(mono);

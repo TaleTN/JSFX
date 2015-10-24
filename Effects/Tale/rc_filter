@@ -1,4 +1,7 @@
 desc:Multimode RC filter
+//tags: filter
+//author: Tale
+
 // Copyright (C) 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
@@ -47,14 +50,14 @@ fc1 = max(min_fc, slider2 * scale(slider3 * 0.01));
 // Low/High/All-Pass
 type < 3 ? (
   rc0.a = rc1.a =
-  rc2.a = rc3.rc_setf(fc0 = fc1);
+  rc2.a = rc3.rc_setf_precise(fc0 = fc1);
 ) :
 
 // Notch/Band-Pass
 /* type >= 3 ? */ (
   bw = 2^(0.5 * slider4);
-  rc0.a = rc1.rc_setf(fc0 = max(min_fc, fc1 / bw));
-  rc2.a = rc3.rc_setf(fc1 = max(min_fc, fc1 * bw));
+  rc0.a = rc1.rc_setf_precise(fc0 = max(min_fc, fc1 / bw));
+  rc2.a = rc3.rc_setf_precise(fc1 = max(min_fc, fc1 * bw));
 );
 
 dry = gain(slider6, min_inf);
@@ -73,11 +76,11 @@ type == 0 ? (
 
 // High-Pass
 type == 1 ? (
-  left = rc0.rc_hp(spl0);
-  right = rc1.rc_hp(spl1);
+  left = rc0.rc_hp_precise(spl0);
+  right = rc1.rc_hp_precise(spl1);
 
-  left = slope0 * left + slope1 * rc2.rc_hp(left);
-  right = slope0 * right + slope1 * rc3.rc_hp(right);
+  left = slope0 * left + slope1 * rc2.rc_hp_precise(left);
+  right = slope0 * right + slope1 * rc3.rc_hp_precise(right);
 ) :
 
 // All-Pass
@@ -94,14 +97,14 @@ type == 3 ? (
   left = rc0.rc_lp(spl0);
   right = rc1.rc_lp(spl1);
 
-  left += rc2.rc_hp(spl0);
-  right += rc3.rc_hp(spl1);
+  left += rc2.rc_hp_precise(spl0);
+  right += rc3.rc_hp_precise(spl1);
 ) :
 
 // Band-Pass
 /* type == 4 ? */ (
-  left = rc0.rc_hp(spl0);
-  right = rc1.rc_hp(spl1);
+  left = rc0.rc_hp_precise(spl0);
+  right = rc1.rc_hp_precise(spl1);
 
   left = rc2.rc_lp(left);
   right = rc3.rc_lp(right);

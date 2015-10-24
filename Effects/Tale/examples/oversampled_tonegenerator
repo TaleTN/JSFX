@@ -1,0 +1,19 @@
+// Copyright (C) 2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Oversampled oscillator
+slider1:440<20,12000,1>Frequency (Hz)
+
+import Tale/oversampler.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@slider
+
+osc.poly_setf(slider1 * 0.5);
+
+@sample
+
+os.os_os2();
+os.y1 = osc.poly_saw();
+os.y0 = osc.poly_saw();
+spl0 = spl1 = 0.25 * os.os_down2();

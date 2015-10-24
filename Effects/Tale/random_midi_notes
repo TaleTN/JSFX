@@ -1,4 +1,7 @@
 desc:Random MIDI note generator
+//tags: MIDI generator
+//author: Tale
+
 // Copyright (C) 2011-2013 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 

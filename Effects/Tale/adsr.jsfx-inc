@@ -1,5 +1,5 @@
 desc:ADSR envelope
-// Copyright (C) 2013, 2014 Theo Niessink
+// Copyright (C) 2013-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -51,24 +51,26 @@ desc:ADSR envelope
 
    Setting Functions
 
-    * adsr_seta(t) -- Attack
-    * adsr_setd(t) -- Decay
-    * adsr_sets(g) -- Sustain
-    * adsr_setr(t) -- Release
+    * adsr_seta(time) -- Attack
+    * adsr_setd(time) -- Decay
+    * adsr_sets(gain) -- Sustain
+    * adsr_setr(time) -- Release
       Example: adsr.adsr_seta(0.003);
-      Sets the ADSR envelope time (specified in seconds) or gain value.
+      Sets the ADSR envelope time (specified in seconds) or gain [0.0..1.0]
+      value, and returns the coefficient or gain value.
 
    Processing Functions
 
     * adsr_a(scale) -- Attack
       Example: adsr.adsr_a(1.0);
-      Starts processing the ADSR envelope, scaling it to [0.0..scale].
+      Starts processing the ADSR envelope, scaling it to [0.0..scale], and
+      returns the state.
 
     * adsr_d()      -- Decay
     * adsr_s()      -- Sustain
     * adsr_r()      -- Release
       Example: adsr.adsr_r();
-      Continues processing the ADSR envelope.
+      Continues processing the ADSR envelope, and returns the state.
 
     * adsr_process()
       Example: state = adsr.adsr_process();
@@ -78,7 +80,7 @@ desc:ADSR envelope
 
     * adsr_reset()
       Example: adsr.adsr_reset();
-      Resets the ADSR envelope.
+      Resets the ADSR envelope, and returns the state.
 
    Instance Variables
 
@@ -99,33 +101,33 @@ desc:ADSR envelope
 @init
 
 
-function _adsr_set(t)
+function _adsr_set(time)
 (
-  1 / (0.2 * t * srate + 1);
+  1 / (0.2 * time * srate + 1);
 );
 
-function adsr_seta(t)
+function adsr_seta(time)
   instance(a)
 (
-  a = _adsr_set(t);
+  a = _adsr_set(time);
 );
 
-function adsr_setd(t)
+function adsr_setd(time)
   instance(d)
 (
-  d = _adsr_set(t);
+  d = _adsr_set(time);
 );
 
-function adsr_sets(g)
+function adsr_sets(gain)
   instance(s)
 (
-  s = g;
+  s = gain;
 );
 
-function adsr_setr(t)
+function adsr_setr(time)
   instance(r)
 (
-  r = _adsr_set(t);
+  r = _adsr_set(time);
 );
 
 
@@ -173,11 +175,6 @@ function adsr_a(scale)
     env = scale;
     this.adsr_d();
   );
-);
-
-function _adsr_one()
-(
-  1/(1 - exp(-5));
 );
 
 function adsr_process()

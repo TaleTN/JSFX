@@ -1,5 +1,5 @@
 desc:Sample accurate MIDI queue
-// Copyright (C) 2012-2014 Theo Niessink
+// Copyright (C) 2012-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -43,24 +43,29 @@ desc:Sample accurate MIDI queue
    // Square wave oscillator.
    osc.dt > 0 ? spl0 = spl1 = 0.25 * osc.poly_sqr();
 
-   Queue Functions
+   Initialisation Functions
 
-    * midiq_init(index[, num])
-      Example: q.midiq_init(0, 256);
-      Sets the offset and size of the local memory buffer to store the queue
-      in. Returns the maximum size of the buffer (i.e. num*3), or 0 for
-      unlimited size.
+    * midiq_init(index[, size])
+      Example: midiq.midiq_init(0, 256);
+      Sets the offset and size (omit for unlimited size) of the local memory
+      buffer to store the queue in, and returns the next available memory
+      index (i.e. index+size*3).
 
       Note: You should call this function from the @init section.
 
-    * midiq_alloc(num)
-      Example: q.midiq_alloc(256);
-      Allocates a block of local memory to store the queue in. Requires
-      malloc.jsfx-inc.
+    * midiq_alloc(size)
+    * midiq_free()
+      Example: midiq.midiq_alloc(256);
+      Allocates/deallocates a block of local memory to store the queue in,
+      and returns its index.
+
+      Note: Requires malloc.jsfx-inc.
+
+   Queue Functions
 
     * midiq_collect()
     * midiq_collect(ch, mask)
-      Example: q.midiq_collect();
+      Example: midiq.midiq_collect();
       Receives any MIDI messages, optionally filtering by channel (0..15,
       <0=any) and status byte (1=Note Off, 2=Note On, 4=Poly Aftertouch,
       8=Control Change, 16=Program Change, 32=Channel Atertouch, 64=Pitch
@@ -69,7 +74,7 @@ desc:Sample accurate MIDI queue
       Note: You should call this function from the @block section.
 
     * midiq_remove()
-      Example: avail = q.midiq_remove();
+      Example: is_avail = midiq.midiq_remove();
       Checks if a MIDI message is available, removes it from the queue, and
       stores it in the msg1, msg2, and msg3 instance variables.
 
@@ -79,53 +84,63 @@ desc:Sample accurate MIDI queue
    Miscellaneous Functions
 
     * midiq_rewind()
-      Example: q.midiq_rewind();
+      Example: midiq.midiq_rewind();
       Rewinds the queue, so new MIDI messages can be added.
 
       Note: This function is automatically called by midiq_collect().
 
     * midiq_add(ofs, msg1, msg23)
-      Example: q.midiq_add(ofs, msg1, msg23);
+    * midiq_add(ofs, msg1, msg2, msg3)
+      Example: midiq.midiq_add(0, 0x90, 60, 127);
       Adds a MIDI message to the queue.
 
    Instance Variables
 
+    * ofs
+      Example: offset_in_seconds = midiq.ofs / srate;
+      The offset within the current sample block, in samples.
+
     * msg1
     * msg2
     * msg3
-      Example: ch = q.msg1 & 0x0F;
+    * msg23
+      Example: ch = midiq.msg1 & 0x0F;
       The MIDI message that was last removed from the queue.
 
-    * ofs
-      Example: t = q.ofs / srate;
-      The offset within the current sample block, in samples.
+    * buf
+      Example: index = midiq.buf;
+      The local memory index in which the queue is stored.
+
+    * size
+      Example: num_items = midiq.size * 3;
+      The maximum size of the queue, in MIDI messages.
+
+    * head
+    * tail
+      Example: num_msgs = (midiq.tail - midiq.head) / 3;
+      Example: num_avail = midiq.size - (midiq.tail - midiq.buf) / 3;
+      Pointers to the head and tail of the queue.
 
 */
 
 @init
 
 
-function midiq_init(index, num)
-  instance(buf, size)
+function midiq_init(index, size)
+  instance(buf)
 (
   buf = index;
-  size = num * 3;
+  this.size = size;
+
+  buf + size * 3;
 );
 
 function midiq_init(index)
+  instance(buf, size)
 (
-  this.midiq_init(index, 0);
+  size = 0;
+  buf = index;
 );
-
-
-// See malloc.jsfx-inc.
-
-// function midiq_alloc(num)
-  // instance(buf, size)
-// (
-  // size = num * 3;
-  // buf = malloc(size);
-// );
 
 
 function midiq_rewind()
@@ -139,12 +154,17 @@ function midiq_rewind()
 function midiq_add(ofs, msg1, msg23)
   instance(buf, size, tail)
 (
-  !size || tail < buf + size ? (
+  !size || tail < buf + size * 3 ? (
     tail[0] = ofs;
     tail[1] = msg1;
     tail[2] = msg23;
     tail += 3;
   );
+);
+
+function midiq_add(ofs, msg1, msg2, msg3)
+(
+  this.midiq_add(ofs, msg1, msg2 | (msg3 << 8));
 );
 
 

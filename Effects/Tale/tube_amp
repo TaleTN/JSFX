@@ -1,4 +1,7 @@
 desc:Tube amp
+//tags: processing distortion waveshaper
+//author: Tale
+
 // Copyright (C) 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
@@ -73,7 +76,7 @@ hp0.a = hp1.rc_set(0.022);
 @slider
 
 drive = drive(slider1);
-lp0.a = lp1.rc_setf(slider2);
+lp0.a = lp1.rc_setf_precise(slider2);
 stereo = slider3 >= 0.5;
 
 os = max(0, min(3, int(slider4)));

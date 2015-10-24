@@ -1,4 +1,7 @@
 desc:MIDI sustain emulator
+//tags: MIDI processing
+//author: Tale
+
 // Copyright (C) 2014 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 

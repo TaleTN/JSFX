@@ -1,0 +1,13 @@
+// Copyright (C) 2014, 2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Sine wave oscillator
+slider1:440<20,12000,1>Frequency (Hz)
+
+import Tale/sine_oscillator.jsfx-inc
+
+@slider
+osc.sin_setf(slider1);
+
+@sample
+spl0 = spl1 = 0.25 * osc.sin_sin();

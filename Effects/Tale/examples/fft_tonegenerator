@@ -1,0 +1,34 @@
+// Copyright (C) 2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Bandlimited sawtooth oscillator
+slider1:440<20,20000,1>Frequency (Hz)
+
+import Tale/fft_synthesis.jsfx-inc
+import Tale/wavetable_oscillator.jsfx-inc
+
+@init
+
+function render_saw(buf, size)
+  local(i, t)
+(
+  i = 0;
+  loop(size,
+    t = i / size;
+    buf[i] = 2*t - 1;
+    i += 1;
+  );
+);
+
+osc.four_init(0, 1024);
+render_saw(osc.buf, osc.size);
+osc.four_fft();
+
+@slider
+
+osc.four_setf(slider1);
+osc.four_update() ? osc.four_ifft(1);
+
+@sample
+
+spl0 = spl1 = 0.25 * osc.wave_lerp();

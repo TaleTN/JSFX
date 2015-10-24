@@ -1,5 +1,5 @@
 desc:Efficient sine/cosine wave oscillator
-// Copyright (C) 2014 Theo Niessink
+// Copyright (C) 2014, 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the linear trapezoidal integrated SVF implementation as posted
@@ -21,32 +21,35 @@ desc:Efficient sine/cosine wave oscillator
 
    Setting Functions
 
-    * sin_setf(f)
+    * sin_setf(freq)
       Example: osc.sin_setf(440);
-      Sets the oscillator frequency (specified in Hz).
+      Sets the oscillator frequency (specified in Hz), and returns the
+      frequency in seconds/sample.
+
+      (To convert from Hz to seconds/sample, divide by srate. To convert
+      from seconds/sample to Hz, multiply with srate.)
 
       Note: Although the maximum frequency supported is srate/2, you can
       safely specify higher frequencies.
 
-    * sin_setdt(dt)
+    * sin_setdt(time)
       Example: osc2.sin_setdt(osc1.dt);
-      Sets the oscillator frequency (specified in seconds/sample).
-
-      (To convert from Hz to seconds/sample, divide by srate.)
+      Sets the oscillator frequency (specified in seconds/sample), and
+      returns this value.
 
    Waveform Functions
 
     * sin_sin() -- Sine
     * sin_cos() -- Cosine
-      Example: s = osc.sin_sin();
+      Example: sample = osc.sin_sin();
       Returns a sample of a waveform, and increments its phase.
 
    Miscellaneous Functions
 
-    * sin_sync(t)
+    * sin_sync(phase)
       Example: osc2.sin_sync(osc1.t + 0.5);
-      Synchronizes the oscillator with the specified phase, and returns the
-      normalized phase.
+      Synchronises the oscillator with the specified phase, and returns the
+      normalised phase.
 
       Note: You can safely specify out or range (and even negative) values
       here.
@@ -67,14 +70,18 @@ desc:Efficient sine/cosine wave oscillator
       Example: freq = osc.dt * srate;
       The oscillator frequency, in seconds/sample.
 
+    * a
+      Example: osc2.a = osc1.a;
+      The frequency dependent gain [0.0..1.0].
+
     * sin
     * cos
-      Example: s = osc.sin;
+      Example: sample = osc.sin;
       The current sine/cosine output values.
 
    Correctional Facilities
 
-    * sing_sing
+    * Sing Sing
       Example: Sing Sing Correctional Facility
       Maximum security prison in Ossining, New York, USA.
 
@@ -86,16 +93,17 @@ desc:Efficient sine/cosine wave oscillator
 function _sin_sync(t)
   instance(cos, sin)
 (
-  t *= 2*$pi;
-  cos = cos(t);
-  sin = sin(t);
+  cos = cos(2*$pi * t);
+  sin = sin(2*$pi * t);
 );
 
-function sin_sync(t)
+function sin_sync(phase)
+  instance(t)
 (
-  this.t = (t >= 0 ? t : t + 1) - (t|0);
-  this._sin_sync(this.t);
-  this.t;
+  t = phase;
+  t >= 0 ? t -= t|0 : t += 1 - (t|0);
+  this._sin_sync(t);
+  t;
 );
 
 
@@ -110,10 +118,11 @@ function _sin_setdt(dt)
   // 0 otherwise
 );
 
-function sin_setdt(dt)
-  instance(a, g0, g1, t)
+function sin_setdt(time)
+  instance(dt, a, g0, g1, t)
   local(g, gg)
 (
+  dt = time;
   a = _sin_setdt(dt);
 
   g = tan($pi * dt);
@@ -122,13 +131,13 @@ function sin_setdt(dt)
   g1 = g * gg;
 
   this._sin_sync(t);
-
-  this.dt = dt;
+  dt;
 );
 
-function sin_setf(f)
+function sin_setf(freq)
+  // global(srate)
 (
-  this.sin_setdt(f / srate);
+  this.sin_setdt(freq / srate);
 );
 
 

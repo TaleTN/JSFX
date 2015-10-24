@@ -1,4 +1,7 @@
 desc:Simple mono/poly synth
+//tags: generator synthesis
+//author: Tale
+
 // Copyright (C) 2012-2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
@@ -78,18 +81,18 @@ function tg_wave(wave)
   wave == 7  ? tg.poly_saw() :
   wave == 6  ? tg.poly_rect() :
   wave == 5  ? tg.poly_sqr() :
-  wave == 4  ? tg.poly_trap() :
+  wave == 4  ||
+  wave == 13 ? tg.poly_trap2() :
   wave == 3  ? tg.poly_tri() :
   wave == 2  ? tg.poly_full() :
   wave == 1  ? tg.poly_half() :
   wave == 0  ? tg.poly_sin() :
   wave == 8  ? tg.poly_tri2() :
-  wave == 9  ? tg.poly_trip() :
+  wave == 9  ||
+  wave == 14 ? tg.poly_trip() :
   wave == 10 ? tg.poly_ham() :
   wave == 11 ? tg.poly_stairs() :
-  wave == 12 ? tg.poly_sqr2() :
-  wave == 13 ? tg.poly_trap2() :
-/*wave == 14*/ tg.poly_trip();
+/*wave == 12*/ tg.poly_sqr2();
 );
 
 function adsr_sets(g)
@@ -322,12 +325,12 @@ wave = int(slider9);
 // Limit pulse width for pulse, triangular pulse, modified square.
 min_pw = wave == 6 || wave == 14 ? 0.10 : wave == 8 ? 0.01 : wave == 12 ? 0.20 : 0.0;
 max_pw = wave == 6 ? 0.90 : wave == 8 ? 0.99 : 1.0;
-pw = wave == 9 ? 0.5 : max(min_pw, min(max_pw, slider10));
+pw = wave == 4 || wave == 9 ? 0.5 : max(min_pw, min(max_pw, slider10));
 
 noise_mix = gain(slider14, -36.0);
 
 lpf.n = slider16 >= 1.0 ? lpf.m : exp(max(0.0, slider16) * lpf.ln);
-slider17 < 1 ? lpf.env.a = 1 : lpf.env.rc_sets(0.001 * min(15000, slider17));
+slider17 < 1 ? lpf.env.a = 1 : lpf.env.rc_sett(0.001 * min(15000, slider17));
 lpf.q = max(0.01, min(4.0, slider18));
 
 pitch_range = max(0.0, slider12) / 1200;
@@ -394,13 +397,20 @@ while(midiq.midiq_remove() ? (
 
 function sample_tg(t, dt)
   // global(adsr*, freq_mod, tg*, wave, white_noise, noise_mix)
+  local(ph, out)
 (
   adsr.state ? (
     noise_mix < 1.0 ? (
-      tg.t = t;
+      // Correct full-wave rectified sine/triangular pulse phase.
+      ph = wave == 2 ? 0.25 : wave == 14 ? 0.75 + 0.5 * tg.pw;
+      ph > 0 ? tg.poly_sync(t - ph) : tg.t = t;
+
       tg.poly_setdt(freq_mod * dt);
       tg.poly_resetf();
-      adsr.env * mix(tg_wave(wave), white_noise, noise_mix);
+      out = adsr.env * mix(tg_wave(wave), white_noise, noise_mix);
+
+      ph > 0 ? tg.poly_sync(tg.t + ph);
+      out;
     ) : (
       adsr.env * white_noise;
     );    

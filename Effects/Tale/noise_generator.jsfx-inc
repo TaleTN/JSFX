@@ -16,16 +16,17 @@ desc:Noise generator
     * lcg_init(seed)
       Example: rng.lcg_init(12345);
       Initializes the random number generator with the specified seed value
-      (an integer in the range 1 through 2^31-2).
+      (an integer in the range 1 through 2^31-2), and returns this value.
 
     * lcg_density(density)
       Example: black.lcg_density(0.25);
-      Sets the black noise density (0..1).
+      Sets the black noise density (0..1), and returns this value.
 
     * lcg_leaky_set(rc)
       Example: rng.lcg_leaky_set(0.0082);
-      Sets the RC time constant (specified in seconds) of the leaky
-      integrator used for generating Brownian noise.
+      Sets the feedback coefficient of the leaky integrator used for
+      generating Brownian noise to the specified RC time constant (in
+      seconds), and returns the filter coefficient.
 
       The leaky integrator behaves like a high-pass filter with a
       cutoff frequency (in Hz) of 1/(2*$pi*rc).
@@ -42,15 +43,15 @@ desc:Noise generator
     * lcg_violet() -- Violet
     * lcg_grey()   -- Grey
     * lcg_black()  -- Black
-      Example: s = rng.lcg_white();
-      Returns a sample of a noise.
+      Example: sample = rng.lcg_white();
+      Returns a sample of noise.
 
    Miscellaneous Functions
 
     * lcg_rand(x)
     * lcg_rand2(x)
-      Example: s = lcg_rand(x);
-      Example: s = rng.lcg_rand2(x);
+      Example: y = lcg_rand(x);
+      Example: y = rng.lcg_rand2(x);
       Returns a psuedorandom number between 0 and the parameter.
 
    Instance Variables
@@ -62,6 +63,27 @@ desc:Noise generator
     * density
       Example: rng2.lcg_density(rng1.density);
       The black noise density.
+
+    * b0
+    * b1
+    * b2
+      Example: rng2.b0 = rng1.b0; rng2.b1 = rng1.b1; rng2.b2 = rng1.b2;
+      Pink noise filter coefficients.
+
+    * leak.a
+    * leak.lp
+      Example: rng2.leak.a = rng1.leak.a;
+      Brownian noise leaky integrator.
+
+    * pink
+    * white
+      Example: pink_noise = blue_noise.pink;
+      Example: white_noise = violet_noise.white;
+      Blue/violet noise generator pink/white noise output.
+
+    * low_shelf*
+    * peak*
+      Grey noise generator filters.
 
 */
 

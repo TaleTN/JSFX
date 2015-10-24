@@ -1,5 +1,53 @@
 Tale's JSFX Pack
 
+v20151024 (24 October 2015)
+
+ + rc_filter/tube_amp: Improved RC filter precision.
+ + four: Added FFT bandlimited synthesis library (fft_synthesis.jsfx-inc).
+ + four: Added Fourier series waveforms library (fourier_series.jsfx-inc).
+ + wave: Added wavetable oscillator library (wavetable_oscillator.jsfx-inc).
+ + lfo: Reimplemented sine as Maclaurin series.
+ + lfo: Added (Maclaurin series) cosine, ramp, variable pulse width
+   half-wave rectified sine, half-wave rectified sawtooth, low-pass filtered
+   square, high-pass filtered sawtooth, stepped sine, stepped triangle,
+   stepped sawtooth, hard sync sawtooth.
+ + lfo: Optimised modified triangle, full-wave rectified sine, circle.
+ + lfo: Corrected phase of full-wave rectified sine, triangular pulse.
+ + lfo: Fixed sample and hold skipping first sample.
+ + poly: Added cosine, ramp.
+ + poly: Optimised triangle, rectangle, modified triangle, modified square,
+   half-wave rectified sine, triangular pulse.
+ + poly: Corrected phase of full-wave rectified sine, triangular pulse.
+ + poly: Fixed triangular pulse global instead of local variable typo.
+ + sin: Optimised sync phase.
+ + rc: Added high precision setting/filter functions.
+ + rc: Optimised setting/filter functions.
+ + rbj: Reimplemented peaking EQ and low/high shelf.
+ + rbj: Added bypass/mute filters.
+ + rbj: Added bandwidth/Q convertor functions.
+ + rbj: Optimised set frequency, coefficient scaling.
+ + zdf: Reimplemented filter setting functions (could break existing code,
+   see documentation).
+ + zdf: Fixed constant peak gain band-pass filter.
+ + zdf: Added bypass/mute filters.
+ + zdf: Added bandwidth/Q convertor functions.
+ + zdf: Optimised set frequency, set feedback precomputation factor, filter
+   processing.
+ + malloc: Added 65,536 item boundary alignment.
+ + malloc: Fixed free() being lazy.
+ + malloc: Reduced realloc() code size.
+ + midiq: Added msg2/3 support to midiq_add().
+ + midiq: Changed queue size to number of messages.
+ + midiq: Added free MIDI queue buffer.
+ + array: Swapped size/num, changed init behaviour (could break existing
+   code, sorry!).
+ + array: Added get first/next row pointer.
+ + array: Added optional starting point to find.
+ + array: Added free buffer.
+ + Added tags/author to effects.
+ + Improved library documentation.
+ + Extracted examples from libraries.
+
 v20150607 (7 June 2015)
 
  + wavetable_synth: Implemented pan.
