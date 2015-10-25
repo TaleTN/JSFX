@@ -72,7 +72,9 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_trip()   -- Triangular pulse
     * lfo_hwsaw()  -- Half-wave rectified sawtooth
 
+    * lfo_para()   -- Parabola
     * lfo_circ()   -- Circle
+    * lfo_arc()    -- Cycloid
     * lfo_trap()   -- Trapezoid (fixed 0.5 pulse width)
     * lfo_trap2()  -- Trapezoid (variable pulse width)
 
@@ -122,6 +124,7 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_trip_dc()  -- Triangular pulse
     * lfo_hwsaw_dc() -- Half-wave rectified sawtooth
 
+    * lfo_arc_dc()   -- Cycloid
     * lfo_hpsaw_dc() -- High-pass filtered sawtooth
     * lfo_hssaw_dc() -- Hard sync sawtooth
       Example: sample = lfo.lfo_rect() - lfo.lfo_rect_dc();
@@ -391,6 +394,21 @@ function lfo_full_dc()
 // rms = ?
 
 
+// Parabola
+
+function lfo_para()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  t < 0.5 ? (8 - 16*t)*t : (16*t - 24)*t + 8;
+);
+
+// dc = 0;
+// rms = sqrt(8/15);
+
+
 // Circle
 
 function lfo_circ()
@@ -404,6 +422,27 @@ function lfo_circ()
 
 // dc = 0;
 // rms = sqrt(2/3);
+
+
+// Cycloid
+
+function lfo_arc()
+  local(t)
+(
+  t = this.t + 0.25;
+  this.lfo_inc();
+
+  t -= t|0;
+
+  4 * sqrt(t - t*t) - 1;
+);
+
+function lfo_arc_dc()
+(
+  0.5*$pi - 1;
+);
+
+// rms = ?
 
 
 // Triangle

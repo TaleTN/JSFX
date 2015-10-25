@@ -1,5 +1,10 @@
 Tale's JSFX Pack
 
+v20151025 (25 October 2015)
+
+ + poly: Optimised half-wave rectified sine, triangular pulse, trapezoid.
+ + lfo/four: Added parabola, cycloid.
+
 v20151024 (24 October 2015)
 
  + rc_filter/tube_amp: Improved RC filter precision.

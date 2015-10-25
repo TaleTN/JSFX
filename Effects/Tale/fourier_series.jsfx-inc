@@ -71,7 +71,9 @@ desc:Fourier series waveforms
     * four_trip()   -- Triangular pulse
     * four_hwsaw()  -- Half-wave rectified sawtooth
 
+    * four_para()   -- Parabola
     * four_circ()   -- Circle
+    * four_arc()    -- Cycloid
     * four_trap()   -- Trapezoid (fixed 0.5 pulse width)
     * four_trap2()  -- Trapezoid (variable pulse width)
 
@@ -265,6 +267,25 @@ function four_full()
 );
 
 
+// Parabola
+
+function four_para()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(0, 0);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size / 2,
+    cos[] = 0;
+    sin[] = 32/($pi*$pi*$pi) / (k*k*k);
+
+    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
+
 // Circle
 
 function four_j1_pi(n) // j1($pi*n)
@@ -285,6 +306,25 @@ function four_circ()
     sin[] = 4 * four_j1_pi(2*k - 1) / k;
 
     k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
+
+// Cycloid
+
+function four_arc()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(0.5*$pi - 1, 0.25);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size - 1,
+    cos[] = 2 * four_j1_pi(k) / k;
+    sin[] = 0;
+
+    k += 1; cos += 2; sin += 2;
   );
 );
 
