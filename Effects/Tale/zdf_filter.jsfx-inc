@@ -12,7 +12,7 @@ desc:2nd order zero-delay feedback state variable filter
    slider1:1000<20,20000,1>Frequency (Hz)
    slider2:2.0<0.01,4.0,0.01>Bandwidth (oct)
 
-   import zdf_filter.jsfx-inc
+   import Tale/zdf_filter.jsfx-inc
 
    @slider
    q = zdf_bwtoq(slider2);
@@ -41,7 +41,7 @@ desc:2nd order zero-delay feedback state variable filter
 
       (To convert from dB to gain: gain=10^(db/20).)
 
-      Note: After v20150607 the behaviour of zdf_bp2() and zdf_ap() has been
+      Note: In v20151024 the behaviour of zdf_bp2() and zdf_ap() has been
       changed in such a way that these functions are not backward
       compatible. To convert code relying on the old behaviour, replace
       zdf_bp2(freq, bw) with zdf_bp(freq, zdf_bwtoq(bw)), and

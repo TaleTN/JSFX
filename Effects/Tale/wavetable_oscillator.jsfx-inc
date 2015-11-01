@@ -7,7 +7,7 @@ desc:Wavetable oscillator
    desc:Sine wave oscillator
    slider1:440<20,20000,1>Frequency (Hz)
 
-   import wavetable_oscillator.jsfx-inc
+   import Tale/wavetable_oscillator.jsfx-inc
 
    @init
    

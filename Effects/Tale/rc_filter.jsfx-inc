@@ -8,7 +8,7 @@ desc:1st order RC filter
    slider1:1000<20,20000,1>Cutoff Frequency (Hz)
    slider2:0<0,1,1{Low-pass,High-pass}>Mode
 
-   import rc_filter.jsfx-inc
+   import Tale/rc_filter.jsfx-inc
 
    @slider
    lp_hp.rc_setf(slider1);

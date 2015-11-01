@@ -6,10 +6,10 @@ desc:Simple two-dimensional array interface
 
    desc:Last-note priority mono synth
 
-   import malloc.jsfx-inc
-   import array.jsfx-inc
-   import midi_queue.jsfx-inc
-   import poly_blep.jsfx-inc
+   import Tale/malloc.jsfx-inc
+   import Tale/array.jsfx-inc
+   import Tale/midi_queue.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
 
    @init
 
@@ -86,12 +86,12 @@ desc:Simple two-dimensional array interface
       Example: ptr = array.array_add();
       Adds a row to the end of the array and returns its local memory index.
       Note that the row is added but not initialised (i.e. it does not
-      contain any data yet).
+      contain any data yet, nor is it zeroed.).
 
     * array_insert(ptr)
       Example: array.array_insert(array.array_get(0));
       Inserts a row into the array. Note that the row is inserted but not
-      initialised (i.e. it does not contain any data yet).
+      initialised.
 
     * array_remove(ptr)
       Example: array.array_remove(array.array_get(0));

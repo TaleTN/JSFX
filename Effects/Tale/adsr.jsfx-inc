@@ -10,9 +10,9 @@ desc:ADSR envelope
    slider3:-12.0<-120.0,24.0,1.0>Sustain (dB)
    slider4:500<0,5000,1>Release (ms)
 
-   import adsr.jsfx-inc
-   import midi_queue.jsfx-inc
-   import poly_blep.jsfx-inc
+   import Tale/adsr.jsfx-inc
+   import Tale/midi_queue.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
 
    @slider
 
@@ -56,8 +56,8 @@ desc:ADSR envelope
     * adsr_sets(gain) -- Sustain
     * adsr_setr(time) -- Release
       Example: adsr.adsr_seta(0.003);
-      Sets the ADSR envelope time (specified in seconds) or gain [0.0..1.0]
-      value, and returns the coefficient or gain value.
+      Sets the ADSR envelope time (specified in seconds) or the gain
+      [0.0..1.0] factor, and returns the coefficient or the gain factor.
 
    Processing Functions
 
@@ -94,7 +94,7 @@ desc:ADSR envelope
 
     * scale
       Example: adsr2.adsr_a(adsr1.scale);
-      The current scale value.
+      The current scale factor.
 
 */
 

@@ -11,7 +11,7 @@ desc:Efficient sine/cosine wave oscillator
    desc:Sine wave oscillator
    slider1:440<20,12000,1>Frequency (Hz)
 
-   import sine_oscillator.jsfx-inc
+   import Tale/sine_oscillator.jsfx-inc
 
    @slider
    osc.sin_setf(slider1);
@@ -82,7 +82,7 @@ desc:Efficient sine/cosine wave oscillator
    Correctional Facilities
 
     * Sing Sing
-      Example: Sing Sing Correctional Facility
+      Example: Sing Sing prison
       Maximum security prison in Ossining, New York, USA.
 
 */

@@ -6,8 +6,8 @@ desc:Sample accurate MIDI queue
 
    desc:Mono synth
 
-   import midi_queue.jsfx-inc
-   import poly_blep.jsfx-inc
+   import Tale/midi_queue.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
 
    @init
 
@@ -51,8 +51,6 @@ desc:Sample accurate MIDI queue
       buffer to store the queue in, and returns the next available memory
       index (i.e. index+size*3).
 
-      Note: You should call this function from the @init section.
-
     * midiq_alloc(size)
     * midiq_free()
       Example: midiq.midiq_alloc(256);
@@ -65,21 +63,18 @@ desc:Sample accurate MIDI queue
 
     * midiq_collect()
     * midiq_collect(ch, mask)
+      Context: @block
       Example: midiq.midiq_collect();
       Receives any MIDI messages, optionally filtering by channel (0..15,
       <0=any) and status byte (1=Note Off, 2=Note On, 4=Poly Aftertouch,
       8=Control Change, 16=Program Change, 32=Channel Atertouch, 64=Pitch
       Bend).
 
-      Note: You should call this function from the @block section.
-
     * midiq_remove()
+      Context: @sample
       Example: is_avail = midiq.midiq_remove();
       Checks if a MIDI message is available, removes it from the queue, and
       stores it in the msg1, msg2, and msg3 instance variables.
-
-      Note: You should call this function in a while loop from the @sample
-      section.
 
    Miscellaneous Functions
 

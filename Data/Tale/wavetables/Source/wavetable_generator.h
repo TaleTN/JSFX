@@ -30,13 +30,7 @@
 
 #include "WDL/wavwrite.h"
 
-static double sigma(int k, int n)
-{
-	double x = M_PI * k / (n + 1);
-	return sin(x) / x;
-}
-
-static bool gen_wavetbl(const char* filename, int bps, double (*fourier_series)(double, int, int, double), double param)
+static bool gen_wavetbl(const char* filename, int bps, double (*fourier_series)(double, int, double), double param = 0, double phase = 0, bool sigma = true)
 {
 	static const int num_wavetbls = 8, wavetbl_len = 4 << (num_wavetbls - 1), wavetbl_size = num_wavetbls * wavetbl_len;
 	double wavetbl[wavetbl_size];
@@ -44,16 +38,24 @@ static bool gen_wavetbl(const char* filename, int bps, double (*fourier_series)(
 	double* tbl = wavetbl;
 	for (int i = 0; i < num_wavetbls; ++i)
 	{
-		int n = 1 << i;
+		const int m = (1 << i) + 1;
 
 		for (int j = 0; j < wavetbl_len; ++j)
 		{
-			double t = (double)j / wavetbl_len;
+			double t = (double)j / wavetbl_len + 0.5 + phase;
+			t -= (int)t;
 
-			double sum = 0;
-			for (int k = 1; k <= n; ++k)
+			const double dc = fourier_series(t, 0, param);
+			double sum = dc;
+			for (int k = 1; k < m; ++k)
 			{
-				sum += fourier_series(t, k, n, param);
+				double y = fourier_series(t, k, param);
+				if (sigma)
+				{
+					const double x = M_PI * k / m;
+					y *= sin(x)/x;
+				}
+				sum += y;
 			}
 
 			*tbl++ = M_SQRT1_2 * sum;
@@ -67,7 +69,7 @@ static bool gen_wavetbl(const char* filename, int bps, double (*fourier_series)(
 	return fh.BytesWritten() == wavetbl_size * bps/8;
 }
 
-static bool gen_wavetbl(const char* filename, double (*fourier_series)(double, int, int, double), double param = 0)
+static bool gen_wavetbl(const char* filename, double (*fourier_series)(double, int, double), double param = 0, double phase = 0, bool sigma = true)
 {
-	return gen_wavetbl(filename, 16, fourier_series, param);
+	return gen_wavetbl(filename, 16, fourier_series, param, phase, sigma);
 }

@@ -6,8 +6,8 @@ desc:2x oversampler
 
    desc:Frequency doubler
 
-   import oversampler.jsfx-inc
-   import rc_filter.jsfx-inc
+   import Tale/oversampler.jsfx-inc
+   import Tale/rc_filter.jsfx-inc
 
    @init
 
@@ -30,8 +30,8 @@ desc:2x oversampler
    desc:Oversampled oscillator
    slider1:440<20,12000,1>Frequency (Hz)
 
-   import oversampler.jsfx-inc
-   import poly_blep.jsfx-inc
+   import Tale/oversampler.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
 
    @slider
 
@@ -47,7 +47,7 @@ desc:2x oversampler
    Upsample/Downsample Functions
 
     * os_up2(sample)
-      Example: os.os_up2(spl0);
+      Example: os.os_up2(input);
       Upsamples the signal 2x.
 
     * os_os2()
@@ -56,8 +56,8 @@ desc:2x oversampler
       rather than upsample a signal.
 
     * os_down2()
-      Example: spl0 = os.os_down2();
-      Downsamples the signal 2x.
+      Example: output = os.os_down2();
+      Downsamples the signal 2x, and returns the downsampled sample.
 
    Miscellaneous Functions
 

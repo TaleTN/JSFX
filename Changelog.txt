@@ -1,5 +1,14 @@
 Tale's JSFX Pack
 
+v20151101 (1 November 2015)
+
+ + wavetable_synth: Added cycloid wavetable.
+ + wavetable_synth: Adjusted modified square wavetable pulse width.
+ + Added icon to Windows installer.
+ + Fixed compatibility warning after closing installer on Windows 10.
+ + four: Added naive Fourier series summation.
+ + Minor library documentation improvements.
+
 v20151025 (25 October 2015)
 
  + poly: Optimised half-wave rectified sine, triangular pulse, trapezoid.
@@ -99,7 +108,7 @@ v20150322 (22 March 2015)
  + rc_filter: Added a multimode RC filter effect.
  + malloc: Added dynamic memory management library (malloc.jsfx-inc).
  + wavetable_synth: Added velocity control, phase lock.
- + wavetable_synth: Added Combo Organ, Full Organ wavetables.
+ + wavetable_synth: Added combo organ, full organ wavetables.
  + colored_noise/mono_synth/wavetable_synth: Nitpicked gain calculation.
  + rbj: Removed Direct Form I/II instance variables.
  + zdf: Nitpicked gain over Q in documentation.

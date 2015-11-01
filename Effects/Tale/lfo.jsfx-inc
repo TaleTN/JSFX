@@ -7,7 +7,7 @@ desc:Naive (non-bandlimited) low-frequency oscillator
    desc:Tremolo
    slider1:4.0<0.0,20.0,0.1>Frequency (Hz)
 
-   import lfo.jsfx-inc
+   import Tale/lfo.jsfx-inc
 
    @slider
    lfo.lfo_setf(slider1);
@@ -95,9 +95,9 @@ desc:Naive (non-bandlimited) low-frequency oscillator
       Example: sample = lfo.lfo_tri();
       Returns a sample of a waveform, and increments its phase.
 
-      Note: After v20150607 the phase of lfo_full() and lfo_trip() has been
+      Note: In v20151024 the phase of lfo_full() and lfo_trip() has been
       corrected. To convert code relying on the old behaviour, synchronise
-      the phase to t-0.25 for lfo_full(), and t-(0.75+0.5*pw) for
+      the phase to t-0.25 for lfo_full(), and to t-(0.75+0.5*pw) for
       lfo_trip().
 
    Miscellaneous Functions
@@ -128,19 +128,19 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_hpsaw_dc() -- High-pass filtered sawtooth
     * lfo_hssaw_dc() -- Hard sync sawtooth
       Example: sample = lfo.lfo_rect() - lfo.lfo_rect_dc();
-      Returns the (constant or pulse width dependent) DC value for the
-      waveform.
+      Returns the (constant or pulse width/slave frequency dependent) DC
+      value for the waveform.
 
     * _lfo_sin(x)
     * _lfo_cos(x)
       Example: y = _lfo_sin(x);
       Example: y = _lfo_cos(x);
       Fast approximations (Maclaurin series) of sin(x) and cos(x) for x in
-      the range of [-$pi..2*$pi].
+      the ranges of [-$pi..$pi] and [0..2*$pi].
 
     * _lfo_exp()
       Example: y = _lfo_exp(x);
-      Fast exp(x) approximation ((1 + x/n)^n).
+      Fast exp(x) approximation ((1+x/n)^n, where n=8).
 
    Instance Variables
 

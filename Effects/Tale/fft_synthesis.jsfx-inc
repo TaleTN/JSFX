@@ -7,8 +7,8 @@ desc:FFT bandlimited synthesis
    desc:Bandlimited sawtooth oscillator
    slider1:440<20,20000,1>Frequency (Hz)
 
-   import fft_synthesis.jsfx-inc
-   import wavetable_oscillator.jsfx-inc
+   import Tale/fft_synthesis.jsfx-inc
+   import Tale/wavetable_oscillator.jsfx-inc
 
    @init
 
@@ -58,8 +58,8 @@ desc:FFT bandlimited synthesis
     * four_alloc(size)
     * four_free()
       Example: osc.four_alloc(1024);
-      Allocates/deallocates a blocks of local memory to render the waveform
-      in, and returns its index.
+      Allocates/deallocates two blocks of local memory to render the
+      waveform in, and returns its index.
 
       Note: Requires malloc.jsfx-inc.
 
@@ -97,10 +97,12 @@ desc:FFT bandlimited synthesis
     * four_setdc(dc[, phase])
       Example: osc.four_setdc(0);
       Example: ptr = osc.four_setdc(-0.5, 0.0);
-      Sets the DC component in the Fourier coefficients, and optionally the
-      phase offset [0.0..1.0). Returns the DC value if phase is omitted, or
-      else the local memory index of the next cosine/sine pair (i.e. the
-      first harmonic).
+      The first form sets the DC component in the Fourier coefficients, and
+      returns this value.
+
+      The second form sets both the DC component and the phase offset
+      [0.0..1.0), and returns the local memory index of the first harmonic
+      cosine/sine pair.
 
    FFT Functions
 
@@ -111,8 +113,8 @@ desc:FFT bandlimited synthesis
 
     * four_ifft([sigma])
       Example: osc.four_ifft();
-      Renders a single cycle waveform by taking the inverse FFT of the
-      Fourier coefficients.
+      Renders a single cycle waveform in the wavetable buffer by taking the
+      inverse FFT of the Fourier coefficients.
 
       If sigma is specified and is non-zero, then sigma approximation is
       used to eliminate (most of) the ringing artifacts caused by the Gibbs
@@ -120,14 +122,21 @@ desc:FFT bandlimited synthesis
 
    Miscellaneous Functions
 
+    * four_getdc()
+      Example: dc = osc.four_getdc();
+      Returns the DC value from the Fourier coefficients.
+
+    * four_sum(phase)
+      Example: output = osc.four_sum(osc.t);
+      Calculates and returns a sample by adding cosines/sines.
+
+      Note: Because this function needs to m-1 cosines/sines, it can be
+      really, really slow.
+
     * four_sigma(index, size)
       Example: four_sigma(65535, 73);
       Applies sigma approximation to the Fourier coefficients (cosine/sine
       pairs) at the specified local memory index.
-
-    * four_getdc()
-      Example: dc = osc.four_getdc();
-      Returns the DC value from the Fourier coefficients.
 
    Instance Variables
 
@@ -141,9 +150,10 @@ desc:FFT bandlimited synthesis
       pairs).
 
     * size
-      Example: coef_index = osc.coef;
-      The size of the wavetable, in samples / the number of Fourier
-      coefficients.
+      Example: wavetbl_size = osc.size;
+      Example: num_coef = osc.size;
+      The size of the wavetable in samples, which also determines the number
+      of Fourier coefficients.
 
     * dt
       Example: freq = osc.dt * srate;
@@ -230,13 +240,13 @@ function four_reset()
 
 
 function four_setdc(dc)
-  instance(coef, size)
+  instance(coef)
 (
   coef[0] = dc;
 );
 
 function four_setdc(dc, phase)
-  instance(coef, size)
+  instance(coef)
   local(t)
 (
   coef[0] = dc;
@@ -249,9 +259,31 @@ function four_setdc(dc, phase)
 
 
 function four_getdc(dc)
-  instance(coef, size)
+  instance(coef)
 (
   coef[0];
+);
+
+
+function four_sum(phase)
+  instance(coef, m)
+  local(sum, k, cos, sin, t)
+(
+  sum = coef[0];
+
+  t = coef[1] + phase;
+  t = 2*$pi * (t - (t|0));
+
+  cos = coef + 2;
+  sin = cos + 1;
+
+  k = 1;
+  loop(m - 1,
+    sum += cos[] * cos(t * k) - sin[] * sin(t * k);
+    k += 1; cos += 2; sin += 2;
+  );
+
+  sum;
 );
 
 

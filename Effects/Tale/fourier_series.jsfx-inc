@@ -8,9 +8,9 @@ desc:Fourier series waveforms
    slider1:440<20,20000,1>Frequency (Hz)
    slider2:0.5<0.0,1.0,0.01>Pulse Width
 
-   import fft_synthesis.jsfx-inc
-   import fourier_series.jsfx-inc
-   import wavetable_oscillator.jsfx-inc
+   import Tale/fft_synthesis.jsfx-inc
+   import Tale/fourier_series.jsfx-inc
+   import Tale/wavetable_oscillator.jsfx-inc
 
    @init
 
@@ -87,12 +87,13 @@ desc:Fourier series waveforms
     * four_ham()    -- Hammond 88 8000 000
     * four_stairs() -- Staircase
       Example: osc.four_saw();
-      Calculates the Fourier coefficients that define the waveform.
+      Calculates the Fourier coefficients that define the waveform, and
+      stores them in the coefficient buffer.
 
    Miscellaneous Functions
 
-    * four_j1_pi(n)
-      Example: y = four_j1_pi(42);
+    * _four_j1_pi(n)
+      Example: y = _four_j1_pi(42);
       Approximates the Bessel function of the first kind order 1 on the
       integer n (>=0) multiplied with $pi, i.e. y = j1($pi*n).
 
@@ -288,10 +289,12 @@ function four_para()
 
 // Circle
 
-function four_j1_pi(n) // j1($pi*n)
+function _four_j1_pi(n) // j1($pi*n)
 (
   n == 1 ? 0.28461534317975279 : n > 0 ? sqrt(2 / ($pi*$pi * n)) * (n & 1 ? sqrt(0.5) : -sqrt(0.5));
 );
+
+function four_j1_pi(n) ( _four_j1_pi(n) );
 
 function four_circ()
   instance(size)
@@ -303,7 +306,7 @@ function four_circ()
   k = 1;
   loop(size / 2,
     cos[] = 0;
-    sin[] = 4 * four_j1_pi(2*k - 1) / k;
+    sin[] = 4 * _four_j1_pi(2*k - 1) / k;
 
     k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
   );
@@ -321,7 +324,7 @@ function four_arc()
 
   k = 1;
   loop(size - 1,
-    cos[] = 2 * four_j1_pi(k) / k;
+    cos[] = 2 * _four_j1_pi(k) / k;
     sin[] = 0;
 
     k += 1; cos += 2; sin += 2;

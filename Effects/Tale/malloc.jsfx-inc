@@ -7,7 +7,7 @@ desc:Dynamic memory management
    desc:Delay
    slider1:300<0,1000,1>Delay (ms)
 
-   import malloc.jsfx-inc
+   import Tale/malloc.jsfx-inc
 
    @slider
 
@@ -34,8 +34,9 @@ desc:Dynamic memory management
     * malloc(size)
       Example: buf = malloc(128);
       Example: top = malloc(0);
-      Allocates a block of local memory, and returns its index. If size is
-      0, then returns the next available index.
+      Allocates a block of local memory, and returns its index.
+
+      If size is 0, then returns the next available index.
 
     * aligned_malloc(size)
       Example: fft_buf = aligned_malloc(1024);
