@@ -68,20 +68,24 @@ desc:Wavetable oscillator
 
     * wave_trunc()     -- Truncate
     * wave_round()     -- Round to nearest
-    * wave_lerp()      -- Linear interpolation
+    * wave_lerp()      -- Linear
 
-    * wave_cube()      -- Cubic interpolation (4-point)
-    * wave_cube6()     -- Cubic interpolation (6-point)
-    * wave_cube8()     -- Cubic interpolation (8-point)
-    
-    * wave_quint()     -- 5th order spline interpolation (6-point)
-    * wave_quint6()    -- 5th order spline interpolation (6-point)
-    * wave_quint8()    -- 5th order spline interpolation (8-point)
+    * wave_hermite3()  -- Catmull-Rom spline (4-point, 3rd-order)
+    * wave_hermite5()  -- Hermite (6-point, 5th-order)
 
-    * wave_lagrange2() -- Lagrange interpolation (2nd order)
-    * wave_lagrange3() -- Lagrange interpolation (3rd order)
-    * wave_lagrange4() -- Lagrange interpolation (4th order)
-    * wave_lagrange(n) -- Lagrange interpolation (Nth order)
+    * wave_quint()     -- Quintic spline (6-point, 5th-order)
+
+    * wave_spline3()   -- B-spline (4-point, 3rd-order)
+    * wave_spline5()   -- B-spline (6-point, 5th-order)
+
+    * wave_osculate3() -- 2nd-order-osculating (4-point, 5th-order)
+    * wave_osculate5() -- 2nd-order-osculating (6-point, 5th-order)
+
+    * wave_lagrange2() -- Lagrange (3-point, 2nd-order)
+    * wave_lagrange3() -- Lagrange (4-point, 3rd-order)
+    * wave_lagrange4() -- Lagrange (5-point, 4th-order)
+    * wave_lagrange5() -- Lagrange (6-point, 5th-order)
+    * wave_lagrange(n) -- Lagrange (N+1-point, Nth-order)
       Example: sample = osc.wave_lerp();
       Returns a sample from the wavetable, and increments the oscillator
       phase.
@@ -225,7 +229,7 @@ function wave_round()
 );
 
 
-// Linear interpolation
+// Linear
 
 function wave_lerp()
   instance(buf, size, t)
@@ -244,9 +248,9 @@ function wave_lerp()
 );
 
 
-// Cubic interpolation (4-point)
+// Catmull-Rom spline (4-point, 3rd-order)
 
-function wave_cube()
+function wave_hermite3()
   instance(buf, size, t)
   local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3)
 (
@@ -261,10 +265,9 @@ function wave_cube()
   i += 1; i >= size ? i = 0; y2 = buf[i];
   i += 1; i >= size ? i = 0; y3 = buf[i];
 
-  // Catmull-Rom spline
-  a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
+  a0 = 0.5*(y3 - y0) + 1.5*(y1 - y2);
   a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
-  a2 = -0.5*y0 + 0.5*y2;
+  a2 = 0.5*(y2 - y0);
   a3 = y1;
 
   // x^3*a0 + x^2*a1 + x*a2 + a3
@@ -272,12 +275,12 @@ function wave_cube()
 );
 
 
-// Cubic interpolation (6/8-point, adapted from
-// http://www.kvraudio.com/forum/viewtopic.php?t=389970)
+// Hermite (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
 
-function wave_cube6()
+function wave_hermite5()
   instance(buf, size, t)
-  local(x, i, j, y0, y1, y2, y3, y4, y5)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
 (
   x = t * size;
   this.wave_inc();
@@ -292,38 +295,19 @@ function wave_cube6()
   i += 1; i >= size ? i = 0; y4 = buf[i];
   i += 1; i >= size ? i = 0; y5 = buf[i];
 
-  (x*(x*(x*(17*(y2-y3) + 9*(y4-y1) + 2*(y0-y5)) +
-  (20*(y1+y3) + 2*y5 - 4*y0 - 7*y4 - 31*y2)) +
-  (11*(y3-y1) + 2*(y0-y4)))) * 1/14 + y2;
-);
+  a0 = 1/24*(y5 - y0) + 5/24*(y1 - y4) + 5/12*(y3 - y2);
+  a1 = 0.125*y0 - 7/12*y1 + 13/12*y2 - y3 + 11/24*y4 - 1/12*y5;
+  a2 = 5/12*y2 - 7/12*y3 + 7/24*y4 - 1/24*(y0 + y1 + y5);
+  a3 = 13/12*y1 - 25/12*y2 + 1.5*y3 - 11/24*y4 + 1/12*y5 - 0.125*y0;
+  a4 = 1/12*(y0 - y4) + 2/3*(y3 - y1);
+  a5 = y2;
 
-function wave_cube8()
-  instance(buf, size, t)
-  local(x, i, j, y0, y1, y2, y3, y4, y5, y6, y7)
-(
-  x = t * size;
-  this.wave_inc();
-
-  i = x|0;
-  x -= i;
-
-  j = i - 3; j < 0 ? j += size; y0 = buf[j];
-  j += 1; j >= size ? j = 0; y1 = buf[j];
-  j += 1; j >= size ? j = 0; y2 = buf[j];
-  y3 = buf[i];
-  i += 1; i >= size ? i = 0; y4 = buf[i];
-  i += 1; i >= size ? i = 0; y5 = buf[i];
-  i += 1; i >= size ? i = 0; y6 = buf[i];
-  i += 1; i >= size ? i = 0; y7 = buf[i];
-
-  (x*(x*(x*(91*(y3-y4) + 45*(y5-y2) + 13*(y1-y6) + 3*(y7-y0)) +
-  (106*(y2+y4) + 10*y6 + 6*y0 - 3*y7 - 29*(y1+y5) - 167*y3)) +
-  (61*(y4-y2) + 16*(y1-y5) + 3*(y6-y0)))) * 1/76 + y3;
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
 );
 
 
-// 5th order spline interpolation (6-point, as adapted from
-// http://musicdsp.org/archive.php?classid=5#60)
+// Quintic spline (6-point, 5th-order) from
+// http://musicdsp.org/archive.php?classid=5#60
 
 function wave_quint()
   instance(buf, size, t)
@@ -350,12 +334,39 @@ function wave_quint()
 );
 
 
-// 5th order spline interpolation (6/8-point, adapted from
-// http://www.kvraudio.com/forum/viewtopic.php?t=389970)
+// B-spline (4-point, 3rd-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
 
-function wave_quint6()
+function wave_spline3()
   instance(buf, size, t)
-  local(x, i, j, y0, y1, y2, y3, y4, y5)
+  local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 1; j < 0 ? j += size; y0 = buf[j];
+  y1 = buf[i];
+  i += 1; i >= size ? i = 0; y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+
+  a0 = 0.5*(y1 - y2) + 1/6*(y3 - y0);
+  a1 = 0.5*(y0 + y2) - y1;
+  a2 = 0.5*(y2 - y0);
+  a3 = 1/6*(y0 + y2) + 2/3*y1;
+
+  x*(x*(x*a0 + a1) + a2) + a3;
+);
+
+
+// B-spline (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_spline5()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
 (
   x = t * size;
   this.wave_inc();
@@ -370,16 +381,23 @@ function wave_quint6()
   i += 1; i >= size ? i = 0; y4 = buf[i];
   i += 1; i >= size ? i = 0; y5 = buf[i];
 
-  (x*(x*(x*(x*(x*(841*(y3-y2) + 677*(y1-y4) + 238*(y5-y0)) +
-  (2379*y2 + 1559*y4 + 452*y0 - 738*y5 - 1826*(y1+y3))) +
-  (606*(y1-y3) + 500*(y5-y2) + 72*(y0-y4))) +
-  (1820*(y1+y3) - 548*(y0+y4) - 2544*y2)) +
-  (1277*(y3-y1) + 262*(y0-y4)))) * 1/1506 + y2;
+  a0 = 1/120*(y5 - y0) + 1/24*(y1 - y4) + 1/12*(y3 - y2);
+  a1 = 1/24*(y0 + y4) - 1/6*(y1 + y3) + 0.25*y2;
+  a2 = 1/12*(y4 - y0) - 1/6*(y3 - y1);
+  a3 = 1/12*(y0 + y4) + 1/6*(y1 + y3) - 0.5*y2;
+  a4 = 1/24*(y4 - y0) + 5/12*(y3 - y1);
+  a5 = 1/120*(y0 + y4) + 13/60*(y1 + y3) + 11/20*y2;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
 );
 
-function wave_quint8()
+
+// 2nd-order-osculating (4-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_osculate3()
   instance(buf, size, t)
-  local(x, i, j, y0, y1, y2, y3, y4, y5, y6, y7)
+  local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3, a4, a5)
 (
   x = t * size;
   this.wave_inc();
@@ -387,28 +405,58 @@ function wave_quint8()
   i = x|0;
   x -= i;
 
-  j = i - 3; j < 0 ? j += size; y0 = buf[j];
-  j += 1; j >= size ? j = 0; y1 = buf[j];
-  j += 1; j >= size ? j = 0; y2 = buf[j];
-  y3 = buf[i];
-  i += 1; i >= size ? i = 0; y4 = buf[i];
-  i += 1; i >= size ? i = 0; y5 = buf[i];
-  i += 1; i >= size ? i = 0; y6 = buf[i];
-  i += 1; i >= size ? i = 0; y7 = buf[i];
+  j = i - 1; j < 0 ? j += size; y0 = buf[j];
+  y1 = buf[i];
+  i += 1; i >= size ? i = 0; y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
 
-  (x*(x*(x*(x*(x*(6489*(y4-y3) + 4831*(y2-y5) + 3089*(y6-y1) + 1063*(y0-y7)) +
-  (17352*y3 + 9062*(y1+y5) + 3204*y7 - 2111*y0 - 6383*y6 - 15093*(y2+y4))) +
-  (6659*(y2-y4) + 5403*(y5-y1) + 2141*(y3-y7) + 45*(y6-y0))) +
-  (17169*(y2+y4) + 2171*(y0+y6) - 5102*(y1+y5) - 28476*y3)) +
-  (13566*(y4-y2) + 4532*(y1-y5) + 1078*(y6-y0)))) * 1/15472 + y3;
+  a0 = y0 + 3*(y2 - y1) - y3;
+  a1 = 2.5*(y3 - y0) - 7.5*(y2 - y1);
+  a2 = 4.5*(y2 - y1) - 1.5*(y3 - y0);
+  a3 = 0.5*(y0 + y2) - y1;
+  a4 = 0.5*(y2 - y0);
+  a5 = y1;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
 );
 
 
-// Lagrange interpolation
+// 2nd-order-osculating (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_osculate5()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 2; j < 0 ? j += size; y0 = buf[j];
+  j += 1; j >= size ? j = 0; y1 = buf[j];
+  y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+  i += 1; i >= size ? i = 0; y4 = buf[i];
+  i += 1; i >= size ? i = 0; y5 = buf[i];
+
+  a0 = 5/24*(y5 - y0) + 25/24*(y1 - y4) + 25/12*(y3 - y2);
+  a1 = 13/24*y0 - 8/3*y1 + 5.25*y2 - 31/6*y3 + 61/24*y4 - 0.5*y5;
+  a2 = 1.625*y1 - 35/12*y2 + 2.75*y3 - 1.375*y4 + 7/24*y5 - 0.375*y0;
+  a3 = 2/3*(y1 + y3) - 1/24*(y0 + y4) - 1.25*y2;
+  a4 = 1/12*(y0 - y4) + 2/3*(y3 - y1);
+  a5 = y2;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
+);
+
+
+// Lagrange (3-point, 2nd-order)
 
 function wave_lagrange2()
   instance(buf, size, t)
-  local(x, i, j, k)
+  local(x, h, i, j)
 (
   x = t * size;
   this.wave_inc();
@@ -416,17 +464,20 @@ function wave_lagrange2()
   i = x|0;
   x -= i;
 
+  h = i - 1; h < 0 ? h += size;
   j = i + 1; j >= size ? j = 0;
-  k = j + 1; k >= size ? k = 0;
 
-  0.5 *     (x - 1) * (x - 2) * buf[i] -
-        x           * (x - 2) * buf[j] +
-  0.5 * x * (x - 1)           * buf[k];
+  0.5 *           x * (x - 1) * buf[h] -
+        (x + 1)     * (x - 1) * buf[i] +
+  0.5 * (x + 1) * x           * buf[j];
 );
+
+
+// Lagrange (4-point, 3rd-order)
 
 function wave_lagrange3()
   instance(buf, size, t)
-  local(x, i, j, k, l)
+  local(x, h, i, j, k)
 (
   x = t * size;
   this.wave_inc();
@@ -434,19 +485,22 @@ function wave_lagrange3()
   i = x|0;
   x -= i;
 
+  h = i - 1; h < 0 ? h += size;
   j = i + 1; j >= size ? j = 0;
   k = j + 1; k >= size ? k = 0;
-  l = k + 1; l >= size ? l = 0;
 
-  -1/6 *     (x - 1) * (x - 2) * (x - 3) * buf[i] +
-  0.5  * x           * (x - 2) * (x - 3) * buf[j] -
-  0.5  * x * (x - 1)           * (x - 3) * buf[k] -
-  -1/6 * x * (x - 1) * (x - 2)           * buf[l];
+  -1/6 *           x * (x - 1) * (x - 2) * buf[h] +
+  0.5  * (x + 1)     * (x - 1) * (x - 2) * buf[i] -
+  0.5  * (x + 1) * x           * (x - 2) * buf[j] -
+  -1/6 * (x + 1) * x * (x - 1)           * buf[k];
 );
+
+
+// Lagrange (5-point, 4th-order)
 
 function wave_lagrange4()
   instance(buf, size, t)
-  local(x, i, j, k, l, m)
+  local(x, g, h, i, j, k)
 (
   x = t * size;
   this.wave_inc();
@@ -454,21 +508,51 @@ function wave_lagrange4()
   i = x|0;
   x -= i;
 
+  g = i - 2; g < 0 ? g += size;
+  h = g + 1; h >= size ? h = 0;
+  j = i + 1; j >= size ? j = 0;
+  k = j + 1; k >= size ? k = 0;
+
+  1/24 *           (x + 1) * x * (x - 1) * (x - 2) * buf[g] -
+  1/6  * (x + 2)           * x * (x - 1) * (x - 2) * buf[h] +
+  0.25 * (x + 2) * (x + 1)     * (x - 1) * (x - 2) * buf[i] -
+  1/6  * (x + 2) * (x + 1) * x           * (x - 2) * buf[j] +
+  1/24 * (x + 2) * (x + 1) * x * (x - 1)           * buf[k];
+);
+
+
+// Lagrange (6-point, 5th-order)
+
+function wave_lagrange5()
+  instance(buf, size, t)
+  local(x, g, h, i, j, k, l)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  g = i - 2; g < 0 ? g += size;
+  h = g + 1; h >= size ? h = 0;
   j = i + 1; j >= size ? j = 0;
   k = j + 1; k >= size ? k = 0;
   l = k + 1; l >= size ? l = 0;
-  m = l + 1; m >= size ? m = 0;
 
-  1/24 *     (x - 1) * (x - 2) * (x - 3) * (x - 4) * buf[i] -
-  1/6  * x           * (x - 2) * (x - 3) * (x - 4) * buf[j] +
-  0.25 * x * (x - 1)           * (x - 3) * (x - 4) * buf[k] -
-  1/6  * x * (x - 1) * (x - 2)           * (x - 4) * buf[l] +
-  1/24 * x * (x - 1) * (x - 2) * (x - 3)           * buf[m];
+  -1/120 *           (x + 1) * x * (x - 1) * (x - 2) * (x - 3) * buf[g] +
+  1/24   * (x + 2)           * x * (x - 1) * (x - 2) * (x - 3) * buf[h] -
+  1/12   * (x + 2) * (x + 1)     * (x - 1) * (x - 2) * (x - 3) * buf[i] +
+  1/12   * (x + 2) * (x + 1) * x           * (x - 2) * (x - 3) * buf[j] -
+  1/24   * (x + 2) * (x + 1) * x * (x - 1)           * (x - 3) * buf[k] -
+  -1/120 * (x + 2) * (x + 1) * x * (x - 1) * (x - 2)           * buf[l];
 );
+
+
+// Lagrange (N+1-point, Nth-order)
 
 function wave_lagrange(n)
   instance(buf, size, t)
-  local(x, i, j, l, m, y)
+  local(x, i, j, m, ofs, sum, mul)
 (
   x = t * size;
   this.wave_inc();
@@ -476,19 +560,36 @@ function wave_lagrange(n)
   i = x|0;
   x -= i;
 
-  y = j = 0;
+  ofs = (n / 2)|0;
+  i -= ofs; i < 0 ? i += size;
+  x += ofs;
+
+  sum = j = 0;
   loop(n + 1,
-    l = buf[i];
+    mul = buf[i];
     i += 1; i >= size ? i = 0;
 
     m = 0;
     loop(n,
       m == j ? m += 1;
-      l *= (x - m) / (j - m);
+      mul *= (x - m) / (j - m);
       m += 1;
     );
-    y += l;
+    sum += mul;
     j += 1;
   );
-  y;
+  sum;
 );
+
+
+// Legacy
+
+function wave_cube() ( this.wave_hermite3() );
+
+// Deprecated
+
+function wave_cube6() ( this.wave_hermite5() );
+function wave_cube8() ( this.wave_hermite5() );
+
+function wave_quint6() ( this.wave_quint() );
+function wave_quint8() ( this.wave_quint() );

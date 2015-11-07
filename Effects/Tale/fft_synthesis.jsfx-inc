@@ -130,7 +130,7 @@ desc:FFT bandlimited synthesis
       Example: output = osc.four_sum(osc.t);
       Calculates and returns a sample by adding cosines/sines.
 
-      Note: Because this function needs to m-1 cosines/sines, it can be
+      Note: Because this function needs to add m-1 cosines/sines, it can be
       really, really slow.
 
     * four_sigma(index, size)

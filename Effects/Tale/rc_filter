@@ -5,7 +5,7 @@ desc:Multimode RC filter
 // Copyright (C) 2015 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-// This effect filters the input signal using a single 1st order RC filter
+// This effect filters the input signal using a single 1st-order RC filter
 // stage for 6 dB low/high/all-pass, and two filter stages for 12 dB or
 // notch/band-pass.
 

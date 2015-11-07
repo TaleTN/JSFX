@@ -295,7 +295,7 @@ function poly_circ()
   t2 = t1 + 0.5;
   t2 -= t2|0;
 
-  // Mimic linear-phase filter by mixing 1st order low-pass filtered
+  // Mimic linear-phase filter by mixing 1st-order low-pass filtered
   // square...
 
   // a = 1 / (1/(sqrt(n = 32)*2*$pi*dt) + 1)

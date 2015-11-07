@@ -1,5 +1,11 @@
 Tale's JSFX Pack
 
+v20151107 (7 November 2015)
+
+ + wave: Optimised Catmull-Rom spline interpolation.
+ + wave: Added Hermite, B-spline, 2nd-order-osculating interpolation.
+ + wave: Fixed Lagrange interpolation.
+
 v20151101 (1 November 2015)
 
  + wavetable_synth: Added cycloid wavetable.
