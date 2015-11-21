@@ -146,14 +146,15 @@ desc:FFT bandlimited synthesis
 
     * coef
       Example: coef_index = osc.coef;
-      The local memory index of the Fourier coefficients (cosine/sine
+      The local memory index of the Fourier coefficients (size/2 cosine/sine
       pairs).
 
     * size
       Example: wavetbl_size = osc.size;
-      Example: num_coef = osc.size;
-      The size of the wavetable in samples, which also determines the number
-      of Fourier coefficients.
+      Example: num_coef = osc.size / 2;
+      The size of the wavetable in samples, which is also the number of
+      Fourier coefficient cosines/sines (i.e. there are size/2 Fourier
+      coefficient cosine/sine pairs).
 
     * dt
       Example: freq = osc.dt * srate;
@@ -161,7 +162,8 @@ desc:FFT bandlimited synthesis
 
     * m
       Example: num_harm = osc.m - 1;
-      The number of harmonics up to and including the Nyquist frequency.
+      The number of harmonics (up to and including half the Nyquist
+      frequency).
 
 */
 
@@ -204,7 +206,7 @@ function four_setdt(time)
 function _four_update()
   instance(dt, size)
 (
-  dt > 0 ? min(ceil(0.5 / dt), size) : 1;
+  dt > 0 ? min(ceil(0.5 / dt), size / 2) : 1;
 );
 
 function four_update()

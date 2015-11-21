@@ -1,5 +1,10 @@
 Tale's JSFX Pack
 
+v20151121 (21 November 2015)
+
+ + mono_synthGUI: Added GUI version of mono_synth (thanks argee!).
+ + four: Limited harmonic count to half FFT size.
+
 v20151107 (7 November 2015)
 
  + wave: Optimised Catmull-Rom spline interpolation.
