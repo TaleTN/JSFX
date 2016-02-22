@@ -1,0 +1,55 @@
+// Copyright (C) 2013-2016 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Low-pass windowed FIR filter
+slider1:1000<20,20000,1>Cutoff (Hz)
+slider2:1<0,1,1{Rectangular,Blackman}>Window Function
+
+import Tale/window_functions.jsfx-inc
+
+@init
+
+fir_len = floor(64 / 44100 * srate + 0.5);
+
+in_buf = 0;
+fir_buf = in_buf + fir_len;
+
+pdc_bot_ch = 0; pdc_top_ch = 2;
+pdc_delay = floor(fir_len / 2);
+
+@slider
+
+// Source: http://www.labbookpages.co.uk/audio/firWindowing.html
+
+m = fir_len - 1;
+ft = min(0.5, slider1 / srate);
+
+n = scale = 0;
+loop(fir_len,
+  // Low-pass filter.
+  lpf = n != m/2 ? sin(2*$pi*ft*(n - m/2)) / ($pi*(n - m/2)) : 2*ft;
+
+  // Apply window.
+  lpf *= slider2 < 0.5 ? wnd_rect(n, fir_len) : wnd_blackman(n, fir_len);
+  scale += lpf;
+
+  fir_buf[n] = lpf;
+  n += 1;
+);
+
+@sample
+
+// Buffer input.
+in_buf[idx] = 0.5 * (spl0 + spl1);
+(idx += 1) >= fir_len ? idx = 0;
+
+// Convolve with FIR filter.
+sum = n = 0;
+i = idx;
+loop(fir_len,
+  sum += fir_buf[n] * in_buf[i];
+  n += 1;
+  (i += 1) >= fir_len ? i = 0;
+);
+
+spl0 = spl1 = sum / scale;

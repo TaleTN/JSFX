@@ -1,5 +1,11 @@
 Tale's JSFX Pack
 
+v20160222 (22 February 2016)
+
+ + wnd: Added window function library (window_functions.jsfx-inc).
+ + Added window function viewer example.
+ + Added Low-pass windowed FIR/FFT filter examples.
+
 v20151121 (21 November 2015)
 
  + mono_synthGUI: Added GUI version of mono_synth (thanks argee!).
@@ -163,7 +169,7 @@ v20141212 (12 December 2014)
  + poly_mono_midi_router: Added MIDI note router.
  + midi_sustain: Added MIDI sustain emulator.
  + colored_noise: Added coloured noise generator.
- + sin: Added efficient sine/cosine wave oscillator lib
+ + sin: Added efficient sine/cosine wave oscillator library
    (sine_oscillator.jsfx-inc).
  + midiq: Split up msg23 into msg2 and msg3.
  + midiq: Added channel and status byte filters to midiq_collect().
@@ -179,9 +185,9 @@ v20141212 (12 December 2014)
  + adsr: Added reset to off state.
  + zdf/rbj: Added reset filter states.
  + Removed legacy (unsupported) mono_synth.jsfx-inc, poly_blep2x.jsfx-inc,
-   tone_generator.jsfx-inc libs.
- + Renewed various lib examples.
- + Minor lib documentation additions/improvements.
+   tone_generator.jsfx-inc libraries.
+ + Renewed various library examples.
+ + Minor library documentation additions/improvements.
  + Minor fixes/optimisations/nitpicks.
 
 v20130405 (5 April 2013)
@@ -201,8 +207,8 @@ v20130401a (1 April 2013)
 
 v20130401 (1 April 2013)
 
- + synth: Added mono synth lib (mono_synth.jsfx-inc).
- + adsr: Added ADSR envelope lib (adsr.jsfx-inc).
+ + synth: Added mono synth library (mono_synth.jsfx-inc).
+ + adsr: Added ADSR envelope library (adsr.jsfx-inc).
  + mono_synth: Fixed sample drift in ADSR.
  + mono_synth: Fixed retriggering filter decay.
  + tg: Added cacheless rectangle and circle (slow!).
@@ -288,5 +294,5 @@ v20120809 (9 August 2012)
  + Initial release.
 
 
-Copyright (C) 2012-2015 Theo Niessink
+Copyright (C) 2012-2016 Theo Niessink
 License: GPL - http://www.gnu.org/licenses/gpl.html
