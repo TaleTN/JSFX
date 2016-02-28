@@ -29,14 +29,14 @@ pdc_delay = floor(1.5 * fir_len);
 m = fir_len - 1;
 ft = min(0.5, slider1 / srate);
 
-n = scale = 0;
+n = avg = 0;
 loop(fir_len,
   // Low-pass filter.
   lpf = n != m/2 ? sin(2*$pi*ft*(n - m/2)) / ($pi*(n - m/2)) : 2*ft;
 
   // Apply window.
-  lpf *= slider2 < 0.5 ? wnd_rect(n, fir_len) : wnd_blackman(n, fir_len);
-  scale += lpf;
+  slider2 >= 0.5 ? lpf *= wnd_blackman(n, fir_len);
+  avg += lpf;
 
   // Convert to complex.
   fir_buf[n*2] = lpf;
@@ -50,7 +50,7 @@ memset(fir_buf + fir_len*2, 0, (fft_size - fir_len)*2);
 // Convert to frequency domain.
 fft(fir_buf, fft_size);
 
-scale *= fft_size;
+scale = 1/(avg * fft_size);
 
 @sample
 
@@ -76,7 +76,7 @@ in_buf[idx*2 + 1] = 0;
 
   n = 0;
   loop(fft_size,
-    out_buf[n] += in_buf[n*2] / scale;
+    out_buf[n] += in_buf[n*2] * scale;
     n += 1;
   );
 );

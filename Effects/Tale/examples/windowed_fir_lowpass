@@ -24,18 +24,20 @@ pdc_delay = floor(fir_len / 2);
 m = fir_len - 1;
 ft = min(0.5, slider1 / srate);
 
-n = scale = 0;
+n = avg = 0;
 loop(fir_len,
   // Low-pass filter.
   lpf = n != m/2 ? sin(2*$pi*ft*(n - m/2)) / ($pi*(n - m/2)) : 2*ft;
 
   // Apply window.
-  lpf *= slider2 < 0.5 ? wnd_rect(n, fir_len) : wnd_blackman(n, fir_len);
-  scale += lpf;
+  slider2 >= 0.5 ? lpf *= wnd_blackman(n, fir_len);
+  avg += lpf;
 
   fir_buf[n] = lpf;
   n += 1;
 );
+
+scale = 1/avg;
 
 @sample
 
@@ -52,4 +54,4 @@ loop(fir_len,
   (i += 1) >= fir_len ? i = 0;
 );
 
-spl0 = spl1 = sum / scale;
+spl0 = spl1 = sum * scale;

@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20160228 (28 February 2016)
+
+ + wnd: Added Rife-Vincent class I.
+ + wnd: Added average functions.
+ + wnd: Updated/improved examples.
+ + wnd: Improved documentation.
+
 v20160222 (22 February 2016)
 
  + wnd: Added window function library (window_functions.jsfx-inc).

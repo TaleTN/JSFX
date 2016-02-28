@@ -2,7 +2,7 @@ desc:Window function viewer
 // Copyright (C) 2015, 2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-slider1:0<0,22,1{Rectangular,Triangular,Parzen,Welch,Hann,Hamming (a = 0.53836),Blackman,Nuttall,Blackman-Nuttall,Blackman-Harris,SRS Flat Top,Cosine,Bohman,Gaussian (s = 0.4),Tukey (a = 0.5),Kaiser (a = 2),Kaiser (a = 3),Poisson,Bartlett-Hann,Hann-Poisson (a = 2),Cauchy,Lanczos,Connes}>Window Function
+slider1:0<0,21,1{Rectangular,Triangular,Parzen,Welch,Hann,Hamming,Blackman,Nuttall,Blackman-Nuttall,Blackman-Harris,SRS Flat Top,Cosine,Bohman,Gaussian (sigma = 0.4),Tukey (alpha = 0.5),Kaiser (alpha = 2),Kaiser (alpha = 3),Poisson (alpha = 1),Poisson (alpha = 60/8.69),Bartlett-Hann,Hann-Poisson (alpha = 2),Lanczos}>Window Function
 
 import window_functions.jsfx-inc
 
@@ -12,14 +12,15 @@ function int(x) ( x|0 );
 function sinc(x) ( x != 0 ? sin(x)/x : 1 );
 
 function wnd(wnd, i, n)
+  local(alpha, scale)
 (
   wnd == 1 ? wnd_rect(i, n) :
   wnd == 2 ? wnd_bartlett(i, n) :
   wnd == 3 ? wnd_parzen(i, n) :
   wnd == 4 ? wnd_welch(i, n) :
   wnd == 5 ? wnd_hann(i, n) :
-  wnd == 6 ? wnd_hamming(i, n, 0.53836) :
-  wnd == 7 ? wnd_blackman(i, n, 0.16) :
+  wnd == 6 ? wnd_hamming(i, n) :
+  wnd == 7 ? wnd_blackman(i, n) :
   wnd == 8 ? wnd_nuttall(i, n) :
   wnd == 9 ? wnd_blackman_nuttall(i, n) :
   wnd == 10 ? wnd_blackman_harris(i, n) :
@@ -30,12 +31,11 @@ function wnd(wnd, i, n)
   wnd == 15 ? wnd_tukey(i, n, 0.5) :
   wnd == 16 ? wnd_kaiser(i, n, 2) :
   wnd == 17 ? wnd_kaiser(i, n, 3) :
-  wnd == 18 ? wnd_poisson(i, n, 2) :
-  wnd == 19 ? wnd_bartlett_hann(i, n) :
-  wnd == 20 ? wnd_hann_poisson(i, n, 2) :
-  wnd == 21 ? wnd_cauchy(i, n, 3) :
-  wnd == 22 ? wnd_lanczos(i, n) :
-  wnd == 23 ? wnd_connes(i, n, 1);
+  wnd == 18 ? wnd_poisson(i, n, 1) :
+  wnd == 19 ? wnd_poisson(i, n, 60 / (20*log10($e))) :
+  wnd == 20 ? wnd_bartlett_hann(i, n) :
+  wnd == 21 ? wnd_hann_poisson(i, n, 2) :
+  wnd == 22 ? wnd_lanczos(i, n);
 );
 
 gfx_clear = -1;
