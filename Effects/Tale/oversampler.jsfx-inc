@@ -1,5 +1,5 @@
 desc:2x oversampler
-// Copyright (C) 2015 Theo Niessink
+// Copyright (C) 2015, 2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example #1
@@ -92,7 +92,7 @@ function os_up2(sample)
   instance(x3, x2, x1, x0, y6, y5, y4, y3, y2, y1, y0)
 (
   x3 = x2; x2 = x1; x1 = x0;
-  x0 = sample * 1.98255352894528158458342659287; // 0.5 / (-0.0228 + 0.275)
+  x0 = sample * 1.9825535289452815; // 1 / (sum_of_coeffs - center_coeff)
 
   this.os_os2();
   y1 = -0.0228*(x0 + x3) + 0.275*(x1 + x2);

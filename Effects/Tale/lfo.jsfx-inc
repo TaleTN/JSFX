@@ -1,5 +1,5 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
-// Copyright (C) 2012-2015 Theo Niessink
+// Copyright (C) 2012-2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -96,7 +96,7 @@ desc:Naive (non-bandlimited) low-frequency oscillator
       Returns a sample of a waveform, and increments its phase.
 
       Note: In v20151024 the phase of lfo_full() and lfo_trip() has been
-      corrected. To convert code relying on the old behaviour, synchronise
+      corrected. To convert code relying on the old behavior, synchronize
       the phase to t-0.25 for lfo_full(), and to t-(0.75+0.5*pw) for
       lfo_trip().
 
@@ -104,8 +104,8 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * lfo_sync(phase)
       Example: lfo2.lfo_sync(lfo1.t + 0.5);
-      Synchronises the oscillator with the specified phase, and returns the
-      normalised phase.
+      Synchronizes the oscillator with the specified phase, and returns the
+      normalized phase.
 
       Note: You can safely specify out or range (and even negative) values
       here.
@@ -250,7 +250,7 @@ function _lfo_sin(x)
 (
   // Maclaurin series
   x >= $pi ? x -= 2*$pi;
-  x*(1 - 1/6*x*x *(1 - 1/20*x*x * (1 - 1/42*x*x * (1 - 1/72*x*x))));
+  x*(1 - 1/6*sqr(x) *(1 - 1/20*sqr(x) * (1 - 1/42*sqr(x) * (1 - 1/72*sqr(x)))));
 );
 
 function lfo_sin()
@@ -272,7 +272,7 @@ function _lfo_cos(x)
 (
   // Maclaurin series
   x >= $pi ? x -= 2*$pi;
-  1 - 1/2*x*x * (1 - 1/12*x*x * (1 - 1/30*x*x * (1 - 1/56*x*x)));
+  1 - 1/2*sqr(x) * (1 - 1/12*sqr(x) * (1 - 1/30*sqr(x) * (1 - 1/56*sqr(x))));
 );
 
 function lfo_cos()
@@ -434,7 +434,7 @@ function lfo_arc()
 
   t -= t|0;
 
-  4 * sqrt(t - t*t) - 1;
+  4 * sqrt(t - sqr(t)) - 1;
 );
 
 function lfo_arc_dc()

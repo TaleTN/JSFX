@@ -1,5 +1,5 @@
 desc:Dynamic memory management
-// Copyright (C) 2015 Theo Niessink
+// Copyright (C) 2015, 2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -45,7 +45,7 @@ desc:Dynamic memory management
 
     * calloc(num, size)
       Example: buf = calloc(64, 2);
-      Allocates a block of local memory of num*size items, and initialises
+      Allocates a block of local memory of num*size items, and initializes
       it to zero.
 
     * realloc(ptr, size)

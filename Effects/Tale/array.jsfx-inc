@@ -1,5 +1,5 @@
 desc:Simple two-dimensional array interface
-// Copyright (C) 2015 Theo Niessink
+// Copyright (C) 2015, 2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -85,13 +85,13 @@ desc:Simple two-dimensional array interface
     * array_add()
       Example: ptr = array.array_add();
       Adds a row to the end of the array and returns its local memory index.
-      Note that the row is added but not initialised (i.e. it does not
+      Note that the row is added but not initialized (i.e. it does not
       contain any data yet, nor is it zeroed.).
 
     * array_insert(ptr)
       Example: array.array_insert(array.array_get(0));
       Inserts a row into the array. Note that the row is inserted but not
-      initialised.
+      initialized.
 
     * array_remove(ptr)
       Example: array.array_remove(array.array_get(0));
@@ -112,6 +112,11 @@ desc:Simple two-dimensional array interface
       Example: ptr = array.array_next(ptr);
       Returns a pointer to the local memory index of the next row, or -1 if
       there is no next row.
+
+    * array_last()
+      Example: ptr = array.array_last();
+      Returns a pointer to the local memory index of the last row, or -1 if
+      there are no rows.
 
     * array_find(value[, col[, ptr]])
       Example: ptr = array_find(123);
@@ -207,6 +212,13 @@ function array_next(ptr)
 (
   ptr += num;
   ptr < buf + size * num ? ptr : -1;
+);
+
+
+function array_last()
+  instance(buf, size, num)
+(
+  size ? buf + (size - 1) * num : -1;
 );
 
 

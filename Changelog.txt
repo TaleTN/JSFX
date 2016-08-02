@@ -1,5 +1,13 @@
 Tale's JSFX Pack
 
+v20160802 (2 August 2016)
+
+ + array: Added get last row pointer.
+ + lfo/poly: Optimized x^2 as sqr(x).
+ + zdf: Fixed/simplified peaking EQ/low/high-shelf.
+ + Added mono/poly synth array example.
+ + Americanized documentation.
+
 v20160228 (28 February 2016)
 
  + wnd: Added Rife-Vincent class I.
@@ -20,7 +28,7 @@ v20151121 (21 November 2015)
 
 v20151107 (7 November 2015)
 
- + wave: Optimised Catmull-Rom spline interpolation.
+ + wave: Optimized Catmull-Rom spline interpolation.
  + wave: Added Hermite, B-spline, 2nd-order-osculating interpolation.
  + wave: Fixed Lagrange interpolation.
 
@@ -35,7 +43,7 @@ v20151101 (1 November 2015)
 
 v20151025 (25 October 2015)
 
- + poly: Optimised half-wave rectified sine, triangular pulse, trapezoid.
+ + poly: Optimized half-wave rectified sine, triangular pulse, trapezoid.
  + lfo/four: Added parabola, cycloid.
 
 v20151024 (24 October 2015)
@@ -49,27 +57,27 @@ v20151024 (24 October 2015)
    half-wave rectified sine, half-wave rectified sawtooth, low-pass filtered
    square, high-pass filtered sawtooth, stepped sine, stepped triangle,
    stepped sawtooth, hard sync sawtooth.
- + lfo: Optimised modified triangle, full-wave rectified sine, circle.
+ + lfo: Optimized modified triangle, full-wave rectified sine, circle.
  + lfo: Corrected phase of full-wave rectified sine, triangular pulse.
  + lfo: Fixed sample and hold skipping first sample.
  + poly: Added cosine, ramp.
- + poly: Optimised triangle, rectangle, modified triangle, modified square,
+ + poly: Optimized triangle, rectangle, modified triangle, modified square,
    half-wave rectified sine, triangular pulse.
  + poly: Corrected phase of full-wave rectified sine, triangular pulse.
  + poly: Fixed triangular pulse global instead of local variable typo.
- + sin: Optimised sync phase.
+ + sin: Optimized sync phase.
  + rc: Added high precision setting/filter functions.
- + rc: Optimised setting/filter functions.
+ + rc: Optimized setting/filter functions.
  + rbj: Reimplemented peaking EQ and low/high shelf.
  + rbj: Added bypass/mute filters.
  + rbj: Added bandwidth/Q convertor functions.
- + rbj: Optimised set frequency, coefficient scaling.
+ + rbj: Optimized set frequency, coefficient scaling.
  + zdf: Reimplemented filter setting functions (could break existing code,
    see documentation).
  + zdf: Fixed constant peak gain band-pass filter.
  + zdf: Added bypass/mute filters.
  + zdf: Added bandwidth/Q convertor functions.
- + zdf: Optimised set frequency, set feedback precomputation factor, filter
+ + zdf: Optimized set frequency, set feedback precomputation factor, filter
    processing.
  + malloc: Added 65,536 item boundary alignment.
  + malloc: Fixed free() being lazy.
@@ -77,7 +85,7 @@ v20151024 (24 October 2015)
  + midiq: Added msg2/3 support to midiq_add().
  + midiq: Changed queue size to number of messages.
  + midiq: Added free MIDI queue buffer.
- + array: Swapped size/num, changed init behaviour (could break existing
+ + array: Swapped size/num, changed init behavior (could break existing
    code, sorry!).
  + array: Added get first/next row pointer.
  + array: Added optional starting point to find.
@@ -120,11 +128,11 @@ v20150408 (8 April 2015)
 v20150405 (5 April 2015)
 
  + lcg: Reimplemented using Lehmer random number generator (MINSTD).
- + lcg: Optimised random/white noise generators.
+ + lcg: Optimized random/white noise generators.
  + lcg: Added unit testing.
  + colored_noise/drum_synth/mono_synth: Fixed noise gain depending on sample
    rate.
- + poly: Optimised waveform generators.
+ + poly: Optimized waveform generators.
  + poly: Restored REAPER 4.25..4.591 support.
 
 v20150322 (22 March 2015)
@@ -140,7 +148,7 @@ v20150322 (22 March 2015)
 v20150215 (15 February 2015)
 
  + drum_synth: Improved low/mid/high tom sound.
- + drum_synth: Optimised drive algorithm, non-multichannel output.
+ + drum_synth: Optimized drive algorithm, non-multichannel output.
  + wavetable_synth: Extended filter Q range.
  + wavetable_synth: Implemented tuning.
 
@@ -175,14 +183,14 @@ v20141212 (12 December 2014)
  + mono_synth: Fixed instant (0 ms) attack.
  + poly_mono_midi_router: Added MIDI note router.
  + midi_sustain: Added MIDI sustain emulator.
- + colored_noise: Added coloured noise generator.
+ + colored_noise: Added colored noise generator.
  + sin: Added efficient sine/cosine wave oscillator library
    (sine_oscillator.jsfx-inc).
  + midiq: Split up msg23 into msg2 and msg3.
  + midiq: Added channel and status byte filters to midiq_collect().
  + midiq: Made midiq_init() buffer size optional.
  + poly: Replaced leaky integrator with polyBLAMP.
- + poly: Optimised high-frequency fade out.
+ + poly: Optimized high-frequency fade out.
  + poly/lfo: Added variable pulse width trapezoid, modified square.
  + poly/lfo: Removed automatic set default pulse width (fixes/adds zero
    pulse width support).
@@ -250,7 +258,7 @@ v20130317 (St. Paddy's Day 2013)
  + mono_synth: Fixed waveform when changing to half-wave rectified sine,
    Hammond, or staircase.
  + poly: Fixed triangle leaky integrator not initialising to current phase.
- + poly: Fixed initialisers resetting leaky integrator feedback coefficient.
+ + poly: Fixed initializers resetting leaky integrator feedback coefficient.
 
 v20130214 (14 February 2013)
 

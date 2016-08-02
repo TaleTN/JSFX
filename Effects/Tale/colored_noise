@@ -2,13 +2,13 @@ desc:Colored noise generator
 //tags: analysis generator synthesis
 //author: Tale
 
-// Copyright (C) 2014, 2015 Theo Niessink
+// Copyright (C) 2014-2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
-// This effect generates different "colours" of noise. Apart from the listed
-// colours it can also generate "black" noise. To do so select white noise
+// This effect generates different "colors" of noise. Apart from the listed
+// colors it can also generate "black" noise. To do so select white noise
 // and lower the density. Note that density affects only white noise, and is
-// ignored for other colours.
+// ignored for other colors.
 
 slider1:2<0,5,1{Brown,Pink,White,Blue,Violet,Grey}>Color
 slider2:1.0<0.0,1.0,0.001>Density

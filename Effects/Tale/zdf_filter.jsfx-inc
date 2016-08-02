@@ -1,5 +1,5 @@
 desc:2nd-order zero-delay feedback state variable filter
-// Copyright (C) 2013-2015 Theo Niessink
+// Copyright (C) 2013-2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 // Based on the rsStateVariableFilter C++ class by Robin Schmidt, as posted
@@ -41,9 +41,9 @@ desc:2nd-order zero-delay feedback state variable filter
 
       (To convert from dB to gain: gain=10^(db/20).)
 
-      Note: In v20151024 the behaviour of zdf_bp2() and zdf_ap() has been
+      Note: In v20151024 the behavior of zdf_bp2() and zdf_ap() has been
       changed in such a way that these functions are not backward
-      compatible. To convert code relying on the old behaviour, replace
+      compatible. To convert code relying on the old behavior, replace
       zdf_bp2(freq, bw) with zdf_bp(freq, zdf_bwtoq(bw)), and
       zdf_ap(freq, bw) with zdf_ap(freq, zdf_bwtoq(bw)).
 
@@ -57,7 +57,7 @@ desc:2nd-order zero-delay feedback state variable filter
     * zdf_svf_hp(s) -- High-pass
     * zdf_svf_bp(s) -- Band-pass
       Example: output = lp.zdf_svf_lp(input);
-      Specialised versions of zdf_svf(), each optimised for a specific
+      Specialized versions of zdf_svf(), each optimized for a specific
       filter type.
 
    Miscellaneous Functions
@@ -222,15 +222,10 @@ function zdf_ap(freq, q)
 function zdf_eq(freq, q, gain)
   // global(srate)
   instance(g, r2, cl, cb, ch)
-  local(fc, r)
 (
-  fc = $pi * min(freq / srate, 0.49);
-  g = tan(fc);
+  g = tan($pi * min(freq / srate, 0.49));
 
-  r = fc / (2 * g * q);
-  r = sqr(g / tan(fc / (r + sqrt(sqr(r) + 1))));
-
-  r2 = 2 * sqrt(((sqr(r) + 1) / r - 2) / (4 * gain));
+  r2 = 1/(q * sqrt(gain));
   cl = 1;
   cb = r2 * gain;
   ch = 1;
@@ -246,15 +241,10 @@ function zdf_ls(freq, q, gain)
   instance(g, r2, cl, cb, ch)
   local(a)
 (
-  g = tan($pi * min(freq / srate, 0.49));
-
   a = sqrt(gain);
-  g /= sqrt(a);
+  g = tan($pi * min(freq / srate, 0.49)) / sqrt(a);
 
-  r2 = 0.5 / q;
-  r2 += sqrt(sqr(r2) + 1);
-  r2 -= 1/r2;
-
+  r2 = 1/q;
   cl = gain;
   cb = r2 * a;
   ch = 1;
@@ -270,15 +260,10 @@ function zdf_hs(freq, q, gain)
   instance(g, r2, cl, cb, ch)
   local(a)
 (
-  g = tan($pi * min(freq / srate, 0.49));
-
   a = sqrt(gain);
-  g *= sqrt(a);
+  g = tan($pi * min(freq / srate, 0.49)) * sqrt(a);
 
-  r2 = 0.5 / q;
-  r2 += sqrt(sqr(r2) + 1);
-  r2 -= 1/r2;
-
+  r2 = 1/q;
   cl = 1;
   cb = r2 * a;
   ch = gain;

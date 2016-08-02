@@ -1,0 +1,79 @@
+// Copyright (C) 2015, 2016 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc:Mono/poly synth
+slider1:1<0,1,1{Mono,Poly}>Mode
+
+import Tale/malloc.jsfx-inc
+import Tale/array.jsfx-inc
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@init
+
+array.array_alloc(128, 3);
+midiq.midiq_alloc(256);
+
+@slider
+
+mode = slider1 >= 0.5;
+
+@block
+
+midiq.midiq_collect();
+
+@sample
+
+while(midiq.midiq_remove()) (
+  status = midiq.msg1 & 0xF0;
+  note = cc = midiq.msg2;
+  velocity = midiq.msg3;
+
+  // Note On
+  status == 0x90 && velocity ? (
+    // Remove note if somehow it is already playing.
+    ptr = array.array_find(note);
+    ptr >= 0 ? array.array_remove(ptr);
+
+    // Set oscillator phase and frequency.
+    osc.poly_sync(0);
+    osc.poly_setf(440 * 2^((note - 69) / 12));
+
+    // Add note.
+    ptr = array.array_add();
+    ptr[0] = note;
+    ptr[1] = osc.t;
+    ptr[2] = osc.dt;
+  ) :
+
+  // Note Off
+  status == 0x80 || (status == 0x90 && !velocity) ? (
+    // Remove note.
+    ptr = array.array_find(note);
+    ptr >= 0 ? array.array_remove(ptr);
+  ) :
+
+  // All Notes Off
+  status == 0xB0 && cc == 123 ? (
+    array.array_clear();
+  );
+);
+
+out = 0.0;
+
+ptr = mode ? array.array_first() : array.array_last();
+while(ptr >= 0) (
+  // Get oscillator phase and frequency.
+  osc.poly_sync(ptr[1]);
+  osc.poly_setdt(ptr[2]);
+
+  // Process oscillator.
+  out += osc.poly_saw();
+
+  // Update oscillator phase.
+  ptr[1] = osc.t;
+
+  ptr = array.array_next(ptr);
+);
+
+spl0 = spl1 = 0.125 * out;

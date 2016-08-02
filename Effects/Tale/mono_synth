@@ -2,7 +2,7 @@ desc:Simple mono/poly synth
 //tags: generator synthesis
 //author: Tale
 
-// Copyright (C) 2012-2015 Theo Niessink
+// Copyright (C) 2012-2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
@@ -201,7 +201,7 @@ function note_on(note, vel)
       p = osc_buf;
       num_poly > 1 ? (
         // Set oscillator/ADSR state to first played note (to mimic old
-        // mono_synth global state behaviour).
+        // mono_synth global state behavior).
         tg.t = p[1];
         load_adsr(p);
         load_lpf(p);
@@ -211,7 +211,7 @@ function note_on(note, vel)
       p = end;
       num_osc -= 1;
     ) : (
-      // Don't reset oscillator on first note (old mono_synth behaviour).
+      // Don't reset oscillator on first note (old mono_synth behavior).
       num_osc > 0 ? tg.t = 0;
       adsr.adsr_reset();
       reset_lpf(tuning * tg.dt);
@@ -447,7 +447,7 @@ lfo_mod ? lfo_mod == 1 ? tg.poly_setpw(pw + lfo_range * lfo.sin_sin()) : freq_mo
 white_noise = noise_mix > 0.0 ? noise_gain * noise.lcg_white();
 out = 0.0;
 
-// Optimise for mono i.e. don't load/store oscillator/ADSR/filter state.
+// Optimize for mono i.e. don't load/store oscillator/ADSR/filter state.
 num_poly == 1 ? (
   num_osc ? (
     adsr.adsr_process();

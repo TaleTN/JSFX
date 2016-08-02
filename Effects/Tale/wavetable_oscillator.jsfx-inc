@@ -1,5 +1,5 @@
 desc:Wavetable oscillator
-// Copyright (C) 2015 Theo Niessink
+// Copyright (C) 2015, 2016 Theo Niessink
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 /* Example
@@ -94,8 +94,8 @@ desc:Wavetable oscillator
 
     * wave_sync(phase)
       Example: osc2.wave_sync(osc1.t + 0.5);
-      Synchronises the oscillator with the specified phase, and returns the
-      normalised phase.
+      Synchronizes the oscillator with the specified phase, and returns the
+      normalized phase.
 
       Note: You can safely specify out or range (and even negative) values
       here.
