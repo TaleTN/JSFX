@@ -1,4 +1,4 @@
-desc:RC filter
+desc:Low-pass filter
 
 // Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
@@ -6,11 +6,12 @@ desc:RC filter
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 slider1:1000<20,20000,1>Cutoff (Hz)
+slider2:0.5<0.01,4.0,0.01>Q
 
-import Tale/rc_filter.jsfx-inc
+import Tale/rbj_filter.jsfx-inc
 
 @slider
-lp.rc_setf(slider1);
+lp.rbj_lp(slider1, slider2);
 
 @sample
-spl0 = spl1 = lp.rc_lp(0.5*(spl0 + spl1));
+spl0 = spl1 = lp.rbj_df1(0.5*(spl0 + spl1));

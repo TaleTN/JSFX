@@ -1,16 +1,22 @@
-desc:RC filter
+desc:Tremolo
 
 // Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
-slider1:1000<20,20000,1>Cutoff (Hz)
+slider1:4.0<0.0,20.0,0.1>Rate (Hz)
+slider2:-9.0<-24.0,0.0,0.1>Amount (dB)
 
-import Tale/rc_filter.jsfx-inc
+import Tale/lfo.jsfx-inc
 
 @slider
-lp.rc_setf(slider1);
+
+lfo.lfo_setf(slider1);
+amount = 0.5*(exp(log(10)/20 * slider2) - 1);
 
 @sample
-spl0 = spl1 = lp.rc_lp(0.5*(spl0 + spl1));
+
+trem = amount * (lfo.lfo_tri() + 1) + 1;
+spl0 *= trem;
+spl1 *= trem;

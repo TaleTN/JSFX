@@ -1,0 +1,42 @@
+desc:MIDI queue mono synth
+
+// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@init
+
+// Set MIDI queue local memory index and size.
+midi.midiq_init(0, 1024);
+
+@block
+
+// Receive MIDI messages and add them to queue.
+midi.midiq_collect();
+
+@sample
+
+// Remove MIDI message from the head of queue.
+while(midi.midiq_remove()) (
+
+  // Parse MIDI message.
+  midi.msg1 &= 0xF0;
+
+  // Note On
+  midi.msg1 == 0x90 && midi.msg3 ? (
+    osc.poly_setf(note = midi.msg2, 440);
+    osc.a *= 0.5 * midi.msg3 / 128;
+  ) :
+
+  // Note Off
+  midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+    midi.msg2 == note ? osc.a = 0;
+  );
+);
+
+// Sawtooth oscillator.
+spl0 = spl1 = osc.poly_saw();

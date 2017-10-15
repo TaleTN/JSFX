@@ -1,5 +1,53 @@
 Tale's JSFX Pack
 
+v20171015 (15 October 2017)
+
+ + drum_synth: Added GUI.
+ + drum_synth: Added bass drum 2, shaker, sticks.
+ + colored_noise: Added notch filter.
+ + Changed license of plug-ins to LGPL.
+ + Changed license of libraries/examples to WTFPL.
+ + Renamed fft_synth[esis], noise[_generator], oversample[r],
+   sine[_oscillator], wavetable[_oscillator], window[_functions] .jsfx-inc
+   libraries; added legacy versions for backward compatibility.
+ + cplx: Added complex.jsfx-inc complex math library.
+ + uint: Added uint.jsfx-inc 32/64-bit unsigned integer operations library.
+ + four: Added fft_real_synth.jsfx-inc real FFT version of Fourier synthesis
+   library.
+ + four: Added alternating sine, bipolar squared sine, camel sine, high-pass
+   filtered sawtooth approximation, high-pass filtered square wave,
+   integrated sawtooth, logit approximation, low-pass filtered square wave
+   approximations, pulse sine, uneven staircase, variable pulse width
+   staircase waveforms.
+ + four: Added four_setf(note, tuning) to set MIDI note frequency.
+ + four: Added get RMS from Fourier coefficients.
+ + lfo: Added alternating sine, bipolar squared sine, camel sine, high-pass
+   filtered sawtooth approximation, high-pass filtered square wave,
+   integrated sawtooth, logit approximation, low-pass filtered square wave
+   approximations, pulse sine, uneven staircase, variable pulse width
+   staircase waveforms.
+ + lfo: Improved fast sine/cosine approximations.
+ + lfo: Added lfo_setf(note, tuning) to set MIDI note frequency.
+ + poly: Added alternating sine, camel sine, half-wave rectified sawtooth,
+   high-pass filtered sawtooth approximation, integrated sawtooth, logit
+   approximation, low-pass filtered square wave approximations, pulse sine,
+   uneven staircase, variable pulse width half-wave rectified sine, variable
+   pulse width staircase waveforms.
+ + poly: Added poly_setf(note, tuning) to set MIDI note frequency.
+ + sin: Added sin_setf(note, tuning) to set MIDI note frequency.
+ + wave: Added wave_setf(note, tuning) to set MIDI note frequency.
+ + midiq: Added simple ("queueless") interface.
+ + midiq: Validate incoming MIDI messages.
+ + wnd: Added confined Gaussian, Dolph-Chebyshev, Planck-Bessel,
+   Planck-taper, Rife-Vincent class II/III window functions.
+ + wnd: Deprecated average functions.
+ + zdf: Added multi-mode filter function.
+ + Improved/updated examples, documentation.
+ + Many (minor) optimizations.
+ + mono_synthGUI/wavetable_synth: No longer supported, but still included
+   for legacy's sake.
+ + Happy birthday, Martin! :-)
+
 v20160802 (2 August 2016)
 
  + array: Added get last row pointer.
@@ -17,7 +65,7 @@ v20160228 (28 February 2016)
 
 v20160222 (22 February 2016)
 
- + wnd: Added window function library (window_functions.jsfx-inc).
+ + wnd: Added window_functions.jsfx-inc window function library.
  + Added window function viewer example.
  + Added Low-pass windowed FIR/FFT filter examples.
 
@@ -49,9 +97,9 @@ v20151025 (25 October 2015)
 v20151024 (24 October 2015)
 
  + rc_filter/tube_amp: Improved RC filter precision.
- + four: Added FFT bandlimited synthesis library (fft_synthesis.jsfx-inc).
- + four: Added Fourier series waveforms library (fourier_series.jsfx-inc).
- + wave: Added wavetable oscillator library (wavetable_oscillator.jsfx-inc).
+ + four: Added fft_synthesis.jsfx-inc FFT bandlimited synthesis library.
+ + four: Added fourier_series.jsfx-inc Fourier series waveforms library.
+ + wave: Added wavetable_oscillator.jsfx-inc wavetable oscillator library.
  + lfo: Reimplemented sine as Maclaurin series.
  + lfo: Added (Maclaurin series) cosine, ramp, variable pulse width
    half-wave rectified sine, half-wave rectified sawtooth, low-pass filtered
@@ -98,7 +146,7 @@ v20150607 (7 June 2015)
 
  + wavetable_synth: Implemented pan.
  + mono_synth: Fixed initial volume/pan gain.
- + array: Added simple two-dimensional array library (array.jsfx-inc).
+ + array: Added array.jsfx-inc simple two-dimensional array library.
  + midiq: Added midiq_alloc().
 
 v20150527 (27 May 2015)
@@ -123,7 +171,7 @@ v20150408 (8 April 2015)
  + drum_synth: Moved/interleaved volume/pan sliders.
  + drum_synth: Tweaked drive.
  + tube_amp: Added tube amp effect.
- + os: Added 2x oversampler library (oversampler.jsfx-inc).
+ + os: Added oversampler.jsfx-inc 2x oversampler library.
 
 v20150405 (5 April 2015)
 
@@ -138,7 +186,7 @@ v20150405 (5 April 2015)
 v20150322 (22 March 2015)
 
  + rc_filter: Added a multimode RC filter effect.
- + malloc: Added dynamic memory management library (malloc.jsfx-inc).
+ + malloc: Added malloc.jsfx-inc dynamic memory management library.
  + wavetable_synth: Added velocity control, phase lock.
  + wavetable_synth: Added combo organ, full organ wavetables.
  + colored_noise/mono_synth/wavetable_synth: Nitpicked gain calculation.
@@ -184,8 +232,8 @@ v20141212 (12 December 2014)
  + poly_mono_midi_router: Added MIDI note router.
  + midi_sustain: Added MIDI sustain emulator.
  + colored_noise: Added colored noise generator.
- + sin: Added efficient sine/cosine wave oscillator library
-   (sine_oscillator.jsfx-inc).
+ + sin: Added sine_oscillator.jsfx-inc efficient sine/cosine wave oscillator
+   library.
  + midiq: Split up msg23 into msg2 and msg3.
  + midiq: Added channel and status byte filters to midiq_collect().
  + midiq: Made midiq_init() buffer size optional.
@@ -222,8 +270,8 @@ v20130401a (1 April 2013)
 
 v20130401 (1 April 2013)
 
- + synth: Added mono synth library (mono_synth.jsfx-inc).
- + adsr: Added ADSR envelope library (adsr.jsfx-inc).
+ + synth: Added mono_synth.jsfx-inc mono synth library.
+ + adsr: Added adsr.jsfx-inc ADSR envelope library.
  + mono_synth: Fixed sample drift in ADSR.
  + mono_synth: Fixed retriggering filter decay.
  + tg: Added cacheless rectangle and circle (slow!).
@@ -242,7 +290,7 @@ v20130322 (22 March 2013)
 
 v20130321 (21 March 2013)
 
- + lcg: Added noise generator (noise_generator.jsfx-inc).
+ + lcg: Added noise_generator.jsfx-inc noise generator.
  + mono_synth: Implemented new noise generator.
  + zdf: Prevent denormals.
 
@@ -262,8 +310,7 @@ v20130317 (St. Paddy's Day 2013)
 
 v20130214 (14 February 2013)
 
- + zdf: Added zero-delay feedback state variable filter
-   (zdf_filter.jsfx-inc).
+ + zdf: Added zdf_filter.jsfx-inc zero-delay feedback state variable filter.
  + mono_synth: Replaced RBJ with ZDF filter.
  + mono_synth: Added filter Q slider.
  + lfo: Fixed rectangular wave, oops!
@@ -272,7 +319,7 @@ v20130214 (14 February 2013)
 v20130210 (10 February 2013)
 
  + mono_synth: Replaced Fourier series with faster polyBLEP tone generator
-   (poly_blep.jfx-inc).
+   (poly_blep.jsfx-inc).
  + mono_synth: Added new waveforms (modified triangle, triangular pulse,
    Hammond, staircase).
  + mono_synth: Added white noise mix.
@@ -308,6 +355,4 @@ v20120809 (9 August 2012)
 
  + Initial release.
 
-
-Copyright (C) 2012-2016 Theo Niessink
-License: GPL - http://www.gnu.org/licenses/gpl.html
+Copyright (C) 2012-2017 Theo Niessink

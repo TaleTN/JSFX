@@ -1,0 +1,32 @@
+desc:Fourier series square wave oscillator
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:440<20,20000,1>Freq (Hz)
+slider2:0.5<0.0,1.0,0.01>Pulse Width
+
+import Tale/fft_synth.jsfx-inc
+import Tale/fourier_series.jsfx-inc
+import Tale/wavetable.jsfx-inc
+
+@init
+
+osc.four_init(0, 1024);
+
+@slider
+
+osc.four_setf(slider1);
+osc.four_setpw(slider2);
+
+osc.four_update() ? (
+  osc.four_rect();
+  osc.four_setdc(0);
+  osc.four_ifft();
+);
+
+@sample
+
+spl0 = spl1 = 0.25 * osc.wave_lerp();

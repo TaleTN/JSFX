@@ -2,8 +2,8 @@ desc:Simple mono/poly synth
 //tags: generator synthesis
 //author: Tale
 
-// Copyright (C) 2012-2016 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+// Copyright (C) 2012-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
 slider2:0.0<-1200.0,1200.0,1.0>Tuning (cent)
@@ -13,10 +13,10 @@ slider5:1000<1,15000,1>Decay (ms)
 slider6:0.0<-120.0,24.0,1.0>Sustain (dB)
 slider7:8<0,5000,1>Release (ms)
 slider8:0<0,1>-Unused
-slider9:7<0,14,1{Sine,Half-Wave Rectified Sine,Full-Wave Rectified Sine,Triangle,Trapezoid,Square,Pulse PW,Sawtooth,Modified Triangle PW,Triangular Pulse,Hammond,Staircase,Modified Square PW,Trapezoid PW,Triangular Pulse PW}>Waveform
+slider9:7<0,14,1{Sine,HW Rect Sine,FW Rect Sine,Triangle,Trapezoid,Square,Pulse PW,Saw,Mod Triangle PW,Tri Pulse,Hammond,Staircase,Mod Square PW,Trapezoid PW,Tri Pulse PW}>Wave
 slider10:0.30<0.0,1.0,0.01>Pulse Width
 slider11:0<0,1>-Unused
-slider12:200.0<0.0,1200.0,1.0>Pitch Wheel Range (cent)
+slider12:200.0<0.0,1200.0,1.0>Pitch Wheel (cent)
 slider13:0<0,1>-Unused
 slider14:-36.0<-36.0,0.0,1.0>White Noise (dB)
 slider15:0<0,1>-Unused
@@ -26,23 +26,23 @@ slider18:1.0<0.01,4.0,0.01>Filter Q
 slider19:0<0,1>-Unused
 slider20:0<-100,100,1>Pan (%)
 slider21:0<0,1>-Unused
-slider22:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Channel
-slider23:2<0,2,1{[Deprecated] Mono,Poly,Mono}>Mode
-slider24:100<0,100,1>Velocity Control (%)
+slider22:0<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Ch
+slider23:2<0,2,1{Legacy,Poly,Mono}>Mode
+slider24:100<0,100,1>Velocity (%)
 slider25:0<0,1>-Unused
-slider26:6.0<0.01,12.0,0.001>LFO Speed (Hz)
-slider27:0<0,100,1>LFO Strength (%)
+slider26:6.0<0.01,12.0,0.001>LFO Rate (Hz)
+slider27:0<0,100,1>LFO Depth (%)
 
-out_pin:Synth output
-out_pin:Synth output
+out_pin:Left
+out_pin:Right
 
 import midi_queue.jsfx-inc
 import adsr.jsfx-inc
 import rc_filter.jsfx-inc
 import zdf_filter.jsfx-inc
-import sine_oscillator.jsfx-inc
+import sine.jsfx-inc
 import poly_blep.jsfx-inc
-import noise_generator.jsfx-inc
+import noise.jsfx-inc
 
 @init
 

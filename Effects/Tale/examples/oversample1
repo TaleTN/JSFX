@@ -1,0 +1,35 @@
+desc:Oversampled distortion
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:12.0<0.0,24.0,0.1>Drive (dB)
+
+import Tale/oversample.jsfx-inc
+
+@init
+
+function tanh(x)
+(
+  x = exp(2*x);
+  (x - 1) / (x + 1);
+);
+
+pdc_bot_ch = 0; pdc_top_ch = 2;
+pdc_delay = 3;
+
+@slider
+
+drive = exp(log(10)/20 * slider1);
+gain = sqrt(1/drive);
+
+@sample
+
+os.os_up2(0.5*(spl0 + spl1));
+
+os.y1 = tanh(drive * os.y1);
+os.y0 = tanh(drive * os.y0);
+
+spl0 = spl1 = gain * os.os_down2();

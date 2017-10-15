@@ -1,0 +1,40 @@
+desc:Sine wave wavetable oscillator
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:440<20,20000,1>Freq (Hz)
+slider2:1<0,2,1{Truncate,Linear,Spline}>Mode
+
+import Tale/wavetable.jsfx-inc
+
+@init
+
+function render_sin(buf, size, gain)
+  local(x, dx)
+(
+  x = 0;
+  dx = 2*$pi / size;
+  loop(size,
+    buf[] = gain * sin(x);
+    buf += 1;
+    x += dx;
+  );
+);
+
+osc.wave_init(0, 16);
+render_sin(osc.buf, osc.size, 0.25);
+
+@slider
+
+osc.wave_setf(slider1);
+mode = slider2|0;
+
+@sample
+
+spl0 = spl1 =
+mode == 0 ? osc.wave_trunc() :
+mode == 1 ? osc.wave_lerp() :
+mode == 2 ? osc.wave_spline3();

@@ -1,0 +1,360 @@
+desc:Paraphonic wavetable synth
+//tags: generator synthesis
+//author: Tale
+
+// Copyright (C) 2014-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+// \todo Implement sustain pedal, and maybe pitch bend.
+
+slider1:-12.0<-120.0,24.0,0.1>Volume (dB)
+slider2:0<-100,100,1>Pan (%)
+slider3:0<-1200,1200,1>Tuning (cent)
+slider4:0<0,1>-Unused
+slider5:3<0,5000,1>Attack (ms)
+slider6:1000<1,15000,1>Decay (ms)
+slider7:100<0,100,1>Sustain (%)
+slider8:8<0,5000,1>Release (ms)
+slider9:0<0,1>-Unused
+slider10:/Tale/wavetables:Sawtooth.flac:Wavetable
+slider11:0<0,1>-Unused
+slider12:0<0,100,1>Low-Pass Filter (%)
+slider13:3<0,5000,1>Filter Attack (ms)
+slider14:1000<1,15000,1>Filter Decay (ms)
+slider15:100<0,100,1>Filter Sustain (%)
+slider16:8<0,5000,1>Filter Release (ms)
+slider17:100<0,100,1>Filter Cutoff (%)
+slider18:1.0<0.5,8.0,0.01>Filter Q
+slider19:0<0,1>-Unused
+slider20:<0,16,1{Any,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Ch
+slider21:100<0,100,1>Velocity (%)
+slider22:0<0,1>-Unused
+slider23:0<0,1,1{Off,On}>Phase Lock
+
+import midi_queue.jsfx-inc
+import adsr.jsfx-inc
+import rc_filter.jsfx-inc
+import zdf_filter.jsfx-inc
+
+@init
+
+ext_noinit = 1.0;
+
+wavetbl = 0;
+num_wavetbls = 8;
+wavetbl_len = 4 << (num_wavetbls - 1);
+wavetbl_size = num_wavetbls * wavetbl_len;
+
+keyboard = wavetbl + wavetbl_size;
+key_size = 4 + 2 + 4;
+keyboard_size = 128 * key_size;
+
+midiq.midiq_init(keyboard + keyboard_size);
+
+function int(x) ( x|0 );
+function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
+function cache(x) ( x != this ? ( this = x; 1; ); );
+
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+min_inf = -120.0;
+gain0.smooth = gain1.smooth = gain(slider1, min_inf);
+
+function pan(gain, pos)
+  // global(gain0, gain1)
+(
+  // REAPER default 0 dB pan law (thanks Justin!)
+  // http://www.askjf.com/index.php?q=2342s
+
+  pos *= 0.25*$pi;
+  gain *= sqrt(2) * (1 - sqrt(0.5) * (1 / cos(pos) - 1));
+
+  pos += 0.25*$pi;
+  gain0 = cos(pos) * gain;
+  gain1 = sin(pos) * gain;
+);
+
+function load_wavetbl()
+  // global(slider10, wavetbl, wavetbl_len, wavetbl_size, wavetbl_dc)
+  static(idx)
+  local(i, fh, nch, sr, tbl)
+(
+  i = int(slider10) + 1;
+  i != idx ? (
+    idx = i;
+
+    i = 0;
+    fh = file_open(slider10);
+    fh >= 0 ? (
+      file_riff(fh, nch, sr);
+      nch == 1 && sr == wavetbl_len && file_avail(fh) == wavetbl_size && file_mem(fh, wavetbl, wavetbl_size) == wavetbl_size ? i = idx;
+      file_close(fh);
+    );
+
+    !i ? memset(wavetbl, 0, wavetbl_size);
+  );
+
+  tbl = wavetbl + wavetbl_size - wavetbl_len;
+  wavetbl_dc = 0;
+  loop(wavetbl_len,
+    wavetbl_dc += tbl[];
+    tbl += 1;
+  );
+  wavetbl_dc /= wavetbl_len;
+
+  i;
+);
+
+function set_wavetbl(p, note, t)
+  // global(srate, wavetbl, num_wavetbls, wavetbl_len)
+  local(dt, n, tbl)
+(
+  dt = 440 * 2^((tuning + note - 69) / 12) / srate;
+  n = ceil(0.5 / dt) - 1;
+  tbl = n > 0 ? wavetbl + wavetbl_len * min(num_wavetbls - 1, int(log(n) / log(2))) : -1;
+
+  p[0] = note;
+  p[1] = t;
+  p[2] = dt;
+  p[3] = tbl;
+);
+
+function get_wavetbl(p)
+  // global(wavetbl, wavetbl_len, wavetbl_dc)
+  local(note, t, dt, tbl, i, j, lerp)
+(
+  note = p[0];
+  t = p[1];
+  dt = p[2];
+  tbl = p[3];
+
+  lerp = t * wavetbl_len;
+  i = int(lerp);
+  j = (i + 1) & (wavetbl_len - 1);
+  lerp -= i;
+
+  t += dt;
+  t -= int(t);
+  p[1] = t;
+
+  tbl >= 0 ? (1 - lerp) * tbl[i] + lerp * tbl[j] - wavetbl_dc;
+);
+
+function reset_velocity(p, velocity)
+(
+  p[4] = velocity;
+);
+
+function set_velocity(p, velocity)
+(
+  p[5] = velocity;
+);
+
+function get_velocity(p)
+  // global(smooth*)
+  local(velocity)
+(
+  smooth.lp = p[4];
+  velocity = p[5];
+  p[4] = smooth.rc_lp(velocity);
+);
+
+function load_adsr(p)
+  instance(state, env, t, s)
+(
+  state = p[6];
+  env = p[7];
+  t = p[8];
+  s = p[9];
+);
+
+function store_adsr(p)
+  instance(state, env, t, s)
+(
+  p[6] = state;
+  p[7] = env;
+  p[8] = t;
+  p[9] = s;
+);
+
+function smooth_adsr(g)
+  // global(smooth*)
+  instance(s)
+(
+  smooth.lp = s;
+  this.adsr_sets(smooth.rc_lp(g));
+  this.adsr_process();
+);
+
+function note_on(note, velocity)
+  // global(keyboard, num_keys, num_release, key_size, env0*, env1*, phase_lock)
+  local(t, osc, sync, p, end)
+(
+  num_release >= num_keys ? env1.adsr_a(1);
+
+  t = 0;
+  osc = note % 12;
+  sync = 128;
+
+  p = keyboard;
+  end = p + num_keys * key_size;
+  while(p < end && p[] != note ? (
+    phase_lock && p[] < sync && p[] % 12 == osc ? (
+      sync = p[];
+      t = p[1];
+    );
+    p += key_size;
+  ));
+
+  p >= end ? (
+    num_keys += 1;
+
+    t *= 2^((note - sync) / 12);
+    t -= t|0;
+
+    set_wavetbl(p, note, t);
+    reset_velocity(p, velocity);
+    env0.adsr_reset();
+  ) : (
+    env0.load_adsr(p);
+    env0.state == 8 ? num_release -= 1;
+  );
+  set_velocity(p, velocity);
+  env0.adsr_a(1);
+  env0.store_adsr(p);
+);
+
+function note_off(note)
+  // global(keyboard, num_keys, num_release, key_size, env0*, env1*)
+  local(p, end)
+(
+  p = keyboard;
+  end = p + num_keys * key_size;
+  while(p < end && p[] != note ? p += key_size);
+
+  p < end ? (
+    env0.load_adsr(p);
+    env0.state != 8 ? num_release += 1;
+    env0.adsr_r();
+    env0.store_adsr(p);
+
+    num_release >= num_keys ? env1.adsr_r();
+  );
+);
+
+function all_notes_off()
+  // global(num_keys, num_release)
+(
+  num_keys = num_release = 0;
+);
+
+function process_keys()
+  // global(keyboard, num_keys, num_release, key_size, env0*, env1*, vcf_amount, vcf_fc, vcf_q, vcf*)
+  static(fc, q)
+  local(s, p, end, x)
+(
+  x = env0.s;
+  s = 0;
+  p = keyboard;
+  end = p + num_keys * key_size;
+  while(p < end ? (
+
+    env0.load_adsr(p);
+    env0.smooth_adsr(x) ? (
+      s += env0.env * get_velocity(p) * get_wavetbl(p);
+      env0.store_adsr(p);
+      p += key_size;
+
+    ) : (
+      num_keys -= 1;
+      num_release -= 1;
+      end -= key_size;
+      q = p;
+      loop(end - p,
+        q[] = q[key_size];
+        q += 1;
+      );
+    );
+
+    1; // while p < end
+  ));
+  env0.s = x;
+
+  env1.adsr_process();
+  x = vcf_amount + (1 - vcf_amount) * vcf_fc * env1.env;
+  fc != x || q != vcf_q ? (
+    fc = x;
+    q = vcf_q;
+    vcf.zdf_lp(20 * pow(2, 10 * fc), q);
+  );
+  vcf.zdf_svf(s);
+);
+
+function process_midi()
+  // global(midiq*)
+  local(status)
+(
+  while(midiq.midiq_remove() ? (
+    status = midiq.msg1 & 0xF0;
+
+    // Note On
+    status == 0x90 && midiq.msg3 ? (
+      note_on(midiq.msg2, (1.0 - vel_range) + vel_range * midiq.msg3 / 127);
+    ) :
+
+    // Note Off
+    status == 0x80 || status == 0x90 ? (
+      note_off(midiq.msg2);
+    ) :
+
+    // Control Change
+    midiq.msg1 == 0xB0 ? (
+
+      // All Notes Off
+      midiq.msg2 == 123 ? (
+        all_notes_off();
+      );
+    );
+
+    1; // while midiq.midiq_remove()
+  ));
+);
+
+@slider
+
+pan(gain(slider1, min_inf), max(-100, min(100, slider2)) * 0.01);
+tuning = slider3 * 0.01;
+
+env0.adsr_seta(slider5 * 0.001);
+env0.adsr_setd(slider6 * 0.001);
+env0.adsr_sets(slider7 * 0.01);
+env0.adsr_setr(slider8 * 0.001);
+
+load_wavetbl(); // slider10
+
+vcf_amount = 1 - slider12 * 0.01;
+vcf_fc = slider17 * 0.01;
+vcf_q = max(0.01, slider18);
+
+env1.adsr_seta(slider13 * 0.001);
+env1.adsr_setd(slider14 * 0.001);
+env1.adsr_sets(slider15 * 0.01);
+env1.adsr_setr(slider16 * 0.001);
+
+midi_ch.cache(max(0, min(16, int(slider20))) - 1) ? all_notes_off();
+vel_range = max(0, min(100, slider21)) * 0.01;
+
+phase_lock = slider23 >= 0.5;
+
+@block
+
+midiq.midiq_collect(midi_ch, 3|8);
+
+@sample
+
+process_midi();
+s = process_keys();
+
+spl0 += gain0.smooth() * s;
+spl1 += gain1.smooth() * s;

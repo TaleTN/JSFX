@@ -1,0 +1,91 @@
+desc:Low-pass windowed FIR/FFT filter
+
+// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:1000<20,20000,1>Cutoff (Hz)
+slider2:1<0,1,1{Rectangle,Blackman}>Window
+
+import Tale/window.jsfx-inc
+
+@init
+
+fir_len = floor(64 / 44100 * srate + 0.5);
+fft_size = 1 << ceil(log(fir_len * 2 - 1) / log(2));
+
+fft_size < 16 ? fir_len = (fft_size = 16) / 2 :
+fft_size > 32768 ? fir_len = (fft_size = 32768) / 2;
+
+in_buf = 0;
+fir_buf = in_buf + fft_size * 2;
+out_buf = fir_buf + fft_size * 2;
+
+// fir_len-1 [FFT] + (fir_len-1)/2 [FIR]
+pdc_bot_ch = 0; pdc_top_ch = 2;
+pdc_delay = floor(1.5 * (fir_len - 1));
+
+@slider
+
+// Source: http://www.labbookpages.co.uk/audio/firWindowing.html
+
+m = fir_len - 1;
+ft = min(slider1 / srate, 0.5);
+
+n = avg = 0;
+loop(fir_len,
+  // Low-pass filter.
+  lpf = n != m/2 ? sin(2*$pi*ft*(n - m/2)) / ($pi*(n - m/2)) : 2*ft;
+
+  // Apply window.
+  slider2 >= 0.5 ? lpf *= wnd_blackman(n, fir_len);
+  avg += lpf;
+
+  // Convert to complex.
+  fir_buf[n*2] = lpf;
+  fir_buf[n*2 + 1] = 0;
+
+  n += 1;
+);
+
+// Zero pad.
+memset(fir_buf + fir_len * 2, 0, (fft_size - fir_len) * 2);
+
+// Convert to frequency domain.
+fft(fir_buf, fft_size);
+
+scale = 1/(avg * fft_size);
+
+@sample
+
+// Buffer input, convert to complex.
+in_buf[i*2] = 0.5*(spl0 + spl1);
+in_buf[i*2 + 1] = 0;
+
+(i += 1) >= fir_len ? (
+  // Zero pad.
+  memset(in_buf + fir_len * 2, 0, (fft_size - fir_len) * 2);
+
+  // Convert to frequency domain.
+  fft(in_buf, fft_size);
+
+  // Convolve with FIR filter.
+  convolve_c(in_buf, fir_buf, fft_size);
+
+  // Convert back to time domain.
+  ifft(in_buf, fft_size);
+
+  // Overlap-add.
+  memcpy(out_buf, out_buf + fir_len, fft_size - fir_len);
+  memset(out_buf + fir_len, 0, fft_size - fir_len);
+  i = 0;
+  loop(fft_size,
+    out_buf[i] += in_buf[i*2] * scale;
+    i += 1;
+  );
+
+  i = 0;
+);
+
+spl0 = spl1 = out_buf[i];

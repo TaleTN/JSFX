@@ -2,16 +2,16 @@ desc:Tube amp
 //tags: processing distortion waveshaper
 //author: Tale
 
-// Copyright (C) 2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+// Copyright (C) 2015-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 slider1:0.0<-12.0,48.0,0.1>Drive (dB)
 slider2:20000<20,20000,1>Cutoff (Hz)
-slider3:1<0,1,1{Mono,Stereo}>Processing
-slider4:1<0,3,1{Off,2x,4x,8x}>Oversampling
+slider3:1<0,1,1{Mono,Stereo}>Mode
+slider4:1<0,3,1{Off,2x,4x,8x}>Oversample
 
 import rc_filter.jsfx-inc
-import oversampler.jsfx-inc
+import oversample.jsfx-inc
 
 @init
 

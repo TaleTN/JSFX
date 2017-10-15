@@ -1,0 +1,28 @@
+desc:Xorshift noise generator
+
+// Copyright (C) 2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+import Tale/uint.jsfx-inc
+
+@init
+
+// Source: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+
+state.hw = 0; state.lw = 1;
+mul.hw = 0x2545F491; mul.lw = 0x4F6CDD1D;
+
+@sample
+
+x.hw = state.hw; x.lw = state.lw;
+
+a.shr64(x, 12); x.xor64(x, a);
+b.shl64(x, 25); x.xor64(x, b);
+c.shr64(x, 27); x.xor64(x, c);
+
+state.hw = x.hw; state.lw = x.lw;
+
+x.mul64(x, mul);
+spl0 = spl1 = ((x.hw * 2^(32 - 63) + x.lw * 2^(-63)) - 1) * 0.125;

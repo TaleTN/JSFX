@@ -1,10 +1,14 @@
 desc:ADSR envelope
-// Copyright (C) 2013-2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 /* Example
 
    desc:Mono synth with ADSR
+
    slider1:3<0,5000,1>Attack (ms)
    slider2:1000<1,15000,1>Decay (ms)
    slider3:-12.0<-120.0,24.0,1.0>Sustain (dB)
@@ -18,36 +22,30 @@ desc:ADSR envelope
 
    adsr.adsr_seta(slider1 * 0.001);
    adsr.adsr_setd(slider2 * 0.001);
-   adsr.adsr_sets(10^(0.05 * slider3));
+   adsr.adsr_sets(exp(log(10)/20 * slider3));
    adsr.adsr_setr(slider4 * 0.001);
-
-   @block
-
-   midiq.midiq_collect();
 
    @sample
 
-   while(midiq.midiq_remove()) (
-     status = midiq.msg1 & 0xF0;
-     velocity = midiq.msg3;
+   while(midi.midiq_recv()) (
+     midi.msg1 &= 0xF0;
 
      // Note On
-     status == 0x90 && velocity ? (
-       note = midiq.msg2;
-       osc.poly_setf(440 * 2^((note - 69) / 12));
+     midi.msg1 == 0x90 && midi.msg3 ? (
+       osc.poly_setf(note = midi.msg2, 440);
        // Attack
-       adsr.adsr_a(velocity / 127);
+       adsr.adsr_a(0.5 * midi.msg3 / 128);
      ) :
 
      // Note Off
-     status == 0x80 || (status == 0x90 && !velocity) ? (
+     midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
        // Release
-       midiq.msg2 == note ? adsr.adsr_r();
+       midi.msg2 == note ? adsr.adsr_r();
      );
    );
 
    // Process ADSR envelope and apply it to oscillator.
-   adsr.adsr_process() ? spl0 = spl1 = 0.5 * adsr.env * osc.poly_saw();
+   adsr.adsr_process() ? spl0 = spl1 = adsr.env * osc.poly_saw();
 
    Setting Functions
 
@@ -100,7 +98,6 @@ desc:ADSR envelope
 
 @init
 
-
 function _adsr_set(time)
 (
   1 / (0.2 * time * srate + 1);
@@ -129,7 +126,6 @@ function adsr_setr(time)
 (
   r = _adsr_set(time);
 );
-
 
 function adsr_reset()
   instance(state, env)
@@ -180,7 +176,7 @@ function adsr_a(scale)
 function adsr_process()
   instance(state, a, d, s, r, env, scale)
 (
-  state & (1|2|8) ? (
+  state ? (
 
     // Decay
     state == 2 ? (

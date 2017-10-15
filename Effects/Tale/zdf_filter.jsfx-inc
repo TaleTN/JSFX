@@ -1,26 +1,28 @@
 desc:2nd-order zero-delay feedback state variable filter
-// Copyright (C) 2013-2016 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
 
-// Based on the rsStateVariableFilter C++ class by Robin Schmidt, as posted
-// (in the public domain) on the KVR forum.
+// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+// Initially based on the rsStateVariableFilter C++ class by Robin Schmidt,
+// as posted (in the public domain) on the KVR forum.
 // http://www.kvraudio.com/forum/viewtopic.php?p=5243733#p5243733
 
 /* Example
 
-   desc:Band-pass filter
-   slider1:1000<20,20000,1>Frequency (Hz)
-   slider2:2.0<0.01,4.0,0.01>Bandwidth (oct)
+   desc:Low-pass filter
+
+   slider1:1000<20,20000,1>Cutoff (Hz)
+   slider2:0.5<0.01,4.0,0.01>Q
 
    import Tale/zdf_filter.jsfx-inc
 
    @slider
-   q = zdf_bwtoq(slider2);
-   lp.zdf_bp2(slider1, q);
+   lp.zdf_lp(slider1, slider2);
 
    @sample
-   mono = 0.5 * (spl0 + spl1);
-   spl0 = spl1 = lp.zdf_svf(mono);
+   spl0 = spl1 = lp.zdf_svf(0.5*(spl0 + spl1));
 
    Setting Functions
 
@@ -53,6 +55,11 @@ desc:2nd-order zero-delay feedback state variable filter
       Example: output = lp.zdf_svf(input);
       Sends a sample through the filter, and returns its output.
 
+    * zdf_svf_multi(sample)
+      Example: output = lp.zdf_svf_multi(input);
+      Sends a sample through the filter, returns its output, and also stores
+      the individual lowpass, bandpass, and highpass outputs.
+
     * zdf_svf_lp(s) -- Low-pass
     * zdf_svf_hp(s) -- High-pass
     * zdf_svf_bp(s) -- Band-pass
@@ -76,9 +83,9 @@ desc:2nd-order zero-delay feedback state variable filter
     * g  -- Embedded integrator gain
     * r2 -- Damping (1/Q)
     * h  -- Feedback precomputation factor
-    * cl -- Low-pass
-    * cb -- Band-pass
-    * ch -- High-pass
+    * cl -- Low-pass mix
+    * cb -- Band-pass mix
+    * ch -- High-pass mix
       Example: lp2.g = lp1.g; lp2.r2 = lp1.r2; lp2.h = lp1.h; lp2.cl = lp1.cl; lp2.cb = lp1.cb; lp2.ch = lp1.ch;
       Filter coefficients.
 
@@ -87,10 +94,15 @@ desc:2nd-order zero-delay feedback state variable filter
       Example: lp2.s1 = lp1.s1; lp2.s2 = lp1.s2;
       Filter state.
 
+    * yl -- Low-pass output
+    * yb -- Band-pass output
+    * yh -- High-pass output
+      Example: hp = lp.yh;
+      Multi-mode filter outputs.
+
 */
 
 @init
-
 
 function zdf_bwtoq(bw)
   local(x)
@@ -108,13 +120,11 @@ function zdf_qtobw(q)
   2/log(2) * log(x + sqrt(sqr(x) + 1));
 );
 
-
 function _zdf_seth()
   instance(g, r2, h)
 (
   h = 1/(1 + (r2 + g) * g);
 );
-
 
 // Low-pass
 
@@ -132,7 +142,6 @@ function zdf_lp(freq, q)
   this._zdf_seth();
 );
 
-
 // High-pass
 
 function zdf_hp(freq, q)
@@ -148,7 +157,6 @@ function zdf_hp(freq, q)
 
   this._zdf_seth();
 );
-
 
 // Band-pass (constant skirt gain, peak gain = Q)
 
@@ -166,7 +174,6 @@ function zdf_bp(freq, q)
   this._zdf_seth();
 );
 
-
 // Band-pass (constant 0 dB peak gain)
 
 function zdf_bp2(freq, q)
@@ -181,7 +188,6 @@ function zdf_bp2(freq, q)
 
   this._zdf_seth();
 );
-
 
 // Band-stop
 
@@ -199,7 +205,6 @@ function zdf_bs(freq, q)
   this._zdf_seth();
 );
 
-
 // All-pass
 
 function zdf_ap(freq, q)
@@ -216,7 +221,6 @@ function zdf_ap(freq, q)
   this._zdf_seth();
 );
 
-
 // Peaking EQ
 
 function zdf_eq(freq, q, gain)
@@ -232,7 +236,6 @@ function zdf_eq(freq, q, gain)
 
   this._zdf_seth();
 );
-
 
 // Low-shelf
 
@@ -252,7 +255,6 @@ function zdf_ls(freq, q, gain)
   this._zdf_seth();
 );
 
-
 // High-shelf
 
 function zdf_hs(freq, q, gain)
@@ -271,7 +273,6 @@ function zdf_hs(freq, q, gain)
   this._zdf_seth();
 );
 
-
 // Bypass
 
 function zdf_bypass()
@@ -281,7 +282,6 @@ function zdf_bypass()
   r2 = cl = cb = ch = 1;
   this._zdf_seth();
 );
-
 
 // Mute
 
@@ -293,7 +293,6 @@ function zdf_mute()
   cl = cb = ch = 0;
   this._zdf_seth();
 );
-
 
 // Returns an appropriate linear combination of the 3 outputs [lowpass,
 // bandpass, highpass] of the core SVF in order to achieve various filter
@@ -322,6 +321,18 @@ function zdf_svf(sample)
   cl*yl + cb*yb + ch*yh;
 );
 
+function zdf_svf_multi(sample)
+  instance(s1, s2, g, r2, h, cl, cb, ch, yl, yb, yh)
+(
+  yh = (sample - (r2 + g) * s1 - s2) * h;
+  yb = g*yh + s1;
+  s1 = g*yh + yb;
+  abs(s1) < 0.00000000000000006 ? s1 = 0;
+  yl = g*yb + s2;
+  s2 = g*yb + yl;
+  abs(s2) < 0.00000000000000006 ? s2 = 0;
+  cl*yl + cb*yb + ch*yh;
+);
 
 // Optimized versions of zdf_svf() returning only 1 of the 3 outputs.
 
@@ -361,7 +372,6 @@ function zdf_svf_bp(sample)
   yb;
 );
 
-
 // Reset SVF state.
 
 function zdf_reset()
@@ -369,7 +379,6 @@ function zdf_reset()
 (
   s1 = s2 = 0;
 );
-
 
 // Legacy
 

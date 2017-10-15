@@ -1,0 +1,32 @@
+desc:Simple MIDI mono synth
+
+// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@sample
+
+// Receive MIDI messages.
+while(midi.midiq_recv()) (
+
+  // Parse MIDI message.
+  midi.msg1 &= 0xF0;
+
+  // Note On
+  midi.msg1 == 0x90 && midi.msg3 ? (
+    osc.poly_setf(note = midi.msg2, 440);
+    osc.a *= 0.5 * midi.msg3 / 128;
+  ) :
+
+  // Note Off
+  midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+    midi.msg2 == note ? osc.a = 0;
+  );
+);
+
+// Sawtooth oscillator.
+spl0 = spl1 = osc.poly_saw();

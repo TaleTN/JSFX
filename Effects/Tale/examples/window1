@@ -1,0 +1,61 @@
+desc:Low-pass windowed FIR filter
+
+// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:1000<20,20000,1>Cutoff (Hz)
+slider2:1<0,1,1{Rectangle,Blackman}>Window
+
+import Tale/window.jsfx-inc
+
+@init
+
+fir_len = floor(64 / 44100 * srate + 0.5);
+
+in_ptr = in_buf = 0;
+fir_buf = in_buf + fir_len * 2;
+
+pdc_bot_ch = 0; pdc_top_ch = 2;
+pdc_delay = floor(fir_len / 2);
+
+@slider
+
+// Source: http://www.labbookpages.co.uk/audio/firWindowing.html
+
+m = fir_len - 1;
+ft = min(0.5, slider1 / srate);
+
+n = avg = 0;
+loop(fir_len,
+  // Low-pass filter.
+  lpf = n != m/2 ? sin(2*$pi*ft*(n - m/2)) / ($pi*(n - m/2)) : 2*ft;
+
+  // Apply window.
+  slider2 >= 0.5 ? lpf *= wnd_blackman(n, fir_len);
+  avg += lpf;
+
+  fir_buf[n] = lpf;
+  n += 1;
+);
+
+scale = 1/avg;
+
+@sample
+
+// Buffer input.
+(in_ptr -= 1) < in_buf ? (
+  in_ptr = in_buf + fir_len;
+  memcpy(in_ptr + 1, in_buf, m);
+);
+in_ptr[] = 0.5*(spl0 + spl1);
+
+// Convolve with FIR filter.
+sum = n = 0;
+loop(fir_len,
+  sum += fir_buf[n] * in_ptr[n];
+  n += 1;
+);
+
+spl0 = spl1 = sum * scale;

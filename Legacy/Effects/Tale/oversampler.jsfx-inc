@@ -1,0 +1,4 @@
+desc:2x oversampler
+/* Legacy, import Tale/oversample.jsfx-inc instead. */
+import oversample.jsfx-inc
+@init

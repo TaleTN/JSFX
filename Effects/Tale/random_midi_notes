@@ -2,8 +2,8 @@ desc:Random MIDI note generator
 //tags: MIDI generator
 //author: Tale
 
-// Copyright (C) 2011-2013 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+// Copyright (C) 2011-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect generates random MIDI notes while playing or recording (but
 // not while transport is paused or stopped). Insert this effect before a
@@ -13,16 +13,16 @@ desc:Random MIDI note generator
 // notes each time playback starts.
 
 slider1:1<1,127>Polyphony
-slider2:0<0,127,1>Min. Note
-slider3:127<0,127,1>Max. Note
+slider2:0<0,127,1>Min Note
+slider3:127<0,127,1>Max Note
 slider4:0<0,1,1{Note On,Note On/Off}>Velocity Mode
-slider5:0<0,127,1>Min. Velocity
-slider6:127<0,127,1>Max. Velocity
-slider7:100.0<0.0,5000.0,1.0>Min. Length (ms)
-slider8:500.0<0.0,5000.0,1.0>Max. Length (ms)
-slider9:1<1,16,1>MIDI Channel
+slider5:0<0,127,1>Min Velocity
+slider6:127<0,127,1>Max Velocity
+slider7:100.0<0.0,5000.0,1.0>Min Length (ms)
+slider8:500.0<0.0,5000.0,1.0>Max Length (ms)
+slider9:1<1,16,1>MIDI Ch
 
-import noise_generator.jsfx-inc
+import noise.jsfx-inc
 
 @init
 

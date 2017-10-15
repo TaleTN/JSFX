@@ -1,10 +1,43 @@
 desc:Sample accurate MIDI queue
-// Copyright (C) 2012-2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
 
-/* Example
+// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
-   desc:Mono synth
+/* Example #1 (simple interface)
+
+   desc:Simple MIDI mono synth
+
+   import Tale/midi_queue.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
+
+   @sample
+
+   // Receive MIDI messages.
+   while(midi.midiq_recv()) (
+
+     // Parse MIDI message.
+     midi.msg1 &= 0xF0;
+
+     // Note On
+     midi.msg1 == 0x90 && midi.msg3 ? (
+       osc.poly_setf(note = midi.msg2, 440);
+       osc.a *= 0.5 * midi.msg3 / 128;
+     ) :
+
+     // Note Off
+     midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+       midi.msg2 == note ? osc.a = 0;
+     );
+   );
+
+   // Sawtooth oscillator.
+   spl0 = spl1 = osc.poly_saw();
+
+   Example #2 (queue interface)
+
+   desc:MIDI queue mono synth
 
    import Tale/midi_queue.jsfx-inc
    import Tale/poly_blep.jsfx-inc
@@ -12,59 +45,70 @@ desc:Sample accurate MIDI queue
    @init
 
    // Set MIDI queue local memory index and size.
-   midiq.midiq_init(0, 256);
+   midi.midiq_init(0, 1024);
 
    @block
 
    // Receive MIDI messages and add them to queue.
-   midiq.midiq_collect();
+   midi.midiq_collect();
 
    @sample
 
    // Remove MIDI message from the head of queue.
-   while(midiq.midiq_remove()) (
+   while(midi.midiq_remove()) (
 
      // Parse MIDI message.
-     status = midiq.msg1 & 0xF0;
-     velocity = midiq.msg3;
+     midi.msg1 &= 0xF0;
 
      // Note On
-     status == 0x90 && velocity ? (
-       note = midiq.msg2;
-       osc.poly_setf(440 * 2^((note - 69) / 12));
+     midi.msg1 == 0x90 && midi.msg3 ? (
+       osc.poly_setf(note = midi.msg2, 440);
+       osc.a *= 0.5 * midi.msg3 / 128;
      ) :
 
      // Note Off
-     status == 0x80 || (status == 0x90 && !velocity) ? (
-       midiq.msg2 == note ? osc.poly_setf(0);
+     midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+       midi.msg2 == note ? osc.a = 0;
      );
    );
 
-   // Square wave oscillator.
-   osc.dt > 0 ? spl0 = spl1 = 0.25 * osc.poly_sqr();
+   // Sawtooth oscillator.
+   spl0 = spl1 = osc.poly_saw();
 
-   Initialisation Functions
+   Simple Interface
+
+    * midiq_recv()
+      Context: @sample
+      Example: is_avail = midi.midiq_recv();
+      Receives any MIDI message, and stores it in the msg1, msg2, and msg3
+      instance variables.
+
+      Note: The simple interface doesn't actually queue any MIDI messages,
+      so it can and should be used on its own (i.e. without the other
+      functions).
+
+   Initialization Functions
 
     * midiq_init(index[, size])
-      Example: midiq.midiq_init(0, 256);
-      Sets the offset and size (omit for unlimited size) of the local memory
-      buffer to store the queue in, and returns the next available memory
-      index (i.e. index+size*3).
+      Example: midi.midiq_init(0, 1024);
+      Sets the offset and size (omit for non-bounded size) of the local
+      memory buffer to store the queue in, and returns the next available
+      memory index (i.e. index+size*3).
 
     * midiq_alloc(size)
     * midiq_free()
-      Example: midiq.midiq_alloc(256);
+      Example: midi.midiq_alloc(1024);
       Allocates/deallocates a block of local memory to store the queue in,
       and returns its index.
 
-      Note: Requires malloc.jsfx-inc.
+      Note: Requires Tale/malloc.jsfx-inc.
 
    Queue Functions
 
     * midiq_collect()
     * midiq_collect(ch, mask)
       Context: @block
-      Example: midiq.midiq_collect();
+      Example: midi.midiq_collect();
       Receives any MIDI messages, optionally filtering by channel (0..15,
       <0=any) and status byte (1=Note Off, 2=Note On, 4=Poly Aftertouch,
       8=Control Change, 16=Program Change, 32=Channel Atertouch, 64=Pitch
@@ -72,54 +116,55 @@ desc:Sample accurate MIDI queue
 
     * midiq_remove()
       Context: @sample
-      Example: is_avail = midiq.midiq_remove();
+      Example: is_avail = midi.midiq_remove();
       Checks if a MIDI message is available, removes it from the queue, and
       stores it in the msg1, msg2, and msg3 instance variables.
 
    Miscellaneous Functions
 
     * midiq_rewind()
-      Example: midiq.midiq_rewind();
+      Example: midi.midiq_rewind();
       Rewinds the queue, so new MIDI messages can be added.
 
       Note: This function is automatically called by midiq_collect().
 
-    * midiq_add(ofs, msg1, msg23)
     * midiq_add(ofs, msg1, msg2, msg3)
-      Example: midiq.midiq_add(0, 0x90, 60, 127);
+      Example: midi.midiq_add(0, 0x90, 60, 127);
       Adds a MIDI message to the queue.
 
    Instance Variables
 
     * ofs
-      Example: offset_in_seconds = midiq.ofs / srate;
+      Example: offset_in_seconds = midi.ofs / srate;
       The offset within the current sample block, in samples.
 
     * msg1
     * msg2
     * msg3
-    * msg23
-      Example: ch = midiq.msg1 & 0x0F;
+      Example: ch = midi.msg1 & 0x0F;
       The MIDI message that was last removed from the queue.
 
-    * buf
-      Example: index = midiq.buf;
-      The local memory index in which the queue is stored.
+    * pend
+    * idx
+      Example: ofs_in_spls = midi.pend ? midi.ofs - midi.idx + 1;
+      A flag indicating that a MIDI message is pending (i.e. idx<=ofs), and
+      the sample index [0..samplesblock-1] of the next midiq_recv() call.
 
+    * buf
     * size
-      Example: num_items = midiq.size * 3;
-      The maximum size of the queue, in MIDI messages.
+      Example: next_avail_index = midi.buf + midi.size * 3;
+      The local memory index and maximum size (in MIDI messages) of the
+      queue.
 
     * head
     * tail
-      Example: num_msgs = (midiq.tail - midiq.head) / 3;
-      Example: num_avail = midiq.size - (midiq.tail - midiq.buf) / 3;
+      Example: num_msgs = (midi.tail - midi.head) / 3;
+      Example: num_avail = midi.size - (midi.tail - midi.buf) / 3;
       Pointers to the head and tail of the queue.
 
 */
 
 @init
-
 
 function midiq_init(index, size)
   instance(buf)
@@ -137,14 +182,12 @@ function midiq_init(index)
   buf = index;
 );
 
-
 function midiq_rewind()
   instance(buf, head, tail, ofs)
 (
   head = tail = buf;
   ofs = 0;
 );
-
 
 function midiq_add(ofs, msg1, msg23)
   instance(buf, size, tail)
@@ -162,7 +205,6 @@ function midiq_add(ofs, msg1, msg2, msg3)
   this.midiq_add(ofs, msg1, msg2 | (msg3 << 8));
 );
 
-
 function midiq_collect(ch, mask)
   local(ofs, msg1, msg23)
 (
@@ -170,7 +212,7 @@ function midiq_collect(ch, mask)
 
   while(
     midirecv(ofs, msg1, msg23) ? (
-      (ch < 0 || msg1 & 0x0F == ch) && mask & (1 << ((msg1 >> 4) - 8)) ? this.midiq_add(ofs, msg1, msg23);
+      msg1 >= 0x80 && !(msg23 & 0x8080) && (ch < 0 || msg1 & 0x0F == ch) && (mask & (1 << ((msg1 >> 4) - 8))) ? this.midiq_add(ofs, msg1, msg23);
       midisend(ofs, msg1, msg23);
     );
   );
@@ -180,7 +222,6 @@ function midiq_collect()
 (
   this.midiq_collect(-1, 127);
 );
-
 
 function midiq_remove()
   instance(head, tail, ofs, msg1, msg2, msg3, msg23)
@@ -194,5 +235,29 @@ function midiq_remove()
   ) : (
     ofs += 1;
     0;
+  );
+);
+
+// Simple interface
+
+function midiq_recv()
+  // global(samplesblock)
+  instance(pend, idx, ofs, msg1, msg2, msg3)
+(
+  !pend && midirecv(ofs, msg1, msg2) ? (
+    midisend(ofs, msg1, msg2);
+
+    msg3 = msg2 >> 8;
+    msg2 &= 0xFF;
+
+    pend = msg1 >= 0x80 && (msg2|msg3) < 0x80;
+  );
+
+  pend && idx >= ofs ? (
+    pend = 0;
+    1;
+  ) : (idx += 1) >= samplesblock ? (
+    pend ? ofs -= samplesblock;
+    idx = 0;
   );
 );

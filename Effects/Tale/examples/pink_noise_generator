@@ -1,9 +1,0 @@
-// Copyright (C) 2013-2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
-
-desc:Pink noise
-
-import Tale/noise_generator.jsfx-inc
-
-@sample
-spl0 = spl1 = 0.021 * rng.lcg_pink();

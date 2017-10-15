@@ -1,0 +1,37 @@
+desc:Delay
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:300<0,1000,1>Delay (ms)
+slider2:-6.0<-72.0,0.0,0.1>Feedback (dB)
+slider3:-6.0<-72.0,0.0,0.1>Wet Mix (dB)
+
+import Tale/malloc.jsfx-inc
+
+@slider
+
+function resize(new_len)
+  global(buf, len, idx)
+(
+  buf = realloc(buf, new_len);
+  new_len > len ? memset(buf + len, 0, new_len - len);
+
+  idx %= new_len;
+  len = new_len;
+);
+
+resize(max(floor(slider1 * 0.001 * srate), 1));
+fb = exp(log(10)/20 * slider2);
+mix = exp(log(10)/20 * slider3);
+
+@sample
+
+buf[idx] = 0.5*(spl0 + spl1) + fb * buf[idx];
+idx = (idx + 1) % len;
+
+out = mix * buf[idx];
+spl0 += out;
+spl1 += out;

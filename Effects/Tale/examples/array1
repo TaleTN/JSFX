@@ -1,0 +1,60 @@
+desc:Last-note priority mono synth
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+import Tale/array.jsfx-inc
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@init
+
+voice.array_init(0, 128, 2);
+
+@sample
+
+while(midi.midiq_recv()) (
+  midi.msg1 &= 0xF0;
+
+  // Note On
+  midi.msg1 == 0x90 && midi.msg3 ? (
+
+    // Remove note if somehow it is already playing.
+    ptr = voice.array_find(midi.msg2);
+    ptr >= 0 ? voice.array_remove(ptr);
+
+    // Add note, and set pointer to it.
+    ptr = voice.array_add();
+    ptr[0] = midi.msg2;
+
+    // Set oscillator frequency.
+    ptr[1] = osc.poly_setf(midi.msg2, 440);
+    osc.a *= 0.5;
+  ) :
+
+  // Note Off
+  midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+
+    // Remove note.
+    ptr = voice.array_find(midi.msg2);
+    ptr >= 0 ? (
+      voice.array_remove(ptr);
+      !voice.size ? osc.a = 0 : (
+
+        // Update pointer to new last note.
+        ptr = voice.array_get(voice.size - 1);
+        osc.poly_setdt(ptr[1]);
+        osc.a *= 0.5;
+      );
+    );
+  ) :
+
+  // All Notes Off
+  midi.msg1 == 0xB0 && midi.msg2 == 123 ? (
+    voice.array_clear();
+  );
+);
+
+spl0 = spl1 = osc.poly_saw();

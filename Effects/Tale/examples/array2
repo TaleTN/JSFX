@@ -1,0 +1,73 @@
+desc:Mono/poly synth
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:1<0,1,1{Mono,Poly}>Mode
+
+import Tale/array.jsfx-inc
+import Tale/midi_queue.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@init
+
+voice.array_init(0, 128, 3);
+
+@slider
+
+mode = slider1 >= 0.5;
+
+@sample
+
+while(midi.midiq_recv()) (
+  midi.msg1 &= 0xF0;
+
+  // Note On
+  midi.msg1 == 0x90 && midi.msg3 ? (
+
+    // Remove note if somehow it is already playing.
+    ptr = voice.array_find(midi.msg2);
+    ptr >= 0 ? voice.array_remove(ptr);
+
+    // Add note, and set pointer to it.
+    ptr = voice.array_add();
+    ptr[0] = midi.msg2;
+
+    // Set oscillator phase and frequency.
+    ptr[1] = osc.poly_sync(0);
+    ptr[2] = osc.poly_setf(midi.msg2, 440);
+  ) :
+
+  // Note Off
+  midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+
+    // Remove note.
+    ptr = voice.array_find(midi.msg2);
+    ptr >= 0 ? voice.array_remove(ptr);
+  ) :
+
+  // All Notes Off
+  midi.msg1 == 0xB0 && midi.msg2 == 123 ? (
+    voice.array_clear();
+  );
+);
+
+out = 0;
+
+ptr = mode ? voice.array_first() : voice.array_last();
+while(ptr >= 0) (
+  // Get oscillator phase and frequency.
+  osc.poly_sync(ptr[1]);
+  osc.poly_setdt(ptr[2]);
+
+  // Process oscillator.
+  out += osc.poly_saw();
+  // Update oscillator phase.
+  ptr[1] = osc.t;
+
+  ptr = voice.array_next(ptr);
+);
+
+spl0 = spl1 = 0.25 * out;

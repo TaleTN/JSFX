@@ -1,6 +1,9 @@
 desc:2nd-order RBJ filter
-// Copyright (C) 2012-2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 // Based on "Cookbook formulae for audio EQ biquad filter coefficients" by
 // Robert Bristow-Johnson.
@@ -9,7 +12,8 @@ desc:2nd-order RBJ filter
 /* Example
 
    desc:Low-pass filter
-   slider1:1000<20,20000,1>Corner Frequency (Hz)
+
+   slider1:1000<20,20000,1>Cutoff (Hz)
    slider2:0.5<0.01,4.0,0.01>Q
 
    import Tale/rbj_filter.jsfx-inc
@@ -18,8 +22,7 @@ desc:2nd-order RBJ filter
    lp.rbj_lp(slider1, slider2);
 
    @sample
-   mono = 0.5 * (spl0 + spl1);
-   spl0 = spl1 = lp.rbj_df1(mono);
+   spl0 = spl1 = lp.rbj_df1(0.5*(spl0 + spl1));
 
    Setting Functions
 
@@ -95,7 +98,6 @@ desc:2nd-order RBJ filter
 
 @init
 
-
 function rbj_bwtoq(bw)
   local(x)
 (
@@ -112,7 +114,6 @@ function rbj_qtobw(q)
   2/log(2) * log(x + sqrt(sqr(x) + 1));
 );
 
-
 function rbj_scale(a0)
   instance(a1, a2, b0, b1, b2)
   local(scale)
@@ -128,7 +129,6 @@ function rbj_scale(a0)
 
   a0;
 );
-
 
 // Low-pass
 
@@ -150,7 +150,6 @@ function rbj_lp(freq, q)
   this.rbj_scale(a0);
 );
 
-
 // High-pass
 
 function rbj_hp(freq, q)
@@ -170,7 +169,6 @@ function rbj_hp(freq, q)
 
   this.rbj_scale(a0);
 );
-
 
 // Band-pass (constant skirt gain, peak gain = Q)
 
@@ -192,7 +190,6 @@ function rbj_bp(freq, q)
   this.rbj_scale(a0);
 );
 
-
 // Band-pass (constant 0 dB peak gain)
 
 function rbj_bp2(freq, q)
@@ -213,7 +210,6 @@ function rbj_bp2(freq, q)
   this.rbj_scale(a0);
 );
 
-
 // Band-stop
 
 function rbj_bs(freq, q)
@@ -232,7 +228,6 @@ function rbj_bs(freq, q)
   this.rbj_scale(a0);
 );
 
-
 // All-pass
 
 function rbj_ap(freq, q)
@@ -249,7 +244,6 @@ function rbj_ap(freq, q)
 
   this.rbj_scale(a0);
 );
-
 
 // Peaking EQ
 
@@ -270,7 +264,6 @@ function rbj_eq(freq, q, gain)
 
   this.rbj_scale(a0);
 );
-
 
 // Low-shelf
 
@@ -297,7 +290,6 @@ function rbj_ls(freq, q, gain)
   this.rbj_scale(a0);
 );
 
-
 // High-shelf
 
 function rbj_hs(freq, q, gain)
@@ -323,7 +315,6 @@ function rbj_hs(freq, q, gain)
   this.rbj_scale(a0);
 );
 
-
 // Bypass
 
 function rbj_bypass()
@@ -333,7 +324,6 @@ function rbj_bypass()
   b0 = 1;
 );
 
-
 // Mute
 
 function rbj_mute()
@@ -341,7 +331,6 @@ function rbj_mute()
 (
   a1 = a2 = b0 = b1 = b2 = 0;
 );
-
 
 // Direct Form 1
 
@@ -364,7 +353,6 @@ function rbj_reset1()
   x0 = x1 = y0 = y1 = 0;
 );
 
-
 // Direct Form 2
 
 function rbj_df2(sample)
@@ -383,7 +371,6 @@ function rbj_reset2()
 (
   w0 = w1 = 0;
 );
-
 
 // Legacy
 

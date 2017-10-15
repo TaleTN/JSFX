@@ -1,21 +1,22 @@
 desc:1st-order RC filter
-// Copyright (C) 2012-2016 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 /* Example
 
    desc:RC filter
-   slider1:1000<20,20000,1>Cutoff Frequency (Hz)
-   slider2:0<0,1,1{Low-pass,High-pass}>Mode
+   slider1:1000<20,20000,1>Cutoff (Hz)
 
    import Tale/rc_filter.jsfx-inc
 
    @slider
-   lp_hp.rc_setf(slider1);
+   lp.rc_setf(slider1);
 
    @sample
-   mono = 0.5 * (spl0 + spl1);
-   spl0 = spl1 = (slider2 < 0.5 ? lp_hp.rc_lp(mono) : lp_hp.rc_hp(mono));
+   spl0 = spl1 = lp.rc_lp(0.5*(spl0 + spl1));
 
    Setting Functions
 
@@ -95,7 +96,6 @@ desc:1st-order RC filter
 
 @init
 
-
 // Fast approximations
 
 function rc_set(rc)
@@ -118,7 +118,6 @@ function rc_sett(time)
 (
   a = 1 / (0.2 * time * srate + 1);
 );
-
 
 // High precision
 
@@ -143,7 +142,6 @@ function rc_sett_precise(time)
   a = 1 - exp(-5 / (time * srate));
 );
 
-
 // Low-pass
 
 function rc_lp(sample)
@@ -151,7 +149,6 @@ function rc_lp(sample)
 (
   lp += a * (sample - lp);
 );
-
 
 // High-pass
 
@@ -170,7 +167,6 @@ function rc_hp_precise(sample)
   hp;
 );
 
-
 // All-pass
 
 function rc_ap(sample)
@@ -179,7 +175,6 @@ function rc_ap(sample)
   lp += a * (sample - lp);
   lp - (sample - lp);
 );
-
 
 // Leaky integrator
 
@@ -202,7 +197,6 @@ function rc_leaky(sample)
 (
   lp = a * (sample + lp);
 );
-
 
 // Legacy, use rc_sett() instead.
 

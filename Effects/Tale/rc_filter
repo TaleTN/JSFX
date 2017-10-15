@@ -2,8 +2,8 @@ desc:Multimode RC filter
 //tags: filter
 //author: Tale
 
-// Copyright (C) 2015 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+// Copyright (C) 2015-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect filters the input signal using a single 1st-order RC filter
 // stage for 6 dB low/high/all-pass, and two filter stages for 12 dB or
@@ -13,8 +13,8 @@ desc:Multimode RC filter
 // Frequency slider (for typing exact values), and the logarithmic Scale
 // slider (for automation).
 
-slider1:0<0,4,1{Low-Pass,High-Pass,All-Pass,Notch,Band-Pass}>Type
-slider2:1000<20,24000,1>Frequency (Hz)
+slider1:0<0,4,1{Low-Pass,High-Pass,All-Pass,Notch,Band-Pass}>Mode
+slider2:1000<20,24000,1>Freq (Hz)
 slider3:100<0,100,1>Scale (%)
 slider4:2.0<0.0,6.0,0.01>Bandwidth (oct)
 slider5:0<0,1,1{6 dB,12 dB}>Slope (dB/oct)

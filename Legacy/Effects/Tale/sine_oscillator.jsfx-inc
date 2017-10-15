@@ -1,0 +1,4 @@
+desc:Efficient sine/cosine wave oscillator
+/* Legacy, import Tale/sine.jsfx-inc instead. */
+import sine.jsfx-inc
+@init

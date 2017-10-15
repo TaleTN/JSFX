@@ -1,66 +1,69 @@
 desc:Simple two-dimensional array interface
-// Copyright (C) 2015, 2016 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
 
 /* Example
 
    desc:Last-note priority mono synth
 
-   import Tale/malloc.jsfx-inc
    import Tale/array.jsfx-inc
    import Tale/midi_queue.jsfx-inc
    import Tale/poly_blep.jsfx-inc
 
    @init
 
-   array.array_alloc(128, 2);
-   midiq.midiq_alloc(256);
-
-   @block
-
-   midiq.midiq_collect();
+   voice.array_init(0, 128, 2);
 
    @sample
 
-   while(midiq.midiq_remove()) (
-     status = midiq.msg1 & 0xF0;
-     note = cc = midiq.msg2;
-     velocity = midiq.msg3;
+   while(midi.midiq_recv()) (
+     midi.msg1 &= 0xF0;
 
      // Note On
-     status == 0x90 && velocity ? (
+     midi.msg1 == 0x90 && midi.msg3 ? (
+
        // Remove note if somehow it is already playing.
-       ptr = array.array_find(note);
-       ptr >= 0 ? array.array_remove(ptr);
+       ptr = voice.array_find(midi.msg2);
+       ptr >= 0 ? voice.array_remove(ptr);
+
        // Add note, and set pointer to it.
-       ptr = array.array_add();
-       ptr[0] = note;
-       ptr[1] = freq = 440 * 2^((note - 69) / 12);
+       ptr = voice.array_add();
+       ptr[0] = midi.msg2;
+
+       // Set oscillator frequency.
+       ptr[1] = osc.poly_setf(midi.msg2, 440);
+       osc.a *= 0.5;
      ) :
 
      // Note Off
-     status == 0x80 || (status == 0x90 && !velocity) ? (
+     midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+
        // Remove note.
-       ptr = array.array_find(note);
+       ptr = voice.array_find(midi.msg2);
        ptr >= 0 ? (
-         array.array_remove(ptr);
-         // Update pointer to new last note.
-         array.size > 0 ? ptr = array.array_get(array.size - 1);
+         voice.array_remove(ptr);
+         !voice.size ? osc.a = 0 : (
+
+           // Update pointer to new last note.
+           ptr = voice.array_get(voice.size - 1);
+           osc.poly_setdt(ptr[1]);
+           osc.a *= 0.5;
+         );
        );
      ) :
 
      // All Notes Off
-     status == 0xB0 && cc == 123 ? (
-       array.array_clear();
+     midi.msg1 == 0xB0 && midi.msg2 == 123 ? (
+       voice.array_clear();
      );
    );
 
-   array.size > 0 ? (
-     osc.poly_setf(freq = ptr[1]);
-     spl0 = spl1 = 0.25 * osc.poly_saw();
-   );
+   spl0 = spl1 = osc.poly_saw();
 
-   Initialisation Functions
+   Initialization Functions
 
     * array_init(index, max_rows[, cols])
       Example: array.array_init(0, 64, 2);
@@ -74,7 +77,7 @@ desc:Simple two-dimensional array interface
       Allocates/deallocates a block of local memory to store the array in,
       and returns its index.
 
-      Note: Requires malloc.jsfx-inc.
+      Note: Requires Tale/malloc.jsfx-inc.
 
    Array Functions
 
@@ -143,7 +146,6 @@ desc:Simple two-dimensional array interface
 
 @init
 
-
 function array_init(index, max_rows, cols)
   instance(buf, size, num)
 (
@@ -159,20 +161,17 @@ function array_init(index, max_rows)
   this.array_init(index, rows, 1);
 );
 
-
 function array_get(row)
   instance(buf, num)
 (
   buf + row * num;
 );
 
-
 function array_add()
   instance(buf, size, num)
 (
   buf + ((size += 1) - 1) * num;
 );
-
 
 function array_insert(ptr)
   instance(buf, size, num)
@@ -187,7 +186,6 @@ function array_insert(ptr)
   ptr;
 );
 
-
 function array_remove(ptr)
   instance(buf, size, num)
   local(end)
@@ -199,13 +197,11 @@ function array_remove(ptr)
   ptr;
 );
 
-
 function array_first()
   instance(buf, size)
 (
   size ? buf : -1;
 );
-
 
 function array_next(ptr)
   instance(buf, size, num)
@@ -214,13 +210,11 @@ function array_next(ptr)
   ptr < buf + size * num ? ptr : -1;
 );
 
-
 function array_last()
   instance(buf, size, num)
 (
   size ? buf + (size - 1) * num : -1;
 );
-
 
 function array_find(value, col, ptr)
   instance(buf, size, num)
@@ -242,7 +236,6 @@ function array_find(value)
 (
   this.array_find(value, 0, buf);
 );
-
 
 function array_clear()
   instance(size)

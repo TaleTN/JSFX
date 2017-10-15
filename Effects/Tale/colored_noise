@@ -2,8 +2,8 @@ desc:Colored noise generator
 //tags: analysis generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2016 Theo Niessink
-// License: GPL - http://www.gnu.org/licenses/gpl.html
+// Copyright (C) 2014-2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect generates different "colors" of noise. Apart from the listed
 // colors it can also generate "black" noise. To do so select white noise
@@ -15,7 +15,7 @@ slider2:1.0<0.0,1.0,0.001>Density
 slider3:0<0,1,1{Mono,Stereo}>Mode
 slider4:0.0<-150.0,24.0,0.1>Dry (dB)
 slider5:-24.0<-150.0,24.0,0.1>Wet (dB)
-slider6:0<0,3,1{Bypass,Low-Pass,Band-Pass,High-Pass>Filter
+slider6:0<0,4,1{Bypass,Low-Pass,Band-Pass,High-Pass,Notch>Filter
 slider7:1000.0<20.0,20000.0,1.0>Cutoff (Hz)
 slider8:2.0<0.01,8.0,0.01>Q
 
@@ -25,24 +25,33 @@ in_pin:Right
 out_pin:Left
 out_pin:Right
 
-import noise_generator.jsfx-inc
+import noise.jsfx-inc
 import rc_filter.jsfx-inc
 import zdf_filter.jsfx-inc
 
 @init
 
-function int(x) ( x|0 );
 function pow4(x) ( x*x*x*x );
-function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
 function cache(x) ( x != this ? ( this = x; 1; ); );
 
+function gain(db, inf)
+(
+  db <= inf ? 0 : exp(/* log(10)/20 */ 0.11512925464970228 * db);
+);
+
 smooth.rc_set(0.0033);
-function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+function smooth()
+(
+  smooth.lp = this.smooth;
+  this.smooth = smooth.rc_lp(this);
+);
 
 min_inf = -150.0;
 dry.smooth = gain(slider4, min_inf);
 wet.smooth = gain(slider5, min_inf);
 
+// rms = 0;
 rms[0] = 0.075;
 rms[1] = 1/3;
 rms[2] = 1;
@@ -51,19 +60,19 @@ rms[4] = sqrt(0.5);
 rms[5] = 0.125;
 
 ratio = 6;
-ratio[3] = srate / 44100;
+ratio[3] = srate * 1/44100;
 ratio[5] =
 ratio[2] = sqrt(ratio[3]);
 ratio[4] = ratio[2] * ratio[3];
-ratio[0] = 1/ratio[2];
+ratio[0] = 1 / ratio[2];
 ratio[1] = 1;
 
 @slider
 
-color = max(0, min(5, int(slider1)));
+color = slider1|0;
 gain = rms[color] * ratio[color];
 
-rng0.lcg_density(pow4(slider2));
+rng0.lcg_density(color < 0 || color > 5 ? 0 : pow4(slider2));
 rng1.lcg_density(rng0.density);
 
 stereo.cache(slider3 >= 0.5) ? (
@@ -74,14 +83,17 @@ stereo.cache(slider3 >= 0.5) ? (
 dry = gain(slider4, min_inf);
 wet = gain(slider5, min_inf);
 
-filter = max(0, min(3, int(slider6)));
+filter = max(slider6|0, 0);
+filter > 4 ? filter = 0;
+
 filter ? (
   fc = max(20, slider7);
   q = max(0.01, slider8);
 
   filter == 1 ? zdf0.zdf_lp(fc, q) :
   filter == 2 ? zdf0.zdf_bp(fc, q) :
-  /* filter == 3 ? */ zdf0.zdf_hp(fc, q);
+  filter == 3 ? zdf0.zdf_hp(fc, q) :
+  /* filter == 4 ? */ zdf0.zdf_bs(fc, q);
 
   stereo ? (
     zdf1.cb = zdf0.cb; zdf1.ch = zdf0.ch; zdf1.cl = zdf0.cl;
@@ -122,15 +134,11 @@ color == 5 ? (
 );
 
 left *= gain;
-stereo ? (
-  right *= gain;
-  filter ? (
-    left = zdf0.zdf_svf(left);
-    right = zdf1.zdf_svf(right);
-  );
-) : (
-  filter ? left = zdf0.zdf_svf(left);
-  right = left;
+stereo ? right *= gain : right = left;
+
+filter ? (
+  left = zdf0.zdf_svf(left);
+  right = stereo ? zdf1.zdf_svf(right) : left;
 );
 
 spl0 = dry.smooth() * spl0 + wet.smooth() * left;

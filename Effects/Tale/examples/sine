@@ -1,0 +1,17 @@
+desc:Sine/cosine wave oscillator
+
+// Copyright (C) 2014-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:440<20,12000,1>Freq (Hz)
+slider2:0<0,1,1{Sine,Cosine}>Wave
+
+import Tale/sine.jsfx-inc
+
+@slider
+osc.sin_setf(slider1);
+
+@sample
+spl0 = spl1 = 0.25 * (slider2 < 0.5 ? osc.sin_sin() : osc.sin_cos());

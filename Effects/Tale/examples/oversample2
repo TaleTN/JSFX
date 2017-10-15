@@ -1,0 +1,29 @@
+desc:Oversampled sawtooth oscillator
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+slider1:440<20,20000,1>Freq (Hz)
+
+import Tale/oversample.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+@init
+
+pdc_bot_ch = 0; pdc_top_ch = 2;
+pdc_delay = 1;
+
+@slider
+
+osc.poly_setf(0.5 * slider1);
+
+@sample
+
+os.os_os2();
+
+os.y1 = osc.poly_saw();
+os.y0 = osc.poly_saw();
+
+spl0 = spl1 = 0.25 * os.os_down2();
