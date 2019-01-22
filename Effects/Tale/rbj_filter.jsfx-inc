@@ -1,6 +1,6 @@
 desc:2nd-order RBJ filter
 
-// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2018 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -20,9 +20,10 @@ desc:2nd-order RBJ filter
 
    @slider
    lp.rbj_lp(slider1, slider2);
+   lp.rbj_gain(0.5);
 
    @sample
-   spl0 = spl1 = lp.rbj_df1(0.5*(spl0 + spl1));
+   spl0 = spl1 = lp.rbj_df1(spl0 + spl1);
 
    Setting Functions
 
@@ -35,27 +36,39 @@ desc:2nd-order RBJ filter
     * rbj_eq(freq, q, gain) -- Peaking EQ
     * rbj_ls(freq, q, gain) -- Low-shelf
     * rbj_hs(freq, q, gain) -- High-shelf
-    * rbj_bypass()          -- Bypass
-    * rbj_mute()            -- "None shall pass!"
       Example: lp.rbj_lp(1000, 0.5);
       Sets up the filter for the specified cutoff frequency (in Hz), and Q
       and gain factors, and returns the a0 coefficient.
 
       (To convert from dB to gain: gain=10^(db/20).)
 
+    * rbj_gain(gain)
+    * rbj_dry_wet(dry, wet)
+      Example: lp.rbj_lp(1000, 0.5); lp.rbj_gain(-2.0);
+      Example: lp.rbj_lp(1000, 0.5); lp.rbj_dry_wet(0.1, 0.9);
+      Modifies the filter by applying the specified output gain or dry/wet
+      mix.
+
+      Note: You should always first setup the filter, and then modify it. If
+      you change the filter frequency/Q afterwards, then this will reset the
+      gain and dry/wet values, and so you will have to modify them again.
+
    Filter Functions
 
-    * rbj_df1(sample) -- Direct Form 1
-    * rbj_df2(sample) -- Direct Form 2
-      Example: output = lp.rbj_df2(input);
+    * rbj_df1(sample)  -- Direct Form 1
+    * rbj_df2(sample)  -- Direct Form 2
+    * rbj_tdf2(sample) -- Transposed Direct Form 2
+      Example: output = lp.rbj_tdf2(input);
       Sends a sample through the filter, and returns its output.
 
    Miscellaneous Functions
 
-    * rbj_reset1() -- Direct Form 1
-    * rbj_reset2() -- Direct Form 2
-      Example: lp.rbj_reset2();
-      Resets the filter state.
+    * rbj_reset_df1([input])  -- Direct Form 1
+    * rbj_reset_df2([input])  -- Direct Form 2
+    * rbj_reset_tdf2([input]) -- Transposed Direct Form 2
+      Example: lp.rbj_reset_tdf2();
+      Resets the filter state to the specified input value, or to zero if
+      the value is omitted.
 
     * rbj_bwtoq(bw)
     * rbj_qtobw(q)
@@ -315,21 +328,20 @@ function rbj_hs(freq, q, gain)
   this.rbj_scale(a0);
 );
 
-// Bypass
-
-function rbj_bypass()
-  instance(a1, a2, b0, b1, b2)
+function rbj_gain(gain)
+  instance(b0, b1, b2)
 (
-  a1 = a2 = b1 = b2 = 0;
-  b0 = 1;
+  b0 *= gain;
+  b1 *= gain;
+  b2 *= gain;
 );
 
-// Mute
-
-function rbj_mute()
+function rbj_dry_wet(dry, wet)
   instance(a1, a2, b0, b1, b2)
 (
-  a1 = a2 = b0 = b1 = b2 = 0;
+  b0 = b0 * wet + dry;
+  b1 = b1 * wet + a1 * dry;
+  b2 = b2 * wet + a2 * dry;
 );
 
 // Direct Form 1
@@ -347,10 +359,11 @@ function rbj_df1(sample)
   y0 = b0*x0 + b1*x1 + b2*x2 - a1*y1 - a2*y2;
 );
 
-function rbj_reset1()
-  instance(x0, x1, y0, y1)
+function rbj_reset_df1(input)
+  instance(a1, a2, b0, b1, b2, x0, x1, y0, y1)
 (
-  x0 = x1 = y0 = y1 = 0;
+  x0 = x1 = input;
+  y0 = y1 = input / (1 + a1 + a2) * (b0 + b1 + b2);
 );
 
 // Direct Form 2
@@ -366,15 +379,42 @@ function rbj_df2(sample)
   b0*w0 + b1*w1 + b2*w2;
 );
 
-function rbj_reset2()
-  instance(w0, w1)
+function rbj_reset_df2(input)
+  instance(a1, a2, w0, w1)
 (
-  w0 = w1 = 0;
+  w0 = w1 = input / (1 + a1 + a2);
+);
+
+// Transposed Direct Form 2
+
+function rbj_tdf2(sample)
+  instance(a1, a2, b0, b1, b2, s0, s1)
+  local(y)
+(
+  y = b0 * sample + s0;
+
+  s0 = b1 * sample - a1*y + s1;
+  s1 = b2 * sample - a2*y;
+
+  y;
+);
+
+function rbj_reset_tdf2(input)
+  instance(a1, a2, b0, b1, b2, s0, s1)
+(
+  s0 = ((b0 + b1 + b2) / (1 + a1 + a2) - b0) * input;
+  s1 = b2 * input - a2 * (b0 * input + s0);
 );
 
 // Legacy
 
 function rbj_notch(freq, q) ( this.rbj_bs(freq, q) );
-function rbj_peak(freq, q, db_gain) ( this.rbj_eq(freq, q, 10^(0.05 * db_gain)) );
-function rbj_low_shelf(freq, q, db_gain) ( this.rbj_ls(freq, q, 10^(0.05 * db_gain)) );
-function rbj_high_shelf(freq, q, db_gain) ( this.rbj_hs(freq, q, 10^(0.05 * db_gain)) );
+function rbj_peak(freq, q, db_gain) ( this.rbj_eq(freq, q, exp(/* log(10)/20 */ 0.11512925464970228 * db_gain)) );
+function rbj_low_shelf(freq, q, db_gain) ( this.rbj_ls(freq, q, exp(0.11512925464970228 * db_gain)) );
+function rbj_high_shelf(freq, q, db_gain) ( this.rbj_hs(freq, q, exp(0.11512925464970228 * db_gain)) );
+
+function rbj_bypass() instance(a1, a2, b0, b1, b2) ( a1 = a2 = b1 = b2 = 0; b0 = 1; );
+function rbj_mute() instance(a1, a2, b0, b1, b2) (  a1 = a2 = b0 = b1 = b2 = 0; );
+
+function rbj_reset1(input) ( this.rbj_reset_df1(input) );
+function rbj_reset2(input) ( this.rbj_reset_df2(input) );

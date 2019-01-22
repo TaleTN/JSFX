@@ -1,6 +1,6 @@
 desc:Low-pass filter
 
-// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2018 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -12,6 +12,7 @@ import Tale/rbj_filter.jsfx-inc
 
 @slider
 lp.rbj_lp(slider1, slider2);
+lp.rbj_gain(0.5);
 
 @sample
-spl0 = spl1 = lp.rbj_df1(0.5*(spl0 + spl1));
+spl0 = spl1 = lp.rbj_df1(spl0 + spl1);

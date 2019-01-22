@@ -42,14 +42,17 @@ desc:Fourier series waveforms
       Sets the pulse width [0.0..1.0] of the waveform, and returns this
       value.
 
+    * four_setf2(freq)
     * four_setfc(freq)
+      Example: osc.four_setf2(660);
       Example: osc.four_setfc(660);
-      Sets the cutoff frequency (specified in Hz) of the filtered waveform,
-      and returns the cutoff/oscillator frequency ratio.
+      Sets the slave/cutoff frequency (specified in Hz) of the hard sync or
+      filtered waveform, and returns the slave/master frequency ratio.
 
-      Note: You should always first set the oscillator frequency, and then
-      set the cutoff frequency. If you change the oscillator frequency, then
-      you will probably also want to update the cutoff frequency.
+      Note: You should always first set the master oscillator frequency, and
+      then set the slave/cutoff frequency. If you change the master
+      frequency, then you will probably also want to update the slave
+      frequency.
 
     * four_setn(num_steps)
       Example: osc.four_setn(3);
@@ -96,6 +99,7 @@ desc:Fourier series waveforms
     * four_sinn()    -- Stepped sine
     * four_trin()    -- Stepped triangle
     * four_sawn()    -- Stepped sawtooth
+    * four_hssaw()   -- Hard sync sawtooth
 
     * four_ham()     -- Hammond 88 8000 000
     * four_stairs()  -- Staircase (fixed 0.5 pulse width)
@@ -988,6 +992,39 @@ function four_hwsaw()
     );
   ) : (
     memset(cos, 0, size - 2);
+  );
+);
+
+// Hard sync sawtooth
+
+function four_hssaw()
+  instance(size, fc)
+  local(cos, sin, k, n, dc, a, b, x, dx)
+(
+  n = ceil(fc);
+  dc = fc - n;
+
+  cos = this.four_setdc(fc > 0 ? (sqr(dc) + dc) / fc : -1, 0);
+  sin = cos + 1;
+
+  dx = fc > 0 ? 2*$pi / fc - 2*$pi : 0;
+
+  k = 1;
+  loop(size / 2 - 1,
+    a = 0;
+    b = dc;
+
+    x = 0;
+    loop(n,
+      a += sin(x);
+      b += cos(x);
+      x += dx*k;
+    );
+
+    cos[] = 2/$pi * a / k;
+    sin[] = 2/$pi * b / k;
+
+    k += 1; cos += 2; sin += 2;
   );
 );
 

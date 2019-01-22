@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2018 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -68,6 +68,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_alt()     -- Alternating sine
     * poly_camel()   -- Camel sine
 
+    * poly_sin2()    -- Bipolar squared sine
+    * poly_para()    -- Parabola
     * poly_circ()    -- Circle
     * poly_trap()    -- Trapezoid (fixed 0.5 pulse width)
     * poly_trap2()   -- Trapezoid (variable pulse width)
@@ -109,8 +111,9 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Example: osc.poly_resetf();
       Call this before changing the waveform to poly_stairs() or poly_ham().
 
-    * poly_blep(t, dt)
-    * poly_blamp(t, dt)
+    * poly_blep(t, dt)   -- Band-limited step
+    * poly_blamp(t, dt)  -- Band-limited ramp
+    * poly_blurve(t, dt) -- Band-limited curve
       Example: y = poly_blep(osc.t, osc.dt);
       Returns a polynomial around a discontinuity (i.e. when it passes 1.0
       and wraps to 0.0), or 0.0 otherwise.
@@ -227,6 +230,25 @@ function poly_blamp(t, dt)
     // y = 1/3*x^3 + x^2 + x + 1/3
     t = 1 - (1 - t)/dt;
     1/3 * sqr(t)*t;
+  );
+
+  // 0 otherwise
+);
+
+function poly_blurve(t, dt)
+(
+  t < dt ? (
+    // x = t/dt
+    // y = -4*x^4 + 16*x^3 - 20*x^2 + 8*x
+    t = sqr(1 - t/dt);
+    4 * (t - sqr(t));
+  ) :
+
+  t > 1 - dt ? (
+    // x = (t - 1) / dt
+    // y = 4*x^4 + 16*x^3 + 20*x^2 + 8*x
+    t = sqr(1 - (1 - t)/dt);
+    4 * (sqr(t) - t);
   );
 
   // 0 otherwise
@@ -390,6 +412,51 @@ function poly_camel()
   t1 < dt ? ( p = 1 - t1/dt; y += 4/3*$pi * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 4/3*$pi * dt * sqr(p)*p; );
   t2 < dt ? ( p = 1 - t2/dt; y += 8/3*$pi * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y += 8/3*$pi * dt * sqr(p)*p; );
   t3 < dt ? ( p = 1 - t3/dt; y += 4/3*$pi * dt * sqr(p)*p; ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += 4/3*$pi * dt * sqr(p)*p; );
+
+  a * y;
+);
+
+// Bipolar squared sine
+
+function poly_sin2()
+  instance(dt, a)
+  local(t1, t2, y, p)
+(
+  t1 = this.t;
+
+  t2 = this.t + 0.5;
+  t2 -= t2|0;
+
+  this.poly_inc();
+
+  y = sqr(sin(2*$pi * t1));
+  t1 >= 0.5 ? y = -y;
+
+  // y += sqrt($pi) * sqr(dt) * (poly_blurve(t1, dt) - poly_blurve(t2, dt));
+  t1 < dt ? ( p = sqr(1 - t1/dt); y -= 7.0898154036220641 * sqr(dt) * (sqr(p) - p); ) : t1 > 1 - dt ? ( p = sqr(1 - (1 - t1)/dt); y += 7.0898154036220641 * sqr(dt) * (sqr(p) - p); );
+  t2 < dt ? ( p = sqr(1 - t2/dt); y += 7.0898154036220641 * sqr(dt) * (sqr(p) - p); ) : t2 > 1 - dt ? ( p = sqr(1 - (1 - t2)/dt); y -= 7.0898154036220641 * sqr(dt) * (sqr(p) - p); );
+
+  a * y;
+);
+
+// Parabola
+
+function poly_para()
+  instance(dt, a)
+  local(t1, t2, y, p)
+(
+  t1 = this.t;
+
+  t2 = this.t + 0.5;
+  t2 -= t2|0;
+
+  this.poly_inc();
+
+  t1 < 0.5 ? y = (-16*t1 + 8)*t1 : y = (16*t1 - 24)*t1 + 8;
+
+  // y -= sqrt(0.5) * sqr(dt) * (poly_blurve(t1, dt) - poly_blurve(t2, dt));
+  t1 < dt ? ( p = sqr(1 - t1/dt); y += 2.8284271247461901 * sqr(dt) * (sqr(p) - p); ) : t1 > 1 - dt ? ( p = sqr(1 - (1 - t1)/dt); y -= 2.8284271247461901 * sqr(dt) * (sqr(p) - p); );
+  t2 < dt ? ( p = sqr(1 - t2/dt); y -= 2.8284271247461901 * sqr(dt) * (sqr(p) - p); ) : t2 > 1 - dt ? ( p = sqr(1 - (1 - t2)/dt); y += 2.8284271247461901 * sqr(dt) * (sqr(p) - p); );
 
   a * y;
 );

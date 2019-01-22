@@ -1,6 +1,6 @@
 desc:Sample accurate MIDI queue
 
-// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2018 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -122,15 +122,28 @@ desc:Sample accurate MIDI queue
 
    Miscellaneous Functions
 
-    * midiq_rewind()
-      Example: midi.midiq_rewind();
-      Rewinds the queue, so new MIDI messages can be added.
-
-      Note: This function is automatically called by midiq_collect().
-
     * midiq_add(ofs, msg1, msg2, msg3)
       Example: midi.midiq_add(0, 0x90, 60, 127);
       Adds a MIDI message to the queue.
+
+    * midiq_rewind()
+      Context: @block
+      Example: midi.midiq_rewind();
+      Rewinds (clears) the queue, so new MIDI messages can be added.
+
+      Note: This function is automatically called by midiq_collect().
+
+    * _midiq_rewind()
+      Context: @block
+      Example: midi._midiq_rewind();
+      Rewinds the queue, preserving any left-over messages.
+
+    * _midiq_collect()
+    * _midiq_collect(ch, mask)
+      Context: @block
+      Example: midi._midiq_collect();
+      Same as midiq_collect(), but without automatically rewinding the queue
+      first.
 
    Instance Variables
 
@@ -189,6 +202,23 @@ function midiq_rewind()
   ofs = 0;
 );
 
+function _midiq_rewind()
+  instance(buf, head, tail, ofs)
+  local(ptr)
+(
+  head < tail ? (
+    ptr = head;
+    loop(tail - head,
+      ptr[] -= ofs;
+      ptr += 3;
+    );
+  ) : (
+    head = tail = buf;
+  );
+
+  ofs = 0;
+);
+
 function midiq_add(ofs, msg1, msg23)
   instance(buf, size, tail)
 (
@@ -205,17 +235,26 @@ function midiq_add(ofs, msg1, msg2, msg3)
   this.midiq_add(ofs, msg1, msg2 | (msg3 << 8));
 );
 
-function midiq_collect(ch, mask)
+function _midiq_collect(ch, mask)
   local(ofs, msg1, msg23)
 (
-  this.midiq_rewind();
-
   while(
     midirecv(ofs, msg1, msg23) ? (
       msg1 >= 0x80 && !(msg23 & 0x8080) && (ch < 0 || msg1 & 0x0F == ch) && (mask & (1 << ((msg1 >> 4) - 8))) ? this.midiq_add(ofs, msg1, msg23);
       midisend(ofs, msg1, msg23);
     );
   );
+);
+
+function _midiq_collect()
+(
+  this._midiq_collect(-1, 127);
+);
+
+function midiq_collect(ch, mask)
+(
+  this.midiq_rewind();
+  this._midiq_collect(ch, mask);
 );
 
 function midiq_collect()

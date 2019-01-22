@@ -10,7 +10,7 @@ desc:Multimode RC filter
 // notch/band-pass.
 
 // You can select the cutoff/center frequency using both the linear
-// Frequency slider (for typing exact values), and the logarithmic Scale
+// frequency slider (for typing exact values), and the logarithmic scale
 // slider (for automation).
 
 slider1:0<0,4,1{Low-Pass,High-Pass,All-Pass,Notch,Band-Pass}>Mode
@@ -25,48 +25,46 @@ import Tale/rc_filter.jsfx-inc
 
 @init
 
-function int(x) ( x|0 );
-function gain(db, inf) ( db <= inf ? 0 : 10^(0.05 * db) );
-function scale(x) ( 1/1200 + 1199/1200 * (exp(6*x) - 1) / (exp(6) - 1) );
+function scale(x) ( 1/1200 + 1199/1200 * (exp(6*x) - 1) * /* 1/(exp(6) - 1) */ 0.0024849116568445855 );
+function gain(x) ( x <= -120 ? 0 : exp(/* log(10)/20 */ 0.11512925464970228 * x) );
 
 smooth.rc_set(0.0033);
 function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
 
-min_inf = -120.0;
-dry.smooth = gain(slider6, min_inf);
-wet.smooth = gain(slider7, min_inf);
+dry.smooth = 0;
+wet.smooth = 1;
 
-min_fc = 20 * scale(0);
+min_fc = 1/60;
 
 @slider
 
-type = max(0, min(4, int(slider1)));
+mode = min(max(0, slider1|0), 4);
 
 slope0 = slider5 < 0.5;
 slope1 = 1.0 - slope0;
 
-fc1 = max(min_fc, slider2 * scale(slider3 * 0.01));
+fc1 = max(slider2 * scale(slider3 * 0.01), min_fc);
 
 // Low/High/All-Pass
-type < 3 ? (
+mode < 3 ? (
   rc0.a = rc1.a =
   rc2.a = rc3.rc_setf_precise(fc0 = fc1);
 ) :
 
 // Notch/Band-Pass
-/* type >= 3 ? */ (
+/* mode >= 3 ? */ (
   bw = 2^(0.5 * slider4);
-  rc0.a = rc1.rc_setf_precise(fc0 = max(min_fc, fc1 / bw));
-  rc2.a = rc3.rc_setf_precise(fc1 = max(min_fc, fc1 * bw));
+  rc0.a = rc1.rc_setf_precise(fc0 = max(fc1 / bw, min_fc));
+  rc2.a = rc3.rc_setf_precise(fc1 = max(fc1 * bw, min_fc));
 );
 
-dry = gain(slider6, min_inf);
-wet = gain(slider7, min_inf);
+dry = gain(slider6);
+wet = gain(slider7);
 
 @sample
 
 // Low-Pass
-type == 0 ? (
+mode == 0 ? (
   left = rc0.rc_lp(spl0);
   right = rc1.rc_lp(spl1);
 
@@ -75,7 +73,7 @@ type == 0 ? (
 ) :
 
 // High-Pass
-type == 1 ? (
+mode == 1 ? (
   left = rc0.rc_hp_precise(spl0);
   right = rc1.rc_hp_precise(spl1);
 
@@ -84,7 +82,7 @@ type == 1 ? (
 ) :
 
 // All-Pass
-type == 2 ? (
+mode == 2 ? (
   left = rc0.rc_ap(spl0);
   right = rc1.rc_ap(spl1);
 
@@ -93,7 +91,7 @@ type == 2 ? (
 ) :
 
 // Notch
-type == 3 ? (
+mode == 3 ? (
   left = rc0.rc_lp(spl0);
   right = rc1.rc_lp(spl1);
 
@@ -102,7 +100,7 @@ type == 3 ? (
 ) :
 
 // Band-Pass
-/* type == 4 ? */ (
+/* mode == 4 ? */ (
   left = rc0.rc_hp_precise(spl0);
   right = rc1.rc_hp_precise(spl1);
 

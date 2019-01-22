@@ -1,0 +1,78 @@
+desc:Multimode ZDF filter
+//tags: filter
+//author: Tale
+
+// Copyright (C) 2017 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+// This effect filters the input signal using a 2nd-order (12 dB) zero-delay
+// feedback state variable filter.
+
+// You can select the cutoff/center frequency using both the linear
+// frequency slider (for typing exact values), and the logarithmic scale
+// slider (for automation).
+
+slider1:0<0,7,1{Low-Pass,High-Pass,Band-Pass,Notch,All-Pass,Low-Shelf,Band,High-Shelf}>Mode
+slider2:1000<1,24000,1>Freq (Hz)
+slider3:100<0,100,1>Scale (%)
+slider4:0.0<-72.0,36.0,0.1>Gain (dB)
+slider5:1.0<0.1,10.0,0.01>Q
+slider6:-120.0<-120.0,24.0,0.1>Dry (dB)
+slider7:0.0<-120.0,24.0,0.1>Wet (dB)
+
+import Tale/zdf_filter.jsfx-inc
+import Tale/rc_filter.jsfx-inc
+
+@init
+
+function scale(x) ( 1/1200 + 1199/1200 * (exp(6*x) - 1) * /* 1/(exp(6) - 1) */ 0.0024849116568445855 );
+function gain(x) ( x <= -120 ? 0 : exp(/* log(10)/20 */ 0.11512925464970228 * x) );
+
+smooth.rc_set(0.0033);
+function smooth() ( smooth.lp = this.smooth; this.smooth = smooth.rc_lp(this); );
+
+r2.smooth = cl.smooth = 1;
+cb.smooth = ch.smooth = 0;
+
+dry.smooth = 0;
+wet.smooth = 1;
+
+min_fc = 1/60;
+
+@slider
+
+mode = min(max(0, slider1|0), 7);
+freq = max(slider2 * scale(slider3 * 0.01), min_fc);
+gain = gain(slider4);
+q = max(slider5, 0.1);
+
+mode == 0 ? zdf0.zdf_lp(freq, q) :
+mode == 1 ? zdf0.zdf_hp(freq, q) :
+mode == 2 ? zdf0.zdf_bp(freq, q) :
+mode == 3 ? zdf0.zdf_bs(freq, q) :
+mode == 4 ? zdf0.zdf_ap(freq, q) :
+mode == 5 ? zdf0.zdf_ls(freq, q, gain) :
+mode == 6 ? zdf0.zdf_eq(freq, q, gain) :
+/* mode == 7 ? */ zdf0.zdf_hs(freq, q, gain);
+
+zdf1.g = zdf0.g;
+
+r2 = zdf0.r2;
+cl = zdf0.cl;
+cb = zdf0.cb;
+ch = zdf0.ch;
+
+dry = gain(slider6);
+wet = gain(slider7);
+
+@sample
+
+zdf0.r2 = zdf1.r2 = r2.smooth();
+zdf1.h = zdf0._zdf_seth();
+
+zdf0.cl = zdf1.cl = cl.smooth();
+zdf0.cb = zdf1.cb = cb.smooth();
+zdf0.ch = zdf1.ch = ch.smooth();
+
+spl0 = dry.smooth() * spl0 + wet.smooth() * zdf0.zdf_svf(spl0);
+spl1 = dry.smooth * spl1 + wet.smooth * zdf1.zdf_svf(spl1);
