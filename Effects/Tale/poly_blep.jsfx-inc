@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2018 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2019 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -42,7 +42,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
       returns this value.
 
     * poly_setpw(pw)
-      Example: osc.poly_setpw(0.30);
+      Example: osc.poly_setpw(0.3);
+      Example: osc.pw = 0.3;
       Sets the pulse width [0.0..1.0] of the waveform, and returns this
       value.
 
@@ -62,7 +63,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_half()    -- Half-wave rectified sine (fixed 0.5 pulse width)
     * poly_half2()   -- Half-wave rectified sine (variable pulse width)
     * poly_full()    -- Full-wave rectified sine
-    * poly_sinp()    -- Pulse sine
+    * poly_sinp()    -- Pulse sine (fixed 0.5 pulse width)
+    * poly_sawp()    -- Saw pulse
     * poly_trip()    -- Triangular pulse
     * poly_hwsaw()   -- Half-wave rectified sawtooth
     * poly_alt()     -- Alternating sine
@@ -70,12 +72,13 @@ desc:PolyBLEP quasi-bandlimited tone generator
 
     * poly_sin2()    -- Bipolar squared sine
     * poly_para()    -- Parabola
-    * poly_circ()    -- Circle
     * poly_trap()    -- Trapezoid (fixed 0.5 pulse width)
     * poly_trap2()   -- Trapezoid (variable pulse width)
 
     * poly_lpsqrN()  -- LPF square approximation (order N = 2 or 3)
     * poly_intsaw()  -- Integrated sawtooth
+    * poly_cubsaw()  -- Cubic sawtooth
+    * poly_sinsaw()  -- Sine sawtooth
     * poly_hpsaw6()  -- HPF sawtooth approximation
     * poly_logit3()  -- Logit approximation
 
@@ -111,9 +114,9 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Example: osc.poly_resetf();
       Call this before changing the waveform to poly_stairs() or poly_ham().
 
-    * poly_blep(t, dt)   -- Band-limited step
-    * poly_blamp(t, dt)  -- Band-limited ramp
-    * poly_blurve(t, dt) -- Band-limited curve
+    * poly_blep(t, dt)  -- Band-limited step
+    * poly_blamp(t, dt) -- Band-limited ramp
+    * poly_bluh(t, dt)  -- Band-limited curve
       Example: y = poly_blep(osc.t, osc.dt);
       Returns a polynomial around a discontinuity (i.e. when it passes 1.0
       and wraps to 0.0), or 0.0 otherwise.
@@ -144,7 +147,7 @@ desc:PolyBLEP quasi-bandlimited tone generator
 
 function _poly_setdt(dt)
 (
-  dt <= 0.2 ? 1 : dt < 0.25 ? 1 - sqr(20 * (dt - 0.2));
+  dt <= 0.2 ? 1 : dt < 0.25 ? 1 - sqr((dt - 0.2) * 20);
   // 0 otherwise
 );
 
@@ -164,7 +167,7 @@ function poly_setf(freq)
 function poly_setf(note, tuning)
   // global(srate)
 (
-  this.poly_setdt(exp(/* log(2)/12 */ 0.057762265046662109 * (note - 69)) * tuning / srate);
+  this.poly_setdt(exp((note - 69) * /* log(2)/12 */ 0.057762265046662109) * tuning / srate);
 );
 
 function poly_resetf()
@@ -202,13 +205,13 @@ function poly_blep(t, dt)
   t < dt ? (
     // x = t/dt
     // y = -(x^2) + 2*x - 1
-    -sqr(1 - t/dt);
+    -sqr(t/dt - 1);
   ) :
 
   t > 1 - dt ? (
     // x = (t - 1) / dt
     // y = x^2 + 2*x + 1
-    sqr(1 - (1 - t)/dt);
+    sqr((t - 1) / dt + 1);
   );
 
   // 0 otherwise
@@ -221,34 +224,34 @@ function poly_blamp(t, dt)
   t < dt ? (
     // x = t/dt
     // y = -1/3*x^3 + x^2 - x + 1/3
-    t = 1 - t/dt;
-    1/3 * sqr(t)*t;
+    t = t/dt - 1;
+    sqr(t)*t * -1/3;
   ) :
 
   t > 1 - dt ? (
     // x = (t - 1) / dt
     // y = 1/3*x^3 + x^2 + x + 1/3
-    t = 1 - (1 - t)/dt;
-    1/3 * sqr(t)*t;
+    t = (t - 1) / dt + 1;
+    sqr(t)*t * 1/3;
   );
 
   // 0 otherwise
 );
 
-function poly_blurve(t, dt)
+function poly_bluh(t, dt)
 (
   t < dt ? (
     // x = t/dt
     // y = -4*x^4 + 16*x^3 - 20*x^2 + 8*x
-    t = sqr(1 - t/dt);
-    4 * (t - sqr(t));
+    t = sqr(t/dt - 1);
+    (sqr(t) - t) * -4;
   ) :
 
   t > 1 - dt ? (
     // x = (t - 1) / dt
     // y = 4*x^4 + 16*x^3 + 20*x^2 + 8*x
-    t = sqr(1 - (1 - t)/dt);
-    4 * (sqr(t) - t);
+    t = sqr((t - 1) / dt + 1);
+    (sqr(t) - t) * 4;
   );
 
   // 0 otherwise
@@ -263,7 +266,7 @@ function poly_sin()
   t = this.t;
   this.poly_inc();
 
-  a * sin(2*$pi * t);
+  sin(t * /* 2*$pi */ 6.2831853071795865) * a;
 );
 
 // Cosine
@@ -275,7 +278,7 @@ function poly_cos()
   t = this.t;
   this.poly_inc();
 
-  a * cos(2*$pi * t);
+  cos(t * /* 2*$pi */ 6.2831853071795865) * a;
 );
 
 // Half-wave rectified sine
@@ -285,382 +288,313 @@ function poly_cos()
 
 function poly_half()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 2 * sin(2*$pi * t1) - 2/$pi : y = -2/$pi;
+  ((poly_blamp(t, dt)
+  + poly_blamp(t + 0.5 - ((t + 0.5)|0), dt)) * /* 2*$pi */ 6.2831853071795865 * dt
 
-  // y += 2*$pi * dt * (poly_blamp(t1, dt) + poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 2/3*$pi * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 2/3*$pi * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y += 2/3*$pi * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y += 2/3*$pi * dt * sqr(p)*p; );
+  + (t < 0.5 ? sin(t * /* 2*$pi */ 6.2831853071795865) * 2 : 0) - /* 2/$pi */ 0.63661977236758134
 
-  a * y;
+  ) * a;
 );
 
 function poly_half2()
   instance(dt, a, pw)
-  local(t1, t2, y, p)
+  local(t1, t2)
 (
-  t1 = this.t + 0.5*pw + 0.75;
-  t2 = this.t - 0.5*pw + 0.75;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-
+  t2 = (t1 = pw * 0.5 + this.t + 0.75) - pw;
   this.poly_inc();
 
-  t1 < pw ? y = 2 * sin($pi * t1 / pw) - 4/$pi * pw : y = -4/$pi * pw;
+  t1 -= t1|0;
 
-  pw > 0 ? (
-    // y += $pi * dt / pw * (poly_blamp(t1, dt) + poly_blamp(t2, dt));
-    t1 < dt ? ( p = 1 - t1/dt; y += 1/3*$pi * dt/pw * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 1/3*$pi * dt/pw * sqr(p)*p; );
-    t2 < dt ? ( p = 1 - t2/dt; y += 1/3*$pi * dt/pw * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y += 1/3*$pi * dt/pw * sqr(p)*p; );
-  );
+  ((poly_blamp(t2 - (t2|0), dt)
+  + poly_blamp(t1, dt)) / pw * $pi * dt
 
-  a * y;
+  + (t1 < pw ? sin(t1/pw * $pi) * 2 : 0) - pw * /* 4/$pi */ 1.2732395447351627
+
+  ) * a;
 );
 
 // Full-wave rectified sine
 
 function poly_full()
   instance(dt, a)
-  local(t, y)
+  local(t)
 (
   t = this.t + 0.25;
-  t -= t|0;
-
   this.poly_inc();
 
-  y = 2 * sin($pi * t) - 4/$pi;
+  t -= t|0;
 
-  // y += 2*$pi * dt * poly_blamp(t, dt);
-  t < dt ? ( t = 1 - t/dt; y += 2/3*$pi * dt * sqr(t)*t; ) : t > 1 - dt ? ( t = 1 - (1 - t)/dt; y += 2/3*$pi * dt * sqr(t)*t; );
+  (poly_blamp(t, dt) * /* 2*$pi */ 6.2831853071795865 * dt
+  + sin(t * $pi) * 2 - /* 4/$pi */ 1.2732395447351627
 
-  a * y;
+  ) * a;
 );
 
 // Pulse sine
 
 function poly_sinp()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 2 * sin($pi * t1) - 2/$pi : y = -2/$pi;
+  (-poly_blep(t + 0.5 - ((t + 0.5)|0), dt)
+  + poly_blamp(t, dt) * $pi * dt
 
-  // y += $pi * dt * poly_blamp(t1, dt) - poly_blep(t2, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y += 1/3*$pi * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 1/3*$pi * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y += sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= sqr(p); );
+  + (t < 0.5 ? sin(t * $pi) * 2 : 0) - /* 2/$pi */ 0.63661977236758134
 
-  a * y;
+  ) * a;
+);
+
+// Saw pulse
+
+function poly_sawp()
+  instance(dt, a)
+  local(t)
+(
+  t = this.t + 0.5;
+  this.poly_inc();
+
+  t -= t|0;
+
+  (-poly_blep(t, dt)
+  + (t >= 0.5 ? cos(t * /* 2*$pi */ 6.2831853071795865) + 1 : 0) - 0.5
+
+  ) * a;
 );
 
 // Alternating sine
 
 function poly_alt()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  t1 < 0.5 ? y = sin(4*$pi * t1) : y = 0;
+  ((poly_blamp(t + 0.5 - ((t + 0.5)|0), dt)
+  - poly_blamp(t, dt)) * /* -2*$pi */ -6.2831853071795865 * dt
 
-  // y += 2*$pi * dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 2/3*$pi * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 2/3*$pi * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 2/3*$pi * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 2/3*$pi * dt * sqr(p)*p; );
+  + (t < 0.5 ? sin(t * /* 4*$pi */ 12.566370614359173) : 0)
 
-  a * y;
+  ) * a;
 );
 
 // Camel sine
 
-// Warning: Anti-aliasing doesn't work well at higher frequncies.
+// Warning: Anti-aliasing doesn't work well at higher frequencies.
 
 function poly_camel()
   instance(dt, a)
-  local(t1, t2, t3, y, p)
+  local(t1, t2, t3)
 (
-  t1 = this.t;
-  t2 = this.t + 0.75;
-  t3 = this.t + 0.5;
-
-  t2 -= t2|0;
-  t3 -= t3|0;
-
+  t3 = (t2 = (t1 = this.t) + 0.5) + 0.25;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 2 * abs(sin(4*$pi * t1)) - 2/$pi : y = -2/$pi;
+  ((poly_blamp(t3 - (t3|0), dt) * 2
+  + poly_blamp(t2 - (t2|0), dt)
+  + poly_blamp(t1, dt)) * /* 4*$pi */ 12.566370614359173 * dt
 
-  // y += 4*$pi * dt * (poly_blamp(t1, dt) + 2 * poly_blamp(t2, dt) + poly_blamp(t3, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 4/3*$pi * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 4/3*$pi * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y += 8/3*$pi * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y += 8/3*$pi * dt * sqr(p)*p; );
-  t3 < dt ? ( p = 1 - t3/dt; y += 4/3*$pi * dt * sqr(p)*p; ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += 4/3*$pi * dt * sqr(p)*p; );
+  + (t1 < 0.5 ? abs(sin(t1 * /* 4*$pi */ 12.566370614359173)) * 2 : 0) - /* 2/$pi */ 0.63661977236758134
 
-  a * y;
+  ) * a;
 );
 
 // Bipolar squared sine
 
 function poly_sin2()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  y = sqr(sin(2*$pi * t1));
-  t1 >= 0.5 ? y = -y;
+  ((poly_bluh(t + 0.5 - ((t + 0.5)|0), dt)
+  - poly_bluh(t, dt)) * sqr(dt) * /* -sqrt($pi) */ -1.7724538509055160
 
-  // y += sqrt($pi) * sqr(dt) * (poly_blurve(t1, dt) - poly_blurve(t2, dt));
-  t1 < dt ? ( p = sqr(1 - t1/dt); y -= 7.0898154036220641 * sqr(dt) * (sqr(p) - p); ) : t1 > 1 - dt ? ( p = sqr(1 - (1 - t1)/dt); y += 7.0898154036220641 * sqr(dt) * (sqr(p) - p); );
-  t2 < dt ? ( p = sqr(1 - t2/dt); y += 7.0898154036220641 * sqr(dt) * (sqr(p) - p); ) : t2 > 1 - dt ? ( p = sqr(1 - (1 - t2)/dt); y -= 7.0898154036220641 * sqr(dt) * (sqr(p) - p); );
+  + (t < 0.5 ? 1 : -1) * sqr(sin(t * /* 2*$pi */ 6.2831853071795865))
 
-  a * y;
+  ) * a;
 );
 
 // Parabola
 
 function poly_para()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  t1 < 0.5 ? y = (-16*t1 + 8)*t1 : y = (16*t1 - 24)*t1 + 8;
+  ((poly_bluh(t + 0.5 - ((t + 0.5)|0), dt)
+  - poly_bluh(t, dt)) * /* sqrt(0.5) */ 0.70710678118654752 * sqr(dt)
 
-  // y -= sqrt(0.5) * sqr(dt) * (poly_blurve(t1, dt) - poly_blurve(t2, dt));
-  t1 < dt ? ( p = sqr(1 - t1/dt); y += 2.8284271247461901 * sqr(dt) * (sqr(p) - p); ) : t1 > 1 - dt ? ( p = sqr(1 - (1 - t1)/dt); y -= 2.8284271247461901 * sqr(dt) * (sqr(p) - p); );
-  t2 < dt ? ( p = sqr(1 - t2/dt); y -= 2.8284271247461901 * sqr(dt) * (sqr(p) - p); ) : t2 > 1 - dt ? ( p = sqr(1 - (1 - t2)/dt); y += 2.8284271247461901 * sqr(dt) * (sqr(p) - p); );
+  + (t * 16 - 8) * (abs(t - 0.5) - 0.5)
 
-  a * y;
+  ) * a;
 );
 
-// Circle
+// Circle (approximation)
 
 function poly_circ()
   instance(dt, a, lp)
-  local(t1, t2, t3, y, p, lp.a)
+  local(t1, t2, t3)
 (
-  t1 = this.t + 0.015625; // 0.5/(n = 32)
-  t2 = this.t + 0.515625; // 0.5/(n = 32) + 0.5
-  t3 = this.t;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-
+  // n = 32;
+  t3 = (t2 = (t1 = this.t) + /* 1/(n*2) */ 0.015625) + 0.5;
   this.poly_inc();
 
   // Mimic linear-phase filter by mixing 1st-order low-pass filtered
   // square...
+  t2 -= t2|0;
+  ((lp += (
 
-  t1 < 0.5 ? y = 1 : y = -1;
+    poly_blep(t2, dt)
+    - poly_blep(t3 - (t3|0), dt)
 
-  // y += poly_blep(t1, dt) - poly_blep(t2, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= sqr(p); );
+    + (t2 < 0.5) * 2 - 1
 
-  // a = 1 / (1/(sqrt(n = 32)*2*$pi*dt) + 1)
-  lp.a = dt / (0.028134884879909565 + dt);
-  lp += lp.a * (y - lp);
+  - lp) / (dt + /* 1/(2*$pi*sqrt(n)) */ 0.028134884879909565) * dt)
 
   // ... with sine.
-  a * 0.5 * (lp + sin(2*$pi * t3));
+  + sin(t1 * /* 2*$pi */ 6.2831853071795865)) * 0.5 * a;
 );
 
 // Triangle
 
 function poly_tri()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t0, t1, t2, y, p)
 (
-  t1 = this.t + 0.25;
-  t2 = this.t + 0.75;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-
-  y = this.t * 4;
+  t2 = (t1 = (t0 = this.t) + 0.25) + 0.5;
   this.poly_inc();
 
-  y >= 3 ? y -= 4 : y > 1 ? y = 2 - y;
+  y = abs((((t0 + 0.75)|0) - t0) * 4 - 1) - 1;
 
-  // y += 4*dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 4/3 * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 4/3 * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 4/3 * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 4/3 * dt * sqr(p)*p; );
+  // y += poly_blamp(t1 - (t1|0), dt) * 4*dt;
+  (t1 -= t1|0) < dt ? (
+    p = t1/dt - 1;
+    y -= sqr(p)*p * 1.3333333333333333 * dt;
+  ) :
+  t1 > 1 - dt ? (
+    p = (t1 - 1) / dt + 1;
+    y += sqr(p)*p * 1.3333333333333333 * dt;
+  );
 
-  a * y;
+  // y -= poly_blamp(t2 - (t2|0), dt) * 4*dt;
+  (t2 -= t2|0) < dt ? (
+    p = t2/dt - 1;
+    y += sqr(p)*p * 1.3333333333333333 * dt;
+  ) :
+  t2 > 1 - dt ? (
+    p = (t2 - 1) / dt + 1;
+    y -= sqr(p)*p * 1.3333333333333333 * dt;
+  );
+
+  y * a;
 );
 
 // Modified triangle
 
 function poly_tri2()
   instance(dt, a)
-  local(pw, t1, t2, y, p)
+  local(pw, t1, t2)
 (
-  pw = max(0.0001, min(0.9999, this.pw));
-
-  t1 = this.t + 0.5*pw;
-  t2 = this.t - 0.5*pw + 1;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-
-  y = this.t * 2;
+  t2 = (t1 = (pw = min(max(0.0001, this.pw), 0.9999)) * 0.5 + this.t) - pw + 1;
   this.poly_inc();
 
-  y >= 2 - pw ? y = (y - 2) / pw : y >= pw ? y = 1 - (y - pw) / (1 - pw) : y = y / pw;
+  t1 -= t1|0;
 
-  // y += dt/(pw - sqr(pw)) * (poly_blamp(t1, dt) - poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 1/3 * dt/(pw - sqr(pw)) * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 1/3 * dt/(pw - sqr(pw)) * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 1/3 * dt/(pw - sqr(pw)) * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 1/3 * dt/(pw - sqr(pw)) * sqr(p)*p; );
+  ((poly_blamp(t1, dt)
+  - poly_blamp(t2 - (t2|0), dt)) / (pw - sqr(pw)) * dt
 
-  a * y;
+  + (t1 < pw ? t1 / pw : (t1 - pw) / (pw - 1) + 1) * 2 - 1
+
+  ) * a;
 );
 
 // Triangular pulse
 
 function poly_trip()
   instance(dt, a, pw)
-  local(t1, t2, t3, y, p)
+  local(t1, t2, t3)
 (
-  t1 = this.t + 0.5*pw + 0.75;
-  t2 = this.t + 0.75;
-  t3 = this.t - 0.5*pw + 0.75;
-
+  t2 = (t1 = (t3 = this.t + 0.75) + pw * 0.5) - pw;
   this.poly_inc();
 
   t1 -= t1|0;
-  t2 -= t2|0;
-  t3 -= t3|0;
 
-  t1 < pw ? (
-    y = 4*t1;
-    y >= 2*pw ? y = 4 - y/pw - pw : y = y/pw - pw;
-  ) : (
-    y = -pw;
-  );
+  ((poly_blamp(t3 - (t3|0), dt) * -2
+  + poly_blamp(t2 - (t2|0), dt)
+  + poly_blamp(t1, dt)) / pw * 2*dt
 
-  pw > 0 ? (
-    // y += 2*dt / pw * (poly_blamp(t1, dt) - 2 * poly_blamp(t2, dt) + poly_blamp(t3, dt));
-    t1 < dt ? ( p = 1 - t1/dt; y += 2/3 * dt/pw * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 2/3 * dt/pw * sqr(p)*p; );
-    t2 < dt ? ( p = 1 - t2/dt; y -= 4/3 * dt/pw * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 4/3 * dt/pw * sqr(p)*p; );
-    t3 < dt ? ( p = 1 - t3/dt; y += 2/3 * dt/pw * sqr(p)*p; ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += 2/3 * dt/pw * sqr(p)*p; );
-  );
+  + (t1 < pw ? 2 - abs(t1 * 4/pw - 2) : 0) - pw
 
-  a * y;
+  ) * a;
 );
 
 // Trapezoid
 
 function poly_trap()
   instance(dt, a)
-  local(t1, t2, t3, t4, y, p)
+  local(t0, t1, t2, t3, t4)
 (
-  t1 = this.t + 0.125;
-  t2 = this.t + 0.625;
-  t3 = this.t + 0.375;
-  t4 = this.t + 0.875;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-  t3 -= t3|0;
-  t4 -= t4|0;
-
-  y = this.t * 4;
-  y >= 3 ? y -= 4 : y > 1 ? y = 2 - y;
-
+  t4 = (t2 = (t3 = (t1 = (t0 = this.t) + 0.125) + 0.25) + 0.25) + 0.25;
   this.poly_inc();
 
-  y = max(-1, min(1, 2*y));
+  (min(max(-1, (abs((((t0 + 0.75)|0) - t0) * -4 + 1) - 1) * 2), 1)
 
-  // y += 4*dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt) + poly_blamp(t3, dt) - poly_blamp(t4, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 4/3 * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 4/3 * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 4/3 * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 4/3 * dt * sqr(p)*p; );
-  t3 < dt ? ( p = 1 - t3/dt; y += 4/3 * dt * sqr(p)*p; ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += 4/3 * dt * sqr(p)*p; );
-  t4 < dt ? ( p = 1 - t4/dt; y -= 4/3 * dt * sqr(p)*p; ) : t4 > 1 - dt ? ( p = 1 - (1 - t4)/dt; y -= 4/3 * dt * sqr(p)*p; );
+  + (poly_blamp(t1 - (t1|0), dt)
+  -  poly_blamp(t2 - (t2|0), dt)
+  +  poly_blamp(t3 - (t3|0), dt)
+  -  poly_blamp(t4 - (t4|0), dt)) * 4*dt
 
-  a * y;
+  ) * a;
 );
 
 function poly_trap2()
   instance(dt, a)
-  local(pw, t1, t2, t3, t4, y, p, scale)
+  local(pw, scale, t0, t1, t2, t3, t4)
 (
   pw = min(0.9999, this.pw);
 
-  t1 = this.t - 0.25*pw + 0.25;
-  t2 = this.t - 0.25*pw + 0.75;
-  t3 = this.t + 0.25*pw + 0.25;
-  t4 = this.t + 0.25*pw + 0.75;
-
-  t1 -= t1|0;
-  t2 -= t2|0;
-  t3 -= t3|0;
-  t4 -= t4|0;
-
-  y = this.t * 4;
-  y >= 3 ? y -= 4 : y > 1 ? y = 2 - y;
-
+  t4 = (t3 = (t2 = (t1 = (t0 = this.t) + pw * 0.25 + 0.25) + 0.5) - pw * 0.5) + 0.5;
   this.poly_inc();
 
-  scale = 1/(1 - pw);
-  y = max(-1, min(1, scale * y));
+  (min(max(-1, (abs((((t0 + 0.75)|0) - t0) * 4 - 1) - 1) * (scale = 1 / (1 - pw))), 1)
 
-  // y += scale * 2*dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt) + poly_blamp(t3, dt) - poly_blamp(t4, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 2/3 * scale * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 2/3 * scale * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 2/3 * scale * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 2/3 * scale * dt * sqr(p)*p; );
-  t3 < dt ? ( p = 1 - t3/dt; y += 2/3 * scale * dt * sqr(p)*p; ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += 2/3 * scale * dt * sqr(p)*p; );
-  t4 < dt ? ( p = 1 - t4/dt; y -= 2/3 * scale * dt * sqr(p)*p; ) : t4 > 1 - dt ? ( p = 1 - (1 - t4)/dt; y -= 2/3 * scale * dt * sqr(p)*p; );
+  + (poly_blamp(t1 - (t1|0), dt)
+  -  poly_blamp(t2 - (t2|0), dt)
+  -  poly_blamp(t3 - (t3|0), dt)
+  +  poly_blamp(t4 - (t4|0), dt)) * scale * 2*dt
 
-  a * y;
+  ) * a;
 );
 
 // Square
 
 function poly_sqr()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t1, t2, y)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t2 = (t1 = this.t) + 0.5;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 1 : y = -1;
+  y = (t1 < 0.5) * 2 - 1;
 
-  // y += poly_blep(t1, dt) - poly_blep(t2, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= sqr(p); );
+  // y += poly_blep(t1, dt);
+  t1 < dt ? y -= sqr(t1/dt - 1) : t1 > 1 - dt ? y += sqr((t1 - 1) / dt + 1);
 
-  a * y;
+  // y -= poly_blep(t2 - (t2|0), dt);
+  (t2 -= t2|0) < dt ? y += sqr(t2/dt - 1) : t2 > 1 - dt ? y -= sqr((t2 - 1) / dt + 1);
+
+  y * a;
 );
 
 // Low-pass filtered square approximations
@@ -669,168 +603,214 @@ function poly_lpsqr2()
   instance(dt, a)
   local(t1, t2, y, p)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t2 = (t1 = this.t) + 0.5;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 1 - 2 * sqr(1 - 2*t1) : y = 2 * sqr(2 - 2*t1) - 1;
+  y = (t1 < 0.5 ? 0.5 - sqr(t1 * 2 - 1) : sqr((1 - t1) * 2) - 0.5) * 2;
 
-  // y += 4*dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 4/3 * dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 4/3 * dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 4/3 * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 4/3 * dt * sqr(p)*p; );
+  // y += poly_blamp(t1, dt) * 4*dt;
+  t1 < dt ? (
+    p = t1/dt - 1;
+    y -= sqr(p)*p * 1.3333333333333333 * dt;
+  ) :
+  t1 > 1 - dt ? (
+    p = (t1 - 1) / dt + 1;
+    y += sqr(p)*p * 1.3333333333333333 * dt;
+  );
 
-  a * y;
+  // y -= poly_blamp(t2 - (t2|0), dt) * 4*dt;
+  (t2 -= t2|0) < dt ? (
+    p = t2/dt - 1;
+    y += sqr(p)*p * 1.3333333333333333 * dt;
+  ) :
+  t2 > 1 - dt ? (
+    p = (t2 - 1) / dt + 1;
+    y -= sqr(p)*p * 1.3333333333333333 * dt;
+  );
+
+  y * a;
 );
 
 function poly_lpsqr3()
   instance(dt, a)
   local(t1, t2, y, p)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t2 = (t1 = this.t) + 0.5;
   this.poly_inc();
 
-  t1 < 0.5 ? ( p = 1 - 2*t1; y = 1 - 2 * sqr(p)*p; ) : ( p = 2 - 2*t1; y = 2 * sqr(p)*p - 1; );
+  t1 < 0.5 ? (
+    p = t1 * 2 - 1;
+    y = sqr(p)*p * 2 + 1;
+  ) : (
+    p = (1 - t1) * 2;
+    y = sqr(p)*p * 2 - 1;
+  );
 
-  // y += 6*dt * (poly_blamp(t1, dt) - poly_blamp(t2, dt));
-  t1 < dt ? ( p = 1 - t1/dt; y += 2*dt * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 2*dt * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= 2*dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 2*dt * sqr(p)*p; );
+  // y += poly_blamp(t1, dt) * 6*dt;
+  t1 < dt ? (
+    p = t1/dt - 1;
+    y -= sqr(p)*p * 2*dt;
+  ) :
+  t1 > 1 - dt ? (
+    p = (t1 - 1) / dt + 1;
+    y += sqr(p)*p * 2*dt;
+  );
 
-  a * y;
+  // y -= poly_blamp(t2 - (t2|0), dt) * 6*dt;
+  (t2 -= t2|0) < dt ? (
+    p = t2/dt - 1;
+    y += sqr(p)*p * 2*dt;
+  ) :
+  t2 > 1 - dt ? (
+    p = (t2 - 1) / dt + 1;
+    y -= sqr(p)*p * 2*dt;
+  );
+
+  y * a;
 );
 
 // Modified square
 
 function poly_sqr2()
   instance(dt, a, pw)
-  local(t1, t2, t3, t4, y, p)
+  local(t1, t2, t3, t4)
 (
-  t1 = this.t + 0.25*pw + 0.75;
-  t2 = this.t + 0.25*pw + 0.25;
-  t3 = this.t - 0.25*pw + 0.25;
-  t4 = this.t - 0.25*pw + 0.75;
-
+  t4 = (t3 = (t2 = (t1 = pw * 0.25 + this.t + 0.75) - 0.5) - pw * 0.5) + 0.5;
   this.poly_inc();
 
   t1 -= t1|0;
-  t2 -= t2|0;
   t3 -= t3|0;
-  t4 -= t4|0;
 
-  t1 < 0.5 ? y = 1 : y = -1;
-  t3 < 0.5 ? y += 1 : y += -1;
+  ((poly_blep(t1, dt)
+  - poly_blep(t2 - (t2|0), dt)
+  + poly_blep(t3, dt)
+  - poly_blep(t4 - (t4|0), dt)) * 0.5
 
-  // y += poly_blep(t1, dt) - poly_blep(t2, dt) + poly_blep(t3, dt) - poly_blep(t4, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= sqr(p); );
-  t3 < dt ? ( p = 1 - t3/dt; y -= sqr(p); ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y += sqr(p); );
-  t4 < dt ? ( p = 1 - t4/dt; y += sqr(p); ) : t4 > 1 - dt ? ( p = 1 - (1 - t4)/dt; y -= sqr(p); );
+  + (t1 < 0.5) + (t3 < 0.5) - 1
 
-  a * 0.5*y;
+  ) * a;
 );
 
 // Rectangle
 
 function poly_rect()
   instance(dt, a, pw)
-  local(t1, t2, y, p)
+  local(t1, t2, y)
 (
-  t1 = this.t;
-
-  t2 = this.t + 1 - pw;
-  t2 -= t2|0;
-
+  t2 = (t1 = this.t) - pw + 1;
   this.poly_inc();
 
-  y = -2*pw; t1 < pw ? y += 2;
+  y = ((t1 < pw) - pw) * 2;
 
-  // y += poly_blep(t1, dt) - poly_blep(t2, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= sqr(p); );
+  // y += poly_blep(t1, dt);
+  t1 < dt ? y -= sqr(t1/dt - 1) : t1 > 1 - dt ? y += sqr((t1 - 1) / dt + 1);
 
-  a * y;
+  // y -= poly_blep(t2 - (t2|0), dt);
+  (t2 -= t2|0) < dt ? y += sqr(t2/dt - 1) : t2 > 1 - dt ? y -= sqr((t2 - 1) / dt + 1);
+
+  y * a;
 );
 
 // Sawtooth
 
 function poly_saw()
   instance(dt, a)
-  local(t, y)
+  local(t)
 (
   t = this.t + 0.5;
-  t -= t|0;
-
   this.poly_inc();
 
-  y = 2*t - 1;
+  t -= t|0;
 
-  // y -= poly_blep(t, dt);
-  t < dt ? ( t = 1 - t/dt; y += sqr(t); ) : t > 1 - dt ? ( t = 1 - (1 - t)/dt; y -= sqr(t); );
+  (-poly_blep(t, dt)
+  + t * 2 - 1
 
-  a * y;
+  ) * a;
 );
 
 // Ramp
 
 function poly_ramp()
   instance(dt, a)
-  local(t, y)
+  local(t)
 (
   t = this.t;
   this.poly_inc();
 
-  y = 1 - 2*t;
+  (poly_blep(t, dt)
+  + t * -2 + 1
 
-  // y += poly_blep(t, dt);
-  t < dt ? ( t = 1 - t/dt; y -= sqr(t); ) : t > 1 - dt ? ( t = 1 - (1 - t)/dt; y += sqr(t); );
-
-  a * y;
+  ) * a;
 );
 
 // Integrated sawtooth
 
 function poly_intsaw()
   instance(dt, a)
-  local(t1, t2, y, p)
+  local(t)
 (
-  t1 = this.t;
-
-  t2 = this.t + 0.5;
-  t2 -= t2|0;
-
+  t = this.t;
   this.poly_inc();
 
-  t1 < 0.5 ? y = 8*sqr(t1) - 2/3 : y = (8*t1 - 16)*t1 + 22/3;
+  (poly_blamp(t + 0.5 - ((t + 0.5)|0), dt) * dt
+  - ((t * -2 + 1) * (t >= 0.5) + sqr(t) - /* 1/12 */ 0.083333333333333333)
 
-  // y -= 8*dt * poly_blamp(t2, dt);
-  t2 < dt ? ( p = 1 - t2/dt; y -= 8/3 * dt * sqr(p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 8/3 * dt * sqr(p)*p; );
+  ) * -8 * a;
+);
 
-  a * y;
+// Cubic sawtooth
+
+function poly_cubsaw()
+  instance(dt, a)
+  local(t0, t1)
+(
+  t0 = ((t1 = this.t + 0.5) >= 1) - t1 + 0.5;
+  this.poly_inc();
+
+  (poly_bluh(t1 - (t1|0), dt) * sqr(dt) * 0.0625
+  + (sqr(t0) - 0.25)*t0
+
+  ) * /* 12*sqrt(3) */ 20.784609690826528 * a;
+);
+
+// Sine sawtooth
+
+function poly_sinsaw()
+  instance(dt, a)
+  local(t)
+(
+  t = this.t;
+  this.poly_inc();
+
+  (poly_blep(t, dt)
+  + sin((0.5 - t) * $pi)
+
+  ) * a;
 );
 
 // High-pass filtered sawtooth approximation
 
 function poly_hpsaw6()
   instance(dt, a)
-  local(t, y)
+  local(t, y, p)
 (
   t = 1.5 - this.t;
-  t -= t|0;
-
   this.poly_inc();
 
-  y = sqr(sqr(t)*t) * -2 + 2/7;
+  t -= t|0;
+  y = sqr(sqr(t)*t) * -2 + /* 2/7 */ 0.28571428571428571;
 
-  // y += poly_blep(t, dt) + 6*dt * poly_blamp(t, dt);
-  t < dt ? ( t = 1 - t/dt; y += (2*dt * sqr(t) - t)*t; ) : t > 1 - dt ? ( t = 1 - (1 - t)/dt; y += (2*dt * sqr(t) + t)*t; );
+  // y += poly_blep(t, dt) + poly_blamp(t, dt) * 6*dt;
+  t < dt ? (
+    p = t/dt - 1;
+    y -= (sqr(p) * 2*dt + p)*p;
+  ) :
+  t > 1 - dt ? (
+    p = (t - 1) / dt + 1;
+    y += (sqr(p) * 2*dt + p)*p;
+  );
 
-  a * y;
+  y * a;
 );
 
 // Half-wave rectified sawtooth
@@ -839,21 +819,32 @@ function poly_hwsaw()
   instance(dt, a, pw)
   local(t1, t2, y, p)
 (
-  t1 = this.t + pw + 0.5;
-  t2 = this.t + 0.5;
-
+  t1 = (t2 = this.t + 0.5) + pw;
   this.poly_inc();
 
-  t1 -= t1|0;
-  t2 -= t2|0;
+  y = ((t1 -= t1|0) < pw ? t1 * 2/pw : 0) - pw;
 
-  t1 < pw ? y = 2*t1/pw - pw : y = -pw;
+  // y += poly_blamp(t1, dt) / pw * dt;
+  t1 < dt ? (
+    p = t1/dt - 1;
+    y -= sqr(p)*p / (pw * 3) * dt;
+  ) :
+  t1 > 1 - dt ? (
+    p = (t1 - 1) / dt + 1;
+    y += sqr(p)*p / (pw * 3) * dt;
+  );
 
-  // y += dt/pw * (poly_blamp(t1, dt) - poly_blamp(t2, dt)) - poly_blep(t2, dt);
-  t1 < dt ? ( p = 1 - t1/dt; y += 1/3 * dt/pw * sqr(p)*p; ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += 1/3 * dt/pw * sqr(p)*p; );
-  t2 < dt ? ( p = 1 - t2/dt; y -= (1/3 * dt/pw * sqr(p) - p)*p; ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= (1/3 * dt/pw * sqr(p) + p)*p; );
+  // y -= poly_blamp(t2 - (t2|0), dt) / pw * dt + poly_blep(t2 - (t2|0), dt);
+  (t2 -= t2|0) < dt ? (
+    p = t2/dt - 1;
+    y += (sqr(p) / (pw * 3) * dt + p)*p;
+  ) :
+  t2 > 1 - dt ? (
+    p = (t2 - 1) / dt + 1;
+    y -= (sqr(p) / (pw * 3) * dt + p)*p;
+  );
 
-  a * y;
+  y * a;
 );
 
 // Logit approximation
@@ -863,95 +854,87 @@ function poly_logit3()
   local(t, y)
 (
   t = this.t + 0.5;
-  t -= t|0;
-
   this.poly_inc();
 
-  y = ((8*t - 12)*t + 6)*t - 1;
+  t -= t|0;
+  y = ((t * 8 - 12)*t + 6)*t - 1;
 
   // y -= poly_blep(t, dt);
-  t < dt ? ( t = 1 - t/dt; y += sqr(t); ) : t > 1 - dt ? ( t = 1 - (1 - t)/dt; y -= sqr(t); );
+  t < dt ? y += sqr(t/dt - 1) : t > 1 - dt ? y -= sqr((t - 1) / dt + 1);
 
-  a * y;
+  y * a;
 );
 
 // Staircase
 
 function poly_stairs()
   instance(dt, a)
-  local(t1, t2, t3, t4, y, p)
+  local(t1, t2, t3, t4, y)
 (
-  t1 = this.t;
-  t2 = this.t + 0.75;
-  t3 = this.t + 0.5;
-  t4 = this.t + 0.25;
-
+  t4 = (t3 = (t2 = (t1 = this.t) + 0.25) + 0.25) + 0.25;
   this.poly_inc();
 
-  t2 -= t2|0;
-  t3 -= t3|0;
-  t4 -= t4|0;
+  y = ((t1 * 4)|0) * /* -2/3 */ -0.66666666666666667 + 1;
 
-  t1 < 0.25 ? y = 1 : t1 < 0.5 ? y = 1/3 : t1 < 0.75 ? y = -1/3 : y = -1;
+  // y += poly_blep(t1, dt);
+  t1 < dt ? y -= sqr(t1/dt - 1) : t1 > 1 - dt ? y += sqr((t1 - 1) / dt + 1);
 
-  // y += poly_blep(t1, dt) - (poly_blep(t2, dt) + poly_blep(t3, dt) + poly_blep(t4, dt)) * 1/3;
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += 1/3 * sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 1/3 * sqr(p); );
-  t3 < dt ? ( p = 1 - t3/dt; y += 1/3 * sqr(p); ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y -= 1/3 * sqr(p); );
-  t4 < dt ? ( p = 1 - t4/dt; y += 1/3 * sqr(p); ) : t4 > 1 - dt ? ( p = 1 - (1 - t4)/dt; y -= 1/3 * sqr(p); );
+  // y -= poly_blep(t2 - (t2|0), dt) * 1/3;
+  (t2 -= t2|0) < dt ? y += sqr(t2/dt - 1) * 0.33333333333333333 : t2 > 1 - dt ? y -= sqr((t2 - 1) / dt + 1) * 0.33333333333333333;
+  // y -= poly_blep(t3 - (t3|0), dt) * 1/3;
+  (t3 -= t3|0) < dt ? y += sqr(t3/dt - 1) * 0.33333333333333333 : t3 > 1 - dt ? y -= sqr((t3 - 1) / dt + 1) * 0.33333333333333333;
+  // y -= poly_blep(t4 - (t4|0), dt) * 1/3;
+  (t4 -= t4|0) < dt ? y += sqr(t4/dt - 1) * 0.33333333333333333 : t4 > 1 - dt ? y -= sqr((t4 - 1) / dt + 1) * 0.33333333333333333;
 
-  a * y;
+  y * a;
 );
 
 function poly_stairs3()
   instance(dt, a, pw)
-  local(t1, t2, t3, t4, y, p)
+  local(t1, t2, t3, t4, y)
 (
-  t1 = this.t;
-  t2 = this.t - 0.5*pw + 1;
-  t3 = this.t + 0.5;
-  t4 = this.t - 0.5*pw + 0.5;
-
+  t4 = (t3 = (t2 = (t1 = this.t) + 0.5) - pw * 0.5) + 0.5;
   this.poly_inc();
 
-  t2 -= t2|0;
-  t3 -= t3|0;
-  t4 -= t4|0;
+  y = (t1 < 0.5 ? (
+    t1 * 2 < pw ? 1 : /* 1/3 */ 0.33333333333333333;
+  ) : (
+    t1 * 2 - 1 < pw ? /* -1/3 */ -0.33333333333333333 : -1;
+  )) - pw * /* 2/3 */ 0.66666666666666667 + /* 1/3 */ 0.33333333333333333;
 
-  2*t1 < pw ? y = -2/3*pw + 4/3 : t1 < 0.5 ? y = -2/3*pw + 2/3 : 2*t1 < pw + 1 ? y = -2/3*pw : y = -2/3*pw - 2/3;
+  // y += poly_blep(t1, dt);
+  t1 < dt ? y -= sqr(t1/dt - 1) : t1 > 1 - dt ? y += sqr((t1 - 1) / dt + 1);
 
-  // y += poly_blep(t1, dt) - (poly_blep(t2, dt) + poly_blep(t3, dt) + poly_blep(t4, dt)) * 1/3;
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += 1/3 * sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 1/3 * sqr(p); );
-  t3 < dt ? ( p = 1 - t3/dt; y += 1/3 * sqr(p); ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y -= 1/3 * sqr(p); );
-  t4 < dt ? ( p = 1 - t4/dt; y += 1/3 * sqr(p); ) : t4 > 1 - dt ? ( p = 1 - (1 - t4)/dt; y -= 1/3 * sqr(p); );
+  // y -= poly_blep(t2 - (t2|0), dt) * 1/3;
+  (t2 -= t2|0) < dt ? y += sqr(t2/dt - 1) * 0.33333333333333333 : t2 > 1 - dt ? y -= sqr((t2 - 1) / dt + 1) * 0.33333333333333333;
+  // y -= poly_blep(t3 - (t3|0), dt) * 1/3;
+  (t3 -= t3|0) < dt ? y += sqr(t3/dt - 1) * 0.33333333333333333 : t3 > 1 - dt ? y -= sqr((t3 - 1) / dt + 1) * 0.33333333333333333;
+  // y -= poly_blep(t4 - (t4|0), dt) * 1/3;
+  (t4 -= t4|0) < dt ? y += sqr(t4/dt - 1) * 0.33333333333333333 : t4 > 1 - dt ? y -= sqr((t4 - 1) / dt + 1) * 0.33333333333333333;
 
-  a * y;
+  y * a;
 );
 
 // Uneven staircase
 
 function poly_stairs2()
   instance(dt, a, pw)
-  local(t1, t2, t3, y, p)
+  local(t1, t2, t3, y)
 (
-  t1 = this.t;
-  t2 = this.t - 0.5*pw + 1;
-  t3 = this.t - 0.5*pw + 0.5;
-
+  t3 = (t2 = (t1 = this.t) - pw * 0.5 + 0.5) + 0.5;
   this.poly_inc();
 
-  t2 -= t2|0;
-  t3 -= t3|0;
+  y = (t1 * 2 - 1 < pw ? (t1 * 2 < pw) : -1) - pw + 0.5;
 
-  2*t1 < pw ? y = 1.5 - pw : 2*t1 < 1 + pw ? y = 0.5 - pw : y = -0.5 - pw;
+  // y += poly_blep(t1, dt);
+  t1 < dt ? y -= sqr(t1/dt - 1) : t1 > 1 - dt ? y += sqr((t1 - 1) / dt + 1);
 
-  // y += poly_blep(t1, dt) - (poly_blep(t2, dt) + poly_blep(t3, dt)) * 0.5;
-  t1 < dt ? ( p = 1 - t1/dt; y -= sqr(p); ) : t1 > 1 - dt ? ( p = 1 - (1 - t1)/dt; y += sqr(p); );
-  t2 < dt ? ( p = 1 - t2/dt; y += 0.5 * sqr(p); ) : t2 > 1 - dt ? ( p = 1 - (1 - t2)/dt; y -= 0.5 * sqr(p); );
-  t3 < dt ? ( p = 1 - t3/dt; y += 0.5 * sqr(p); ) : t3 > 1 - dt ? ( p = 1 - (1 - t3)/dt; y -= 0.5 * sqr(p); );
+  // y -= poly_blep(t2 - (t2|0), dt) * 0.5;
+  (t2 -= t2|0) < dt ? y += sqr(t2/dt - 1) * 0.5 : t2 > 1 - dt ? y -= sqr((t2 - 1) / dt + 1) * 0.5;
+  // y -= poly_blep(t3 - (t3|0), dt) * 0.5;
+  (t3 -= t3|0) < dt ? y += sqr(t3/dt - 1) * 0.5 : t3 > 1 - dt ? y -= sqr((t3 - 1) / dt + 1) * 0.5;
 
-  a * y;
+  y * a;
 );
 
 // Hammond 88 8000 000
@@ -961,16 +944,18 @@ function poly_ham()
   local(t)
 (
   dt < dt2 || dt > dt2 ? (
-    dt2 = dt;
-    a2 = _poly_setdt(2*dt);
-    a3 = _poly_setdt(3*dt);
+    // a2 = _poly_setdt((dt2 = dt) * 2);
+    (dt2 = dt) <= 0.1 ? a2 = 1 : a2 = 1 - sqr((min(dt, 0.125) - 0.1) * 40);
+
+    // a3 = _poly_setdt(dt * 3);
+    dt <= 0.066666666666666667 ? a3 = 1 : a3 = 1 - sqr((min(dt, 0.083333333333333333) - 0.066666666666666667) * 60);
   );
 
-  t = this.t;
+  t = this.t * /* 2*$pi */ 6.2831853071795865;
   this.poly_inc();
 
-  0.4 // Approximation
-  * (a * sin(2*$pi * t) + a2 * sin(4*$pi * t) + a3 * sin(6*$pi * t));
+  (sin(t) * a + sin(t * 2) * a2 + sin(t * 3) * a3) *
+  0.4; // Approximation
 );
 
 // Deprecated
@@ -984,3 +969,10 @@ function poly_init_tri2() ( 0 );
 function poly_init_half() ( 0 );
 function poly_init_trap() ( 0 );
 function poly_init_trip() ( 0 );
+
+function poly_blurve(t, dt) ( poly_bluh(t, dt) );
+
+// Silly :-p
+
+function poly_bleh(t, dt) ( poly_blep(t, dt) );
+function poly_blah(t, dt) ( poly_blamp(t, dt) );

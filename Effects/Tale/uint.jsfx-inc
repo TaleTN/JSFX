@@ -1,6 +1,6 @@
 desc:Low-level 32/64-bit unsigned integer operations
 
-// Copyright (C) 2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2017-2019 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -40,9 +40,13 @@ desc:Low-level 32/64-bit unsigned integer operations
     * rol32(x, n) -- Rotate left
     * ror32(x, n) -- Rotate right
     * neg32(x)    -- Two's complement negation
+    * abs32(x)    -- Absolute value
     * add32(x, y) -- Add
     * sub32(x, y) -- Subtract
     * mul32(x, y) -- Multiply
+    * int32(x)    -- Convert from unsigned to signed
+    * uint32(x)   -- Convert from signed to unsigned
+    * ftoi32(x)   -- Convert from floating point to unsigned
       Example: y = add32(x, y); // y = x + y
       Both x and y should be unsigned 32-bit integers; n should be an
       integer in the [0..31] range. Returns an unsigned 32-bit integer.
@@ -59,6 +63,7 @@ desc:Low-level 32/64-bit unsigned integer operations
     * rol64(x*, n)  -- Rotate left
     * ror64(x*, n)  -- Rotate right
     * neg64(x*)     -- Two's complement negation
+    * abs64(x*)     -- Absolute value
     * add64(x*, y*) -- Add
     * sub64(x*, y*) -- Subtract
     * mul64(x*, y*) -- Multiply
@@ -123,6 +128,11 @@ function neg32(x)
   x ? 4294967296 - x : 0;
 );
 
+function abs32(x)
+(
+  x >= 2147483648 ? 4294967296 - x : x;
+);
+
 function add32(x, y)
 (
   (x += y) >= 4294967296 ? x - 4294967296 : x;
@@ -142,6 +152,25 @@ function mul32(x, y)
   y = ((((y / 65536)|0)*a + ((x / 65536)|0)*b) & 0xFFFF)*65536 + a*b;
 
   y >= 4294967296 ? y - 4294967296 : y;
+);
+
+function int32(x)
+(
+  x >= 2147483648 ? x - 4294967296 : x;
+);
+
+function uint32(x)
+(
+  x < 0 ? x + 4294967296 : x;
+);
+
+function ftoi32(x)
+(
+  x <= -1 ? (
+    (min(max(-2147483648, x), -1)|0) + 4294967296;
+  ) : (
+    min(max(0, x), 4294967295)|0;
+  );
 );
 
 function and64(x*, y*)
@@ -297,6 +326,22 @@ function neg64(x*)
   hw >= 4294967296 ? hw -= 4294967296;
 
   lw;
+);
+
+function abs64(x*)
+  instance(hw, lw)
+(
+  x.hw >= 2147483648 ? (
+    hw = 4294967295 - x.hw;
+    lw = 4294967296 - x.lw;
+
+    lw >= 4294967296 ? ( lw -= 4294967296; hw += 1; );
+
+    lw;
+  ) : (
+    hw = x.hw;
+    lw = x.lw;
+  );
 );
 
 function add64(x*, y*)

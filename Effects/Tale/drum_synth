@@ -2,7 +2,7 @@ desc:Simple drum synth
 //tags: generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2017 Theo Niessink
+// Copyright (C) 2014-2019 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This electronic drum synth supports the following General MIDI (GM)
@@ -123,48 +123,51 @@ import Tale/rbj_filter.jsfx-inc
 
 @init
 
+gfx_ext_retina = ext_noinit = 1;
 gfx_clear = -1;
-gfx_ext_retina = 1;
 
 // memset(gui_default = 0, 0, 25);
-// Volume                Pan
-gui_default[ 3] =  -6.0;                        // BD
-gui_default[ 9] = -18.0; gui_default[10] =  33; // HH
-gui_default[11] =  -6.0; gui_default[12] = -50; // LT
-gui_default[13] =  -6.0; gui_default[14] = -10; // MT
-gui_default[15] =  -6.0; gui_default[16] =  25; // HT
-gui_default[17] = -18.0; gui_default[18] = -33; // RD
-gui_default[19] = -18.0; gui_default[20] =  20; // CY
-gui_default[21] = -12.0;                        // TB
-gui_default[23] =  -6.0;                        // CB
+// Volume        Pan
+0[ 3] =  -6.0;                // BD
+0[ 9] = -18.0;   0[10] =  33; // HH
+0[11] =  -6.0;   0[12] = -50; // LT
+0[13] =  -6.0;   0[14] = -10; // MT
+0[15] =  -6.0;   0[16] =  25; // HT
+0[17] = -18.0;   0[18] = -33; // RD
+0[19] = -18.0;   0[20] =  20; // CY
+0[21] = -12.0;                // TB
+0[23] =  -6.0;                // CB
 
 gui_pad = /* gui_default + */ 25;
-// Right-Click    Alt-Click         Left-Click        Label
-gui_pad[ 0] =     gui_pad[ 1] = 35; gui_pad[ 2] = 36; gui_pad[ 4] = "BD";
-gui_pad[ 5] =     gui_pad[ 6] =     gui_pad[ 7] = 37; gui_pad[ 9] = "RS";
-gui_pad[10] =     gui_pad[11] = 40; gui_pad[12] = 38; gui_pad[14] = "SD";
-gui_pad[15] = 46; gui_pad[16] = 44; gui_pad[17] = 42; gui_pad[19] = "HH";
-gui_pad[20] =     gui_pad[21] =     gui_pad[22] = 41; gui_pad[24] = "LT";
-gui_pad[25] =     gui_pad[26] =     gui_pad[27] = 45; gui_pad[29] = "MT";
-gui_pad[30] =     gui_pad[31] =     gui_pad[32] = 48; gui_pad[34] = "HT";
-gui_pad[35] =     gui_pad[36] = 53; gui_pad[37] = 51; gui_pad[39] = "RD";
-gui_pad[40] =     gui_pad[41] =     gui_pad[42] = 49; gui_pad[44] = "CY";
-gui_pad[45] =     gui_pad[46] = 82; gui_pad[47] = 54; gui_pad[49] = "TB";
-gui_pad[50] =     gui_pad[51] = 31; gui_pad[52] = 56; gui_pad[54] = "CB";
+// Right-Click   Alt-Click      Left-Click     Label
+25[ 0] =         25[ 1] = 35;   25[ 2] = 36;   25[ 4] = "BD";
+25[ 5] =         25[ 6] =       25[ 7] = 37;   25[ 9] = "RS";
+25[10] =         25[11] = 40;   25[12] = 38;   25[14] = "SD";
+25[15] = 46;     25[16] = 44;   25[17] = 42;   25[19] = "HH";
+25[20] =         25[21] =       25[22] = 41;   25[24] = "LT";
+25[25] =         25[26] =       25[27] = 45;   25[29] = "MT";
+25[30] =         25[31] =       25[32] = 48;   25[34] = "HT";
+25[35] =         25[36] = 53;   25[37] = 51;   25[39] = "RD";
+25[40] =         25[41] =       25[42] = 49;   25[44] = "CY";
+25[45] =         25[46] = 82;   25[47] = 54;   25[49] = "TB";
+25[50] =         25[51] = 31;   25[52] = 56;   25[54] = "CB";
 
 noise_gain = sqrt(srate * 1/44100);
 
 function gain(db, inf)
 (
-  db <= inf ? 0 : exp(/* log(10)/20 */ 0.11512925464970228 * db);
+  db > inf ? exp(db * /* log(10)/20 */ 0.11512925464970228); // 0 otherwise
 );
 
 function tanh(x)
   local(x2)
 (
-  x2 = x*x;
-  max(-1, min(1, (((x2 + 378)*x2 + 17325)*x2 + 135135)*x / (((28*x2 + 3150)*x2 + 62370)*x2 + 135135)));
+  x2 = sqr(x);
+  min(max(-1, (((x2 + 378)*x2 + 17325)*x2 + 135135)*x / (((28*x2 + 3150)*x2 + 62370)*x2 + 135135)), 1);
 );
+
+drive_dc = 0.05;
+drive_tanh = /* tanh(drive_dc) */ 0.049958291803755903;
 
 function pan(gain, pos)
   // global(multich, vol)
@@ -178,30 +181,14 @@ function pan(gain, pos)
     ch = 0;
   );
 
-  gain = vol * gain(gain, -36.0);
-  pos = multich >= 0 ? pos * 0.01 : 0;
+  gain1 = gain0 = gain(gain, -36.0) * vol;
 
-  pos == 0 ? (
-    gain0 = gain1 = gain;
-  ) :
-  pos <= -1 ? (
-    gain0 = gain;
-    gain1 = 0;
-  ) :
-  pos >= 1 ? (
-    gain0 = 0;
-    gain1 = gain;
-  ) : (
-    pos *= 0.25*$pi;
-    gain *= /* sqrt(2) */ 1.4142135623730950 - (1 / cos(pos) - 1);
-
-    pos += 0.25*$pi;
-    gain0 = cos(pos) * gain;
-    gain1 = sin(pos) * gain;
+  multich >= 0 ? (
+    pos = min(max(-1, pos * 0.01), 1);
+    gain0 *= ((pos * /* (0.25*$pi - 0.5) */  0.28539816339744831 - 0.5) * pos - /* 0.25*$pi */ 0.78539816339744831) * pos + 1;
+    gain1 *= ((pos * /* (0.5 - 0.25*$pi) */ -0.28539816339744831 - 0.5) * pos + /* 0.25*$pi */ 0.78539816339744831) * pos + 1;
   );
 );
-
-drive_tanh = tanh(drive_dc = 0.05);
 
 function sample(out)
   // global(drive, drive_dc, drive_tanh, spl0, spl1)
@@ -220,8 +207,8 @@ function sample(out)
 
 // Bass Drum
 
-bd.env.adsr_setd(0);
-bd.env.adsr_sets(1);
+bd.env.d = 1; // adsr_setd(0)
+bd.env.s = 1;
 
 bd.lp.a = bd.lp2.rc_setf(90);
 
@@ -254,7 +241,8 @@ function bd(note, vel)
     );
 
     note == 35 ? (
-      lp.lp = lp2.lp = 0;
+      lp.lp = 0;
+      lp2.lp = 0;
       vel *= 2/3;
     );
     env.adsr_a(vel * 1/127);
@@ -271,7 +259,7 @@ function bd()
 
     out = osc.sin_sin();
     note == 35 ? out += lp2.rc_lp(lp.rc_lp(noise));
-    env.env * out;
+    out * env.env;
   );
 );
 
@@ -279,7 +267,7 @@ function bd()
 
 sd.env.adsr_seta(0.005);
 sd.env.adsr_setd(0.025);
-sd.env.adsr_sets(0.5);
+sd.env.s = 0.5;
 sd.env.adsr_setr(0.350);
 
 sd.lp.rc_setf(200);
@@ -288,9 +276,8 @@ function sd(note, vel)
   instance(env, lp, dry)
 (
   note == 38 || note == 40 ? (
-    dry =
-    note == 38 ? 0.045 : // Snare Drum 1
-    /* note == 40 ? */ 0.1; // Snare Drum 2
+    note == 38 ? dry = 0.045 : // Snare Drum 1
+    /* note == 40 ? */ dry = 0.1; // Snare Drum 2
 
     lp.lp = 0;
     env.adsr_a(vel * 1/127);
@@ -306,16 +293,16 @@ function sd()
     env.state == 4 ? env.adsr_r();
 
     out = env.env * noise;
-    lp.rc_lp(out) + dry * out;
+    lp.rc_lp(out) + out * dry;
   );
 );
 
 // Side Stick/Rimshot
 
-rs.env.adsr_seta(0);
+rs.env.a = 1; // adsr_seta(0)
 rs.env.adsr_setd(0.100);
-rs.env.adsr_sets(0);
-rs.env.adsr_setr(0);
+rs.env.s = 0;
+rs.env.r = 1; // adsr_setr(0)
 
 rs.hp.rc_setf(1000);
 rs.lp.rc_setf(1500);
@@ -324,7 +311,8 @@ function rs(note, vel)
   instance(env, hp, lp)
 (
   note == 37 ? (
-    hp.lp = lp.lp = 0;
+    hp.lp = 0;
+    lp.lp = 0;
     env.adsr_a(vel * 1/127);
   );
 );
@@ -341,38 +329,36 @@ function rs()
 
 // Hi-hat
 
-hh.env.adsr_seta(0);
+hh.env.a = 1; // adsr_seta(0)
 hh.hp.rc_setf(6000);
 
 function hh(note, vel)
   instance(env)
-  local(d, s, r)
+  local(d, r)
 (
   note == 42 || note == 44 || note == 46 ? (
     note != this.note ? (
       this.note = note;
 
+      d = 0.085;
+      env.s = 0.15;
+
       // Closed Hi-hat
       note == 42 ? (
-        d = 0.085;
-        s =
+        env.s = 0;
         r = 0;
       ) :
       // Pedal Hi-hat
       note == 44 ? (
         d = 0.008;
-        s = 0.15;
         r = 0.050;
       ) :
       // Open Hi-hat
       /* note == 46 ? */ (
-        d = 0.085;
-        s = 0.15;
         r = 1.5;
       );
 
       env.adsr_setd(d);
-      env.adsr_sets(s);
       env.adsr_setr(r);
     );
 
@@ -393,12 +379,12 @@ function hh()
 // Low Tom
 
 lt.env.adsr_seta(0.015);
-lt.env.adsr_setd(0);
-lt.env.adsr_sets(1);
+lt.env.d = 1; // adsr_setd(0)
+lt.env.s = 1;
 lt.env.adsr_setr(1.5);
 
-lt.osc.sin_setf(75);
 lt.lp.rc_setf(115);
+lt.osc.sin_setf(75);
 
 function lt(note, a, b, vel)
   instance(env, lp, lp2)
@@ -416,7 +402,7 @@ function lt()
 (
   env.adsr_process() ? (
     env.state == 4 ? env.adsr_r();
-    env.env * (osc.sin_sin() + lp2.rc_lp(lp.rc_lp(noise)));
+    (lp2.rc_lp(lp.rc_lp(noise)) + osc.sin_sin()) * env.env;
   );
 );
 
@@ -425,8 +411,8 @@ function lt(note, vel) ( this.lt(note, 41, 43, vel) );
 // Mid Tom
 
 mt.env.adsr_seta(0.015);
-mt.env.adsr_setd(0);
-mt.env.adsr_sets(1);
+mt.env.d = 1; // adsr_setd(0)
+mt.env.s = 1;
 mt.env.adsr_setr(1.25);
 
 mt.osc.sin_setf(100);
@@ -438,8 +424,8 @@ function mt() ( this.lt() );
 // High Tom
 
 ht.env.adsr_seta(0.015);
-ht.env.adsr_setd(0);
-ht.env.adsr_sets(1);
+ht.env.d = 1; // adsr_setd(0)
+ht.env.s = 1;
 ht.env.adsr_setr(1.0);
 
 ht.osc.sin_setf(115);
@@ -450,9 +436,9 @@ function ht() ( this.lt() );
 
 // Ride Cymbal/Bell
 
-rd.env.adsr_seta(0);
+rd.env.a = 1; // adsr_seta(0)
 rd.env.adsr_setd(0.015);
-rd.env.adsr_sets(0.25);
+rd.env.s = 0.25;
 rd.env.adsr_setr(1.5);
 
 function rd(note, vel)
@@ -494,9 +480,9 @@ function rd()
 
 // Crash Cymbal
 
-cy.env.adsr_seta(0);
+cy.env.a = 1; // adsr_seta(0)
 cy.env.adsr_setd(0.100);
-cy.env.adsr_sets(0.9);
+cy.env.s = 0.9;
 cy.env.adsr_setr(2.5);
 
 cy.bp.rbj_bp(4000, 2.5);
@@ -516,7 +502,7 @@ function cy()
 
 tb.env.adsr_seta(0.040);
 tb.env.adsr_setd(0.060);
-tb.env.adsr_sets(0.1);
+tb.env.s = 0.1;
 tb.env.adsr_setr(0.120);
 
 tb.lp.rc_setf(1833);
@@ -561,8 +547,8 @@ function tb()
 
 cb.env.adsr_seta(0.003);
 cb.env.adsr_setd(0.350);
-cb.env.adsr_sets(0);
-cb.env.adsr_setr(0);
+// cb.env.s = 0;
+cb.env.r = 1; // adsr_setr(0)
 
 cb.osc.poly_setf(465);
 cb.bp.rbj_bp(1860, sqrt(0.5));
@@ -579,15 +565,15 @@ function cb()
 (
   env.adsr_process() ? (
     env.state == 4 ? env.adsr_r();
-    sqr(env.env) * bp.rbj_df2(osc.poly_trap() + 0.1 * noise);
+    bp.rbj_df2(osc.poly_trap() + noise * 0.1) * sqr(env.env);
   );
 );
 
 // Sticks
 
-st.env.adsr_seta(0);
+st.env.a = 1; // adsr_seta(0)
 st.env.adsr_setd(0.050);
-st.env.adsr_sets(0.1);
+st.env.s = 0.1;
 st.env.adsr_setr(0.050);
 
 st.bp.rbj_bp(2700, 4.0);
@@ -607,7 +593,7 @@ function st()
 (
   env.adsr_process() ? (
     env.state == 4 ? env.adsr_r();
-    sqr(env.env) * bp.rbj_df2(noise_gain * rng.lcg_white());
+    bp.rbj_df2(rng.lcg_white() * noise_gain) * sqr(env.env);
   );
 );
 
@@ -625,7 +611,9 @@ function legacy()
 @slider
 
 legacy();
-slider_update = gui_slider_update = 1;
+
+gui_slider_update = 1;
+slider_update = 1;
 
 @block
 
@@ -639,8 +627,8 @@ slider_update ? (
   multich < -1 || multich > 1 ? multich = 0;
 
   vol = gain(slider24, -36.0);
-  drive = /* 0.012*log(10) */ 0.027631021115928548 * max(0, slider23);
-  drive > 0 ? vol *= exp(-0.5 * drive);
+  drive = /* 0.012*log(10) */ 0.027631021115928548 * max(slider23, 0);
+  drive > 0 ? vol *= exp(drive * -0.5);
   drive = exp(drive);
 
   bd.pan(slider26, slider27);
@@ -696,7 +684,7 @@ while(
   );
 );
 
-noise = noise_gain * rng.lcg_white();
+noise = rng.lcg_white() * noise_gain;
 
 bd.sample(bd.bd());
 sd.sample(sd.sd());
@@ -758,12 +746,12 @@ function gui_mouse_cap()
   mouse_wheel ? gui_slider_update = 1;
 );
 
-function slider_update(idx, min, max, delta)
+function slider_update(idx, lo, hi, delta)
   // global(slider_update)
   local(x, y)
 (
   x = slider(idx);
-  y = max(min, min(max, x + delta));
+  y = min(max(lo, x + delta), hi);
 
   slider(idx) = y;
   y < x || y > x ? (
@@ -772,12 +760,12 @@ function slider_update(idx, min, max, delta)
   );
 );
 
-function slider_cycle(idx, min, max, delta)
+function slider_cycle(idx, lo, hi, delta)
   // global(slider_update)
   local(y)
 (
   y = slider(idx) + delta;
-  y > max ? y = min : y < min ? y = max;
+  y > hi ? y = lo : y < lo ? y = hi;
 
   slider(idx) = y;
   slider_automate(2 ^ (idx - 1));
@@ -801,11 +789,11 @@ function gui_setfg(shade)
 (
   gfx_r = shade <= 1 ? 0 : shade - 1;
   gfx_g = shade;
-  gfx_b = 2/3 * shade;
+  gfx_b = shade * 2/3;
 );
 
 function gui_setbg()
-  // global(gfx_r, gfx_g, gfx_b, gfx_a)
+  // global(gfx_r, gfx_g, gfx_b)
 (
   gfx_r = 0;
   gfx_g = 1/15;
@@ -818,7 +806,7 @@ function gui_drawstr(x, y, w, str)
 (
   gfx_measurestr(str, w2, h);
 
-  gfx_x = x + 0.5 * ((w - w2)|0);
+  gfx_x = x + ((w - w2)|0) * 0.5;
   gfx_y = y;
   gfx_drawstr(str);
 );
@@ -846,8 +834,8 @@ function gui_drawbg()
 
     str = #;
     strcpy(str, "Arial");
-    gfx_setfont(1, str, 0.021 * gfx_w);
-    gfx_setfont(2, str, 0.026 * gfx_w);
+    gfx_setfont(1, str, gfx_w * 0.021);
+    gfx_setfont(2, str, gfx_w * 0.026);
 
     strcpy(str,
     i == 0 ? "Simple Drum Synth" :
@@ -857,12 +845,13 @@ function gui_drawbg()
     i == 4 ? "More Cowbell, Baby!");
 
     gui_setfg(0.75);
-    x = y = 0.02 * gfx_w;
-    gfx_rect(x, y, 0.96 * gfx_w, 0.01 * gfx_w + gfx_texth);
+    x = y = gfx_w * 0.02;
+    gfx_rect(x, y, gfx_w * 0.96, gfx_w * 0.01 + gfx_texth);
     gui_setbg();
-    gui_drawstr(0, y + 1/6 * gfx_texth, gfx_w, str);
+    gui_drawstr(0, y + gfx_texth * 1/6, gfx_w, str);
 
-    gui_slider_update = gui_pad_update = 1;
+    gui_slider_update = 1;
+    gui_pad_update = 1;
   );
 );
 
@@ -903,15 +892,15 @@ function gui_drawknob(x, y, d, shade, pos)
   y += r|0;
   gfx_circle(x|0, y|0, r|0, 1);
 
-  ang = 1.25*$pi - 1.5*$pi * max(0, min(1, pos));
-  ang_x = r * cos(ang);
-  ang_y = r * sin(ang);
+  ang = 1.25*$pi - max(0, min(1, pos)) * 1.5*$pi;
+  ang_x = cos(ang) * r;
+  ang_y = sin(ang) * r;
 
   gui_setbg();
   x2 = (x -= 0.5) + ang_x;
   y2 = (y -= 0.5) - ang_y;
-  x += 0.6 * ang_x;
-  y -= 0.6 * ang_y;
+  x += ang_x * 0.6;
+  y -= ang_y * 0.6;
   gfx_line(x, y, x2, y2);
 
   abs(x2 - x) > abs(y2 - y) ? (
@@ -929,7 +918,7 @@ function gui_slider_mouse_cap(i, j, x, y3, w, h)
   // gui_slider_y1, gui_slider_y2,
   // mouse_cap, mouse_x, mouse_y, mouse_wheel)
 
-  local(idx, min, max, delta)
+  local(idx, lo, hi, delta)
 (
   idx = 0;
 
@@ -963,10 +952,10 @@ function gui_slider_mouse_cap(i, j, x, y3, w, h)
   );
 
   idx > 0 ? (
-    idx == i ? ( min = -36.0; max = 12.0; ) :
-    idx == j ? ( min = j == 23 ? 0 : -100; max = 100; );
+    idx == i ? ( lo = -36.0; hi = 12.0; ) :
+    idx == j ? ( j == 23 ? lo = 0 : lo = -100; hi = 100; );
 
-    slider_update(idx, min, max, delta * (max - min));
+    slider_update(idx, lo, hi, delta * (hi - lo));
     idx = -1;
   );
 
@@ -976,27 +965,27 @@ function gui_slider_mouse_cap(i, j, x, y3, w, h)
 function gui_slider_update()
   // global(slider_update, gui_slider_update, gui_mouse_cap, gui_mouse_drag, gui_mouse_y, gui_mouse_dbl,
   // gui_slider_x1, gui_slider_y1, gui_slider_x2, gui_slider_y2, gui_slider_x3, gui_slider_y3,
-  // gfx_w, gfx_h, gfx_texth, mouse_cap, mouse_x, mouse_y, mouse_wheel)
+  // gfx_w, gfx_h, gfx_texth, mouse_cap, mouse_x, mouse_y, mouse_wheel, slider21, slider22)
 
   local(x, w, y2, h, y3, y4, dx, shade, i, j, mouse, str, db, pct, abs_pct, ch, mode)
 (
   gui_slider_update = 0;
-  mode = (slider(22) + 0.0001)|0;
+  mode = (slider22 + 0.0001)|0;
 
-  x = gui_slider_x1 = 0.02 * gfx_w;
-  w = 0.85/12 * gfx_w;
+  x = gui_slider_x1 = gfx_w * 0.02;
+  w = gfx_w * 0.85/12;
 
   gfx_setfont(2);
-  gui_slider_y1 = 2*x + gfx_texth;
-  y2 = gui_slider_y1 + 0.25 * gfx_texth;
-  h = gfx_h - (gfx_texth + 2.66/12 * gfx_w);
+  gui_slider_y1 = x * 2 + gfx_texth;
+  y2 = 0.25 * gfx_texth * 0.25 + gui_slider_y1;
+  h = gfx_h - (gfx_w * 2.66/12 + gfx_texth);
 
   gfx_setfont(1);
-  y3 = gui_slider_y1 + h + 0.01 * gfx_w;
+  y3 = gfx_w * 0.01 + gui_slider_y1 + h;
   gui_slider_y2 = y3 + w;
-  y4 = y3 + 0.5 * (w - gfx_texth);
+  y4 = (w - gfx_texth) * 0.5 + y3;
 
-  dx = 0.97/12 * gfx_w;
+  dx = gfx_w * 0.97/12;
   shade = 1;
 
   mouse = gui_mouse_drag || mouse_wheel || gui_mouse_dbl || (mouse_cap & 1);
@@ -1009,11 +998,11 @@ function gui_slider_update()
     mouse ? mouse = gui_slider_mouse_cap(i, j, x, y3, w, h);
 
     db = slider(i);
-    gui_drawslider(x, gui_slider_y1, w, h, shade, 2/3 * shade, (db + 36.0) * 1/48.0);
+    gui_drawslider(x, gui_slider_y1, w, h, shade, shade * 2/3, (db + 36.0) * 1/48.0);
 
     pct = slider(j);
     abs_pct = abs(pct);
-    gui_drawknob(x, y3, w, (2/3 + (j == 23 || mode ? 1/3 * max(0, min(1, abs_pct * 0.01)))) * shade, j > 23 ? pct * 0.005 + 0.5 : pct * 0.01);
+    gui_drawknob(x, y3, w, ((j == 23 || mode ? min(max(0, abs_pct * 0.01), 1) * 1/3) + 2/3) * shade, j > 23 ? pct * 0.005 + 0.5 : pct * 0.01);
 
     gui_setbg();
 
@@ -1029,12 +1018,12 @@ function gui_slider_update()
     x += dx;
     i += i >= 32 || i == 24 ? 2 : i < 30 ? 4 : -2;
   );
-  gui_slider_x2 = x - 0.01 * gfx_w;
+  gui_slider_x2 = x - gfx_w * 0.01;
 
-  x = 0.02 * gfx_w;
-  h = 0.005 * gfx_w;
-  y3 = gfx_h - 1.09/12 * gfx_w + 1;
-  y4 = y3 + 0.5*(w + h);
+  x = gfx_w * 0.02;
+  h = gfx_w * 0.005;
+  y3 = gfx_h - gfx_w * 1.09/12 + 1;
+  y4 = (w + h) * 0.5 + y3;
 
   gui_setfg(0.5);
   gfx_rect(x, y3, w, w);
@@ -1049,7 +1038,7 @@ function gui_slider_update()
   gui_slider_y3 = gfx_h - x;
 
   gui_mouse_drag ? (
-    gui_mouse_drag == 21 ? slider_update(21, 0, 16, 2 * (gui_mouse_y - mouse_y) / (y4 - h - y3));
+    gui_mouse_drag == 21 ? slider_update(21, 0, 16, (gui_mouse_y - mouse_y) * 2 / (y4 - h - y3));
   ) :
 
   (mouse_wheel || gui_mouse_dbl || (mouse_cap & 1))
@@ -1058,24 +1047,24 @@ function gui_slider_update()
     gui_mouse_dbl ? slider_reset(21, 0) : gui_mouse_drag = 21;
   );
 
-  ch = (slider(21) + 0.0001)|0;
+  ch = (slider21 + 0.0001)|0;
   ch >= 1 && ch <= 16 ? sprintf(str, "Ch %d", ch) : strcpy(str, "Ch -");
-  gui_drawstr(x, y3 + 1/3 * gfx_texth, w, str);
+  gui_drawstr(x, gfx_texth * 1/3 + y3, w, str);
 
   (mouse_cap & 3) && !(gui_mouse_cap & 3)
   && mouse_x >= x && mouse_x < gui_slider_x3 && mouse_y >= y4 && mouse_y < gui_slider_y3 ? (
     slider_cycle(22, 0, 2, (mouse_cap & 2) || (mouse_cap & 16) ? -1 : 1);
   );
 
-  mode = (slider(22) + 0.0001)|0;
+  mode = (slider22 + 0.0001)|0;
   strcpy(str, mode == 0 ? "Mono" : mode != 2 ? "Stereo" : "Multi");
-  gui_drawstr(x, y4 + 1/3 * gfx_texth, w, str);
+  gui_drawstr(x, gfx_texth * 1/3 + y4, w, str);
 );
 
 function gui_drawpad(x, y, w, env)
   // global(gui_pad_update)
 (
-  gui_setfg(2/3 * env + 0.5);
+  gui_setfg(env * 2/3 + 0.5);
   gfx_rect(x, y, w, w);
 
   env > 0 ? gui_pad_update = 1;
@@ -1102,22 +1091,22 @@ function gui_pad_update()
   ptr[38] = rd.env.env;
   ptr[43] = cy.env.env;
   ptr[48] = tb.env.env;
-  ptr[53] = max(cb.env.env, 4 * st.env.env);
+  ptr[53] = max(st.env.env * 4, cb.env.env);
 
   gfx_setfont(2);
-  x = gui_pad_x1 = 1.21/12 * gfx_w;
-  w = 0.85/12 * gfx_w;
-  gui_pad_y1 = gfx_h - 1.09/12 * gfx_w + 1;
+  x = gui_pad_x1 = gfx_w * 1.21/12;
+  w = gfx_w * 0.85/12;
+  gui_pad_y1 = gfx_h - gfx_w * 1.09/12 + 1;
   gui_pad_y2 = gui_pad_y1 + w;
-  y2 = gui_pad_y1 + 0.5 * (w - gfx_texth);
-  dx = 0.97/12 * gfx_w;
+  y2 = (w - gfx_texth) * 0.5 + gui_pad_y1;
+  dx = gfx_w * 0.97/12;
 
   trig = (mouse_cap & 3) && !(gui_mouse_cap & 3) && mouse_y >= gui_pad_y1 && mouse_y < gui_pad_y2 && !gui_trigger;
 
   loop(11,
     trig && mouse_x >= x && mouse_x < x + w ? (
       gui_note = ptr[mouse_cap & 2 ? 0 : mouse_cap & 16 ? 1 : 2];
-      gui_vel = max(1, min(127, ((mouse_y - gui_pad_y1) / w * 160)|0));
+      gui_vel = min(max(1, ((mouse_y - gui_pad_y1) * 160 / w)|0), 127);
       gui_trigger = 1;
       trig = 0;
     );
@@ -1132,7 +1121,7 @@ function gui_pad_update()
     ptr += 5;
   );
 
-  gui_pad_x2 = x - 0.01 * gfx_w;
+  gui_pad_x2 = x - gfx_w * 0.01;
 );
 
 gui_mouse_cap();

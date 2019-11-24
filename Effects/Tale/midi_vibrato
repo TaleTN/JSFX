@@ -1,0 +1,243 @@
+desc:MIDI vibrato via Pitch Bend
+//tags: MIDI processing pitch
+//author: Tale
+
+// Copyright (C) 2019 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+slider1:0<0,1,1{Normal,Bypassed}>Bypass
+slider2:1<0,2,1{Continuous,Note On,Aftertouch}>Mode
+slider3:0<0,1,1{Off,On}>Retrig
+slider4:0<-1,1,0.001>Phase
+slider5:1<0,1,1{Mono,Poly}>Legato
+slider6:0<0,5000,1>Delay (ms)
+slider7:0<0,10000,1>Fade In (ms)
+slider8:1<0,5,1{Sine,Triangle,Square,Saw Down,Saw Up,S&H}>Waveform
+slider9:0<0,1,1{Off,On}>Tempo Sync
+slider10:18<0,24,1{8/1,4/1 D,8/1 T,4/1,2/1 D,4/1 T,2/1,1/1 D,2/1 T,1/1,1/2 D,1/1 T,1/2,1/4 D,1/2 T,1/4,1/8 D,1/4 T,1/8,1/16 D,1/8 T,1/16,1/32 D,1/16 T,1/32}>Ratio
+slider11:4<0.01,20,0.01>Rate (Hz)
+slider12:12.5<0,100,0.1>Depth (%)
+slider13:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>MIDI Ch
+slider14:32<1,960,1>Resolution (PPQ)
+
+// slider64:0<-1,1,0.001>Pitch Bend
+
+import Tale/lfo.jsfx-inc
+import Tale/noise.jsfx-inc
+import Tale/rc_filter.jsfx-inc
+
+@init
+
+ms = srate * 0.001;
+ppq = 1/(srate * 60);
+
+tbl[0 ] = 1920;  // 8/1
+tbl[1 ] = 1440;  // 4/1 D
+tbl[2 ] = 1280;  // 8/1 T
+tbl[3 ] = 960;   // 4/1
+tbl[4 ] = 720;   // 2/1 D
+tbl[5 ] = 640;   // 4/1 T
+tbl[6 ] = 480;   // 2/1
+tbl[7 ] = 360;   // 1/1 D
+tbl[8 ] = 320;   // 2/1 T
+tbl[9 ] = 240;   // 1/1
+tbl[10] = 180;   // 1/2 D
+tbl[11] = 160;   // 1/1 T
+tbl[12] = 120;   // 1/2
+tbl[13] = 90;    // 1/4 D
+tbl[14] = 80;    // 1/2 T
+tbl[15] = 60;    // 1/4
+tbl[16] = 45;    // 1/8 D
+tbl[17] = 40;    // 1/4 T
+tbl[18] = 30;    // 1/8
+tbl[19] = 22.5;  // 1/16 D
+tbl[20] = 20;    // 1/8 T
+tbl[21] = 15;    // 1/16
+tbl[22] = 11.25; // 1/32 D
+tbl[23] = 10;    // 1/16 T
+tbl[24] = 7.5;   // 1/32
+
+ptr = tbl;
+loop(25,
+  ptr[] = 1 / (ptr[] * srate);
+  ptr += 1;
+);
+
+buf = ptr; // tbl + 25
+// memset(buf, 0, 128);
+
+// pb_in = 0;
+pb_out = -1;
+
+clock.t = 1;
+
+@slider
+
+(bypass = slider1 >= 0.5) ? clock.t = 1;
+note_on = !(mode = slider2|0) || num_notes > 0;
+retrig = slider3 >= 0.5;
+
+phase = min(max(-1, slider4), 1) + 1;
+phase -= phase|0;
+
+legato = slider5 >= 0.5;
+slider6 >= 0.5 ? delay.dt = 1 / (slider6 * ms) : delay.dt = 1;
+
+slider7 >= 0.5 ? (
+  fade_in.dt = 1 / (slider7 * ms);
+  smooth.rc_sett_precise(slider7 * 0.001);
+) : (
+  smooth.a = fade_in.dt = 1;
+);
+
+wave = slider8|0;
+
+slider9 >= 0.5 ? (
+  tempo_sync = tbl[min(max(0, slider10|0), 24)];
+) : (
+  tempo_sync = 0;
+  lfo.lfo_setf(max(slider11, 0.01));
+  lfo.dt -= lfo.dt|0;
+);
+
+depth = min(max(0, slider12 * 0.01), 1) * (wave == 4 ? -1 : 1) * (!bypass);
+
+midi_ch = min(max(0, slider13|0), 15);
+res = max(slider14|0, 1) * ppq;
+
+@block
+
+tempo_sync > 0 ? (
+  lfo.dt = tempo * tempo_sync;
+
+  // slider10 = lfo.dt * srate;
+  // sliderchange(slider10);
+
+  lfo.dt -= lfo.dt|0;
+);
+
+!rng.seed ? rng.lcg_init(((play_position * srate) % 2147483646) + 1);
+clock.dt = bypass ? 1 : min(res * tempo, 1);
+
+i = trig = 0;
+
+while(i < samplesblock ? (
+  midirecv(ofs, msg1, msg23) ? (
+    msg2 = msg23 - (msg3 = msg23 >> 8) * 256;
+    (msg1 & 0x0F) == midi_ch && (msg2 | msg3) < 128 ? (
+      status = msg1 & 0xF0;
+
+      // Pitch Bend
+      status == 0xE0 ? (
+        msg1 = 0;
+        pb_in = msg3 * 128 + msg2 - 8192;
+      ) :
+
+      // Channel Aftertouch
+      status == 0xD0 ? (
+        ch_at = msg2;
+      ) :
+
+      // Poly Aftertouch
+      status == 0xA0 ? (
+        buf[msg2] > 0 ? buf[msg2] = msg3 + 1;
+        max_poly_at = max(max_poly_at, msg3);
+      ) :
+
+      // Note On
+      status == 0x90 && msg3 > 0 ? (
+        !(buf[msg2]) ? (
+          note_on = buf[msg2] = 1;
+          (num_notes += 1) == 1 ? (
+            trig |= mode < 2 ? 3 : 1;
+          ) : (
+            legato && mode < 2 ? trig |= 2;
+          );
+        );
+      ) :
+
+      // Note Off
+      status == 0x90 || status == 0x80 ? (
+        buf[msg2] > 0 ? (
+          buf[msg2] = 0;
+          (num_notes -= 1) > 0 ? (
+
+            max_poly_at = 1;
+            ptr = buf;
+            loop(128,
+              max_poly_at = max(max_poly_at, ptr[]);
+              ptr += 1;
+            );
+            max_poly_at -= 1;
+          ) : (
+            mode > 0 ? note_on = 0;
+            ch_at = max_poly_at = 0;
+          );
+        );
+      ) :
+
+      // All Notes Off
+      status == 0xB0 && msg2 == 123 ? (
+        memset(buf, 0, 128);
+        ch_at = max_poly_at = note_on = num_notes = 0;
+      );
+    );
+  ) : (
+    msg1 = 0;
+    ofs = samplesblock;
+  );
+
+  ofs > i ? loop(ofs - i,
+    lfo.t < lfo.dt ? lfo.sh = rng.lcg_white();
+
+    clock.t < 1 || wave == 5 ? lfo.lfo_inc();
+
+    clock.t >= 1 ? (
+      clock.t -= clock.t|0;
+
+      wave <= 0 ? vib = lfo.lfo_sin() :
+      wave == 1 ? vib = lfo.lfo_tri() :
+      wave == 2 ? vib = lfo.lfo_sqr() :
+      wave <= 4 ? vib = lfo.lfo_ramp() :
+      /* wave == 5 ? */ vib = lfo.sh;
+
+      (vib = min(max(0, ((((mode < 2 ? fade_in.t : smooth.lp) * note_on * vib * depth + 1) * 8191.5 + 0.5)|0) + pb_in), 16383)) != pb_out ? (
+        midisend(i, 0xE0 + midi_ch, ((pb_out = vib) >> 7) * 128 + vib);
+
+        // slider64 = (pb_out - 8192) * /* 1/8192 */ 0.0001220703125;
+        // sliderchange(slider64);
+      ) : (
+        clock.t += 1;
+      );
+    );
+
+    delay.t < 1 ? (
+      (delay.t += delay.dt) >= 1 ? (
+        fade_in.dt >= 1 ? fade_in.t = 1 : fade_in.t = (delay.t - (delay.t|0)) / delay.dt * fade_in.dt;
+      );
+    ) :
+    fade_in.t < 1 ? (
+      fade_in.t = min(fade_in.t + fade_in.dt, 1);
+    );
+
+    smooth.rc_lp(max(ch_at, max_poly_at) * /* 1/127 */ 0.0078740157480314961);
+
+    i += 1;
+    clock.t += clock.dt;
+  );
+
+  trig ? (
+    delay.t = delay.dt >= 1;
+    fade_in.dt >= 1 ? fade_in.t = delay.t : fade_in.t = 0;
+    smooth.lp = smooth.a >= 1;
+
+    trig & retrig ? (
+      lfo.t = phase;
+      rng.lcg_init(((phase * 2147483646)|0) + 1);
+    );
+
+    trig = 0;
+  );
+
+  msg1 ? midisend(ofs, msg1, msg23) : 1;
+));

@@ -2,7 +2,7 @@ desc:Colored noise generator
 //tags: analysis generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2017 Theo Niessink
+// Copyright (C) 2014-2019 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect generates different "colors" of noise. Apart from the listed
@@ -77,7 +77,7 @@ rng1.lcg_density(rng0.density);
 
 stereo.cache(slider3 >= 0.5) ? (
   rng0.lcg_init(2147483646);
-  stereo ? rng1.lcg_init(2);
+  stereo ? rng1.lcg_init(1518500249);
 );
 
 dry = gain(slider4, min_inf);

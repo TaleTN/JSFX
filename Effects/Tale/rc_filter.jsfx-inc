@@ -1,6 +1,6 @@
 desc:1st-order RC filter
 
-// Copyright (C) 2012-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2019 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -140,6 +140,35 @@ function rc_sett_precise(time)
   instance(a)
 (
   a = 1 - exp(-5 / (time * srate));
+);
+
+// Source: https://dsp.stackexchange.com/questions/28308/exponential-weighted-moving-average-time-constant/28314#28314
+
+function rc_set_exact(rc)
+  // global(srate)
+  instance(a)
+  local(cos_w0)
+(
+  cos_w0 = cos(min(1 / (rc * srate), $pi)) - 2;
+  a = sqrt(sqr(cos_w0) - 1) + cos_w0 + 1;
+);
+
+function rc_setf_exact(freq)
+  // global(srate)
+  instance(a)
+  local(cos_w0)
+(
+  cos_w0 = cos(min(freq / srate * (2*$pi), $pi)) - 2;
+  a = sqrt(sqr(cos_w0) - 1) + cos_w0 + 1;
+);
+
+function rc_sett_exact(time)
+  // global(srate)
+  instance(a)
+  local(cos_w0)
+(
+  cos_w0 = cos(min(5 / (time * srate), $pi)) - 2;
+  a = sqrt(sqr(cos_w0) - 1) + cos_w0 + 1;
 );
 
 // Low-pass
