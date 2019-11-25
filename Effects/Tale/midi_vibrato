@@ -28,6 +28,19 @@ import Tale/rc_filter.jsfx-inc
 
 @init
 
+function find_max_poly_at()
+  // global(max_poly_at, buf)
+  local(ptr)
+(
+  max_poly_at = 1;
+  ptr = buf;
+  loop(128,
+    max_poly_at = max(max_poly_at, ptr[]);
+    ptr += 1;
+  );
+  max_poly_at -= 1;
+);
+
 ms = srate * 0.001;
 ppq = 1/(srate * 60);
 
@@ -141,7 +154,9 @@ while(i < samplesblock ? (
       // Poly Aftertouch
       status == 0xA0 ? (
         buf[msg2] > 0 ? buf[msg2] = msg3 + 1;
-        max_poly_at = max(max_poly_at, msg3);
+        msg3 >= max_poly_at ? max_poly_at = msg3 : (
+          find_max_poly_at();
+        );
       ) :
 
       // Note On
@@ -161,14 +176,7 @@ while(i < samplesblock ? (
         buf[msg2] > 0 ? (
           buf[msg2] = 0;
           (num_notes -= 1) > 0 ? (
-
-            max_poly_at = 1;
-            ptr = buf;
-            loop(128,
-              max_poly_at = max(max_poly_at, ptr[]);
-              ptr += 1;
-            );
-            max_poly_at -= 1;
+            find_max_poly_at();
           ) : (
             mode > 0 ? note_on = 0;
             ch_at = max_poly_at = 0;

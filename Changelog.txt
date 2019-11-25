@@ -1,5 +1,9 @@
 Tale's JSFX Pack
 
+v20191125 (25 November 2019)
+
+ + midi_vibrato: Fixed Poly to Channel Aftertouch conversion.
+
 v20191124 (24 November 2019)
 
  + midi_vibrato: Added MIDI vibrato via Pitch Bend plug-in.
