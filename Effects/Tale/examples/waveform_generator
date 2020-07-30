@@ -1,0 +1,329 @@
+desc:Waveform generator
+// Copyright (C) 2017-2020 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/gpl.html
+
+slider1:0<0,45,1{Sine,Cosine,Triangle,Square,Rectangle PW,Saw,Ramp,Mod Triangle PW,Mod Square PW,HW Rect Sine,HW Rect Sine PW,FW Rect Sine,Pulse Sine,Saw Pulse,Tri Pulse PW,HW Rect Saw PW,Alt Sine,Camel Sine,Bipolar Sine^2,Parabola,Circle,Cycloid,Trapezoid,Trapezoid PW,LP Square FC,LP Square Approx 2,LP Square Approx 3,Integrated LP Square 2,Integrated LP Square 3,HP Square FC,Integrated Saw,Cubic Saw,Sine Saw,HP Saw FC,HP Saw Approx,Logit Approx,Square Min Fund,Saw Min Fund,Step Sine N,Step Triangle N,Step Saw N,Hard Sync Saw FC,88 8000 000,Staircase,Staircase PW,Uneven Staircase PW}>Waveform
+slider2:440.0<20.0,20000.0,1.0>Freq (Hz)
+slider3:0.5<0.0,1.0,0.01>Pulse Width
+slider4:1.0<0.0,10.0,0.01>Freq Cutoff
+slider5:4<1,25,1>Steps [N]
+slider6:1<0,2,1{Naive,Fourier Series,PolyBLEP}>Mode
+slider7:0.0<-150.0,24.0,0.1>Dry (dB)
+slider8:-24.0<-150.0,24.0,0.1>Wet (dB)
+
+import Tale/lfo.jsfx-inc
+import Tale/poly_blep.jsfx-inc
+
+import Tale/fft_real_synth.jsfx-inc
+import Tale/fourier_series.jsfx-inc
+import Tale/wavetable.jsfx-inc
+
+@init
+
+four.four_init(0, 2048);
+gfx_clear = -1;
+
+function lfo_wave(wave)
+(
+  wave == 0 ? this.lfo_sin() :
+  wave == 1 ? this.lfo_cos() :
+  wave == 2 ? this.lfo_tri() :
+  wave == 3 ? this.lfo_sqr() :
+  wave == 4 ? this.lfo_rect() :
+  wave == 5 ? this.lfo_saw() :
+  wave == 6 ? this.lfo_ramp() :
+
+  wave == 7 ? this.lfo_tri2() :
+  wave == 8 ? this.lfo_sqr2() :
+
+  wave == 9 ? this.lfo_half() :
+  wave == 10 ? this.lfo_half2() :
+  wave == 11 ? this.lfo_full() :
+  wave == 12 ? this.lfo_sinp() :
+  wave == 13 ? this.lfo_sawp() :
+  wave == 14 ? this.lfo_trip() :
+  wave == 15 ? this.lfo_hwsaw() :
+  wave == 16 ? this.lfo_alt() :
+  wave == 17 ? this.lfo_camel() :
+
+  wave == 18 ? this.lfo_sin2() :
+  wave == 19 ? this.lfo_para() :
+  wave == 20 ? this.lfo_circ() :
+  wave == 21 ? this.lfo_arc() :
+  wave == 22 ? this.lfo_trap() :
+  wave == 23 ? this.lfo_trap2() :
+
+  wave == 24 ? this.lfo_lpsqr() :
+  wave == 25 ? this.lfo_lpsqr2() :
+  wave == 26 ? this.lfo_lpsqr3() :
+  wave == 27 ? this.lfo_intlpsqr2() :
+  wave == 28 ? this.lfo_intlpsqr3() :
+  wave == 29 ? this.lfo_hpsqr() :
+  wave == 30 ? this.lfo_intsaw() :
+  wave == 31 ? this.lfo_cubsaw() :
+  wave == 32 ? this.lfo_sinsaw() :
+  wave == 33 ? this.lfo_hpsaw() :
+  wave == 34 ? this.lfo_hpsaw6() :
+  wave == 35 ? this.lfo_logit3() :
+
+  wave == 36 ? this.lfo_sqrm1() :
+  wave == 37 ? this.lfo_sawm1() :
+
+  wave == 38 ? this.lfo_sinn() :
+  wave == 39 ? this.lfo_trin() :
+  wave == 40 ? this.lfo_sawn() :
+  wave == 41 ? this.lfo_hssaw() :
+
+  wave == 42 ? this.lfo_ham() :
+  wave == 43 ? this.lfo_stairs() :
+  wave == 44 ? this.lfo_stairs3() :
+  wave == 45 ? this.lfo_stairs2() :
+
+  ( this.lfo_inc(); wave < 0 ? wave : 0; );
+);
+
+h2 = 10;
+tr = 14;
+
+function poly_wave(wave)
+(
+  wave == 0 ? this.poly_sin() :
+  wave == 1 ? this.poly_cos() :
+  wave == 2 ? this.poly_tri() :
+  wave == 3 ? this.poly_sqr() :
+  wave == 4 ? this.poly_rect() + this.lfo_rect_dc() :
+  wave == 5 ? this.poly_saw() :
+  wave == 6 ? this.poly_ramp() :
+
+  wave == 7 ? this.poly_tri2() :
+  wave == 8 ? this.poly_sqr2() :
+
+  wave == 9 ? this.poly_half() + this.lfo_half_dc() :
+  wave == h2 ? this.poly_half2() + this.lfo_half2_dc() :
+  wave == 11 ? this.poly_full() + this.lfo_full_dc() :
+  wave == 12 ? this.poly_sinp() + this.lfo_sinp_dc() :
+  wave == 13 ? this.poly_sawp() + this.lfo_sawp_dc() :
+  wave == tr ? this.poly_trip() + this.lfo_trip_dc() :
+  wave == 15 ? this.poly_hwsaw() + this.lfo_hwsaw_dc() :
+  wave == 16 ? this.poly_alt() :
+  wave == 17 ? this.poly_camel() + this.lfo_camel_dc() :
+
+  wave == 18 ? this.poly_sin2() :
+  wave == 19 ? this.poly_para() :
+
+  wave == 20 ? this.poly_circ() :
+  wave == 22 ? this.poly_trap() :
+  wave == 23 ? this.poly_trap2() :
+
+  wave == 25 ? this.poly_lpsqr2() :
+  wave == 26 ? this.poly_lpsqr3() :
+  wave == 27 ? this.poly_intlpsqr2() :
+  wave == 28 ? this.poly_intlpsqr3() :
+  wave == 30 ? this.poly_intsaw() + this.lfo_intsaw_dc() :
+  wave == 31 ? this.poly_cubsaw() :
+  wave == 32 ? this.poly_sinsaw() :
+  wave == 34 ? this.poly_hpsaw6() + this.lfo_hpsaw6_dc()  :
+  wave == 35 ? this.poly_logit3() :
+
+  wave == 36 ? this.poly_sqrm1() :
+  wave == 37 ? this.poly_sawm1() :
+
+  wave == 39 ? this.poly_trin() :
+  wave == 40 ? this.poly_sawn() :
+
+  wave == 42 ? this.poly_ham() :
+  wave == 43 ? this.poly_stairs() :
+  wave == 44 ? this.poly_stairs3() + this.lfo_stairs3_dc() :
+  wave == 45 ? this.poly_stairs2() + this.lfo_stairs2_dc() :
+
+  ( this.poly_inc(); wave < 0 ? wave : 0; );
+);
+
+function four_wave(wave)
+(
+  wave == 0 ? this.four_sin() :
+  wave == 1 ? this.four_cos() :
+  wave == 2 ? this.four_tri() :
+  wave == 3 ? this.four_sqr() :
+  wave == 4 ? this.four_rect() :
+  wave == 5 ? this.four_saw() :
+  wave == 6 ? this.four_ramp() :
+
+  wave == 7 ? this.four_tri2() :
+  wave == 8 ? this.four_sqr2() :
+
+  wave == 9 ? this.four_half() :
+  wave == 10 ? this.four_half2() :
+  wave == 11 ? this.four_full() :
+  wave == 12 ? this.four_sinp() :
+  wave == 13 ? this.four_sawp() :
+  wave == 14 ? this.four_trip() :
+  wave == 15 ? this.four_hwsaw() :
+  wave == 16 ? this.four_alt() :
+  wave == 17 ? this.four_camel() :
+
+  wave == 18 ? this.four_sin2() :
+  wave == 19 ? this.four_para() :
+  wave == 20 ? this.four_circ() :
+  wave == 21 ? this.four_arc() :
+  wave == 22 ? this.four_trap() :
+  wave == 23 ? this.four_trap2() :
+
+  wave == 24 ? this.four_lpsqr() :
+  wave == 25 ? this.four_lpsqr2() :
+  wave == 26 ? this.four_lpsqr3() :
+  wave == 27 ? this.four_intlpsqr2() :
+  wave == 28 ? this.four_intlpsqr3() :
+  wave == 29 ? this.four_hpsqr() :
+  wave == 30 ? this.four_intsaw() :
+  wave == 31 ? this.four_cubsaw() :
+  wave == 32 ? this.four_sinsaw() :
+  wave == 33 ? this.four_hpsaw() :
+  wave == 34 ? this.four_hpsaw6() :
+  wave == 35 ? this.four_logit3() :
+
+  wave == 36 ? this.four_sqrm1() :
+  wave == 37 ? this.four_sawm1() :
+
+  wave == 38 ? this.four_sinn() :
+  wave == 39 ? this.four_trin() :
+  wave == 40 ? this.four_sawn() :
+  wave == 41 ? this.four_hssaw() :
+
+  wave == 42 ? this.four_ham() :
+  wave == 43 ? this.four_stairs() :
+  wave == 44 ? this.four_stairs3() :
+  wave == 45 ? this.four_stairs2() :
+
+  ( memset(this.coef, 0, this.size); );
+);
+
+@slider
+
+wave = slider1|0;
+freq = max(slider2, 0.0);
+
+pw = min(max(0.0, slider3), 1.0);
+fc = max(slider4, 0.0);
+n = max(slider5|0, 1);
+
+mode = slider6|0;
+
+dry = exp(log(10)/20 * slider7);
+wet = exp(log(10)/20 * slider8);
+
+lfo.lfo_setf(freq);
+lfo.lfo_setpw(pw);
+lfo.lfo_setn(n);
+lfo.lfo_setfc(fc * freq);
+
+poly.poly_setf(freq);
+poly.poly_setpw(pw);
+poly.poly_setn(n);
+
+four.four_setf(freq);
+four.four_setpw(pw);
+four.four_setn(n);
+four.four_setfc(fc * freq);
+
+mode == 1 ? (
+  four.four_update();
+  four.four_wave(wave);
+  four.four_ifft();
+) :
+
+mode == 2 ? (
+  (wave == h2 || wave == tr) && pw < poly.dt * 2 ? wave = -1;
+);
+
+gfx_update = 1;
+
+@sample
+
+mode == 0 ? (
+  out = lfo.lfo_wave(wave);
+
+  poly.poly_inc();
+  four.wave_inc();
+) :
+
+mode == 2 ? (
+  out = poly.poly_wave(wave);
+
+  lfo.lfo_inc();
+  four.wave_inc();
+) :
+
+mode == 1 ? (
+  out = four.wave_spline5();
+
+  lfo.lfo_inc();
+  poly.poly_inc();
+);
+
+out *= wet;
+spl0 = spl0 * dry + out;
+spl1 = spl1 * dry + out;
+
+@gfx 440 330
+
+gfx_w != old_w || gfx_h != old_h ? (
+  old_w = gfx_w;
+  old_h = gfx_h;
+  gfx_update = 1;
+);
+
+gfx_update ? (
+  gfx_update = 0;
+
+  gfx_r = 0; gfx_g = 1/15; gfx_b = 2/45; gfx_a = 1;
+  gfx_x = gfx_y = 0;
+  gfx_rectto(gfx_w, gfx_h);
+
+  gfx_g = 1/3; gfx_b = 2/9;
+  gfx_x = 8;
+  loop(3,
+    gfx_y = 8;
+    gfx_lineto(gfx_x, gfx_h - 9);
+    gfx_x += (gfx_w - 17) / 2;
+  );
+  gfx_y = 8;
+  loop(3,
+    gfx_x = 8;
+    gfx_lineto(gfx_w - 9, gfx_y);
+    gfx_y += (gfx_h - 17) / 2;
+  );
+
+  gfx_g = 1/6; gfx_b = 1/9;
+  gfx_x = 8 + (gfx_w - 17) / 4;
+  loop(2,
+    gfx_y = 8;
+    gfx_lineto(gfx_x, gfx_h - 9);
+    gfx_x += (gfx_w - 17) / 2;
+  );
+  gfx_y = 8 + (gfx_h - 17) / 4;
+  loop(2,
+    gfx_x = 8;
+    gfx_lineto(gfx_w - 9, gfx_y);
+    gfx_y += (gfx_h - 17) / 2;
+  );
+
+  gfx_lfo.lfo_setf(srate / (gfx_w - 18));
+  gfx_lfo.lfo_setpw(pw);
+  gfx_lfo.lfo_setn(n);
+  gfx_lfo.lfo_setfc(fc * gfx_lfo.dt * srate);
+  gfx_lfo.lfo_sync(-0.5/(gfx_w - 18));
+
+  gfx_r = 0.25; gfx_g = 1; gfx_b = 5/6;
+  x = 0;
+  loop(gfx_w - 16,
+    h = (0.5 - 0.5 * gfx_lfo.lfo_wave(wave)) * (gfx_h - 17);
+    x > 0 ? (
+      gfx_lineto(8 + x, 8 + h, 1);
+    ) : (
+      gfx_x = 8 /* + x */;
+      gfx_y = 8 + h;
+    );
+    x += 1;
+  );
+);

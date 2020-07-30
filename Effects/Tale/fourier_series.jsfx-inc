@@ -1,6 +1,6 @@
 desc:Fourier series waveforms
 
-// Copyright (C) 2015-2019 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2015-2020 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -61,53 +61,57 @@ desc:Fourier series waveforms
 
    Waveform Functions
 
-    * four_sin()     -- Sine
-    * four_cos()     -- Cosine
-    * four_tri()     -- Triangle
-    * four_sqr()     -- Square (fixed 0.5 pulse width)
-    * four_rect()    -- Rectangle (variable pulse width)
-    * four_saw()     -- Sawtooth
-    * four_ramp()    -- Ramp
+    * four_sin()       -- Sine
+    * four_cos()       -- Cosine
+    * four_tri()       -- Triangle
+    * four_sqr()       -- Square (fixed 0.5 pulse width)
+    * four_rect()      -- Rectangle (variable pulse width)
+    * four_saw()       -- Sawtooth
+    * four_ramp()      -- Ramp
 
-    * four_tri2()    -- Modified triangle
-    * four_sqr2()    -- Modified square
+    * four_tri2()      -- Modified triangle
+    * four_sqr2()      -- Modified square
 
-    * four_half()    -- Half-wave rectified sine (fixed 0.5 pulse width)
-    * four_half2()   -- Half-wave rectified sine (variable pulse width)
-    * four_full()    -- Full-wave rectified sine
-    * four_sinp()    -- Pulse sine (fixed 0.5 pulse width)
-    * four_sawp()    -- Saw pulse sine (fixed 0.5 pulse width)
-    * four_trip()    -- Triangular pulse
-    * four_hwsaw()   -- Half-wave rectified sawtooth
-    * four_alt()     -- Alternating sine
-    * four_camel()   -- Camel sine
+    * four_half()      -- Half-wave rectified sine (fixed 0.5 pulse width)
+    * four_half2()     -- Half-wave rectified sine (variable pulse width)
+    * four_full()      -- Full-wave rectified sine
+    * four_sinp()      -- Pulse sine (fixed 0.5 pulse width)
+    * four_sawp()      -- Saw pulse sine (fixed 0.5 pulse width)
+    * four_trip()      -- Triangular pulse
+    * four_hwsaw()     -- Half-wave rectified sawtooth
+    * four_alt()       -- Alternating sine
+    * four_camel()     -- Camel sine
 
-    * four_sin2()    -- Bipolar squared sine
-    * four_para()    -- Parabola
-    * four_circ()    -- Circle
-    * four_arc()     -- Cycloid
-    * four_trap()    -- Trapezoid (fixed 0.5 pulse width)
-    * four_trap2()   -- Trapezoid (variable pulse width)
+    * four_sin2()      -- Bipolar squared sine
+    * four_para()      -- Parabola
+    * four_circ()      -- Circle
+    * four_arc()       -- Cycloid
+    * four_trap()      -- Trapezoid (fixed 0.5 pulse width)
+    * four_trap2()     -- Trapezoid (variable pulse width)
 
-    * four_lpsqr()   -- Low-pass filtered square
-    * four_lpsqrN()  -- LPF square approximation (order N = 2 or 3)
-    * four_hpsqr()   -- High-pass filtered square
-    * four_intsaw()  -- Integrated sawtooth
-    * four_cubsaw()  -- Cubic sawtooth
-    * four_sinsaw()  -- Sine sawtooth
-    * four_hpsaw()   -- High-pass filtered sawtooth
-    * four_hpsaw6()  -- HPF sawtooth approximation
-    * four_logit3()  -- Logit approximation
+    * four_lpsqr()     -- Low-pass filtered square
+    * four_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
+    * four_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
+    * four_hpsqr()     -- High-pass filtered square
+    * four_intsaw()    -- Integrated sawtooth
+    * four_cubsaw()    -- Cubic sawtooth
+    * four_sinsaw()    -- Sine sawtooth
+    * four_hpsaw()     -- High-pass filtered sawtooth
+    * four_hpsaw6()    -- HPF sawtooth approximation
+    * four_logit3()    -- Logit approximation
 
-    * four_sinn()    -- Stepped sine
-    * four_trin()    -- Stepped triangle
-    * four_sawn()    -- Stepped sawtooth
-    * four_hssaw()   -- Hard sync sawtooth
+    * four_sqrm1()     -- Square wave minus fundamental
+    * four_sawm1()     -- Sawtooth minus fundamental
 
-    * four_ham()     -- Hammond 88 8000 000
-    * four_stairs()  -- Staircase (fixed 0.5 pulse width)
-    * four_stairs3() -- Staircase (variable pulse width)
-    * four_stairs2() -- Uneven staircase
+    * four_sinn()      -- Stepped sine
+    * four_trin()      -- Stepped triangle
+    * four_sawn()      -- Stepped sawtooth
+    * four_hssaw()     -- Hard sync sawtooth
+
+    * four_ham()       -- Hammond 88 8000 000
+    * four_stairs()    -- Staircase (fixed 0.5 pulse width)
+    * four_stairs3()   -- Staircase (variable pulse width)
+    * four_stairs2()   -- Uneven staircase
       Example: osc.four_saw();
       Calculates the Fourier coefficients that define the waveform, and
       stores them in the coefficient buffer.
@@ -227,9 +231,9 @@ function four_sinn()
 // Half-wave rectified sine
 
 function four_half()
-  local(size, cos, sin, k)
+  instance(size)
+  local(cos, sin, k)
 (
-  size = this.size / 2;
   cos = this.four_setdc(2/$pi - 1, 0);
   sin = cos + 1;
 
@@ -240,7 +244,7 @@ function four_half()
   cos += 2; sin += 2;
 
   k = 2;
-  loop((size - 1) / 2,
+  loop(size / 4 - 1,
     cos[] = 4/$pi / (1 - sqr(k));
     sin[] = 0;
 
@@ -313,18 +317,15 @@ function four_sawp()
   cos = this.four_setdc(-0.5, 0);
   sin = cos + 1;
 
-  // k = 1;
+  k = 1;
   cos[] = 0.5;
   sin[] = 2/$pi;
 
-  cos += 2; sin += 2;
-
-  k = 2;
   loop(size / 2 - 2,
+    k += 1; cos += 2; sin += 2;
+
     cos[] = 0;
     sin[] = k & 1 ? 2/$pi / k : 2/$pi * k / (sqr(k) - 1);
-
-    k += 1; cos += 2; sin += 2;
   );
 );
 
@@ -551,18 +552,15 @@ function four_circ()
   cos = this.four_setdc(0, 0);
   sin = cos + 1;
 
-  // k = 1
+  k = 1;
   cos[] = 0;
   sin[] = 1.1384613727190112; // _four_j1_pi(1) * 4
 
-  cos[2] = sin[2] = 0; cos += 4; sin += 4;
-
-  k = 3;
   loop(size / 4 - 1,
+    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+
     cos[] = 0;
     sin[] = sqrt(/* 16/$pi^2 */ 1.6211389382774043 / (2*k - 1)) / k; // _four_j1_pi(2*k - 1) * 4 / k
-
-    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
   );
 );
 
@@ -575,18 +573,15 @@ function four_arc()
   cos = this.four_setdc(0.5*$pi - 1, 0.25);
   sin = cos + 1;
 
-  // k = 1
+  k = 1;
   cos[] = 0.56923068635950558; // _four_j1_pi(1) * 2
   sin[] = 0;
 
-  cos += 2; sin += 2;
-
-  k = 2;
   loop(size / 2 - 2,
+    k += 1; cos += 2; sin += 2;
+
     cos[] = (k & 1 ? 1 : -1) * sqrt(/* 4/$pi^2 */ 0.40528473456935109 / k) / k; // _four_j1_pi(k) * 2 / k
     sin[] = 0;
-
-    k += 1; cos += 2; sin += 2;
   );
 );
 
@@ -807,6 +802,42 @@ function four_lpsqr3()
   );
 );
 
+// Integrated low-pass filtered square approximations
+
+function four_intlpsqr2()
+  instance(size)
+  local(cos, sin, k)
+(
+  // (32*t^3 - 48*t^2 + 12*t + 1) / (2*sqrt(2) - 1) = 0
+  cos = this.four_setdc(0, 0.41503077834420436);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size / 4,
+    cos[] = /* 96/(2*sqrt(2) - 1)/$pi^4 */ 0.53900660469938138 / sqr(sqr(k));
+    sin[] = /* -48/(2*sqrt(2) - 1)/$pi^3 */ -0.84666959477997714 / (sqr(k)*k);
+
+    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
+function four_intlpsqr3()
+  instance(size)
+  local(cos, sin, k)
+(
+  // (64*t^4 - 128*t^3 + 96*t^2 - 16*t - 2) / (3*2^(2/3) - 2) = 0
+  cos = this.four_setdc(0, 0.37399153968783991);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size / 4,
+    cos[] = /* 192/(3*2^(2/3) - 2)/$pi^4 */ 0.71358567116468444 / sqr(sqr(k));
+    sin[] = (/* 384/(3*2^(2/3) - 2)/$pi^5 */ 0.45428274754162916 / sqr(k) - /* 96/(3*2^(2/3) - 2)/$pi^3 */ 1.1208977511189573) / (sqr(k)*k);
+
+    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
 // High-pass filtered square
 
 function four_hpsqr()
@@ -847,6 +878,28 @@ function four_hpsqr()
     k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
   );
 ); */
+
+// Square wave minus fundamental
+
+function four_sqrm1()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(0, 0);
+  sin = cos + 1;
+
+  k = 1;
+  cos[] = sin[] = cos[2] = sin[2] = 0;
+
+  loop(size / 4 - 1,
+    k += 2; cos += 4; sin += 4;
+
+    cos[] = 0;
+    sin[] = 4/$pi / k;
+
+    cos[2] = sin[2] = 0;
+  );
+);
 
 // Modified square
 
@@ -1015,6 +1068,26 @@ function four_hpsaw6()
     sin[] = ((/* 45/$pi^5 */ 0.14704936393740235 / sqr(k) - /* 15/$pi^3 */ 0.48377301649799234) / sqr(k) + 2/$pi) / k;
 
     k += 1; cos += 2; sin += 2;
+  );
+);
+
+// Sawtooth minus fundamental
+
+function four_sawm1()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(0, 0);
+  sin = cos + 1;
+
+  k = 1;
+  cos[] = sin[] = 0;
+
+  loop(size / 2 - 2,
+    k += 1; cos += 2; sin += 2;
+
+    cos[] = 0;
+    sin[] = 2/$pi / k;
   );
 );
 

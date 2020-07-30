@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2019 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2020 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -47,45 +47,57 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Sets the pulse width [0.0..1.0] of the waveform, and returns this
       value.
 
+    * poly_setn(num_steps)
+      Example: osc.poly_setn(3);
+      Sets the integer number of steps (>=1) for the stepped waveform, and
+      returns this value.
+
    Waveform Functions
 
-    * poly_sin()     -- Sine
-    * poly_cos()     -- Cosine
-    * poly_tri()     -- Triangle
-    * poly_sqr()     -- Square
-    * poly_rect()    -- Rectangle (pulse)
-    * poly_saw()     -- Sawtooth
-    * poly_ramp()    -- Ramp
+    * poly_sin()       -- Sine
+    * poly_cos()       -- Cosine
+    * poly_tri()       -- Triangle
+    * poly_sqr()       -- Square
+    * poly_rect()      -- Rectangle (pulse)
+    * poly_saw()       -- Sawtooth
+    * poly_ramp()      -- Ramp
 
-    * poly_tri2()    -- Modified triangle
-    * poly_sqr2()    -- Modified square
+    * poly_tri2()      -- Modified triangle
+    * poly_sqr2()      -- Modified square
 
-    * poly_half()    -- Half-wave rectified sine (fixed 0.5 pulse width)
-    * poly_half2()   -- Half-wave rectified sine (variable pulse width)
-    * poly_full()    -- Full-wave rectified sine
-    * poly_sinp()    -- Pulse sine (fixed 0.5 pulse width)
-    * poly_sawp()    -- Saw pulse
-    * poly_trip()    -- Triangular pulse
-    * poly_hwsaw()   -- Half-wave rectified sawtooth
-    * poly_alt()     -- Alternating sine
-    * poly_camel()   -- Camel sine
+    * poly_half()      -- Half-wave rectified sine (fixed 0.5 pulse width)
+    * poly_half2()     -- Half-wave rectified sine (variable pulse width)
+    * poly_full()      -- Full-wave rectified sine
+    * poly_sinp()      -- Pulse sine (fixed 0.5 pulse width)
+    * poly_sawp()      -- Saw pulse
+    * poly_trip()      -- Triangular pulse
+    * poly_hwsaw()     -- Half-wave rectified sawtooth
+    * poly_alt()       -- Alternating sine
+    * poly_camel()     -- Camel sine
 
-    * poly_sin2()    -- Bipolar squared sine
-    * poly_para()    -- Parabola
-    * poly_trap()    -- Trapezoid (fixed 0.5 pulse width)
-    * poly_trap2()   -- Trapezoid (variable pulse width)
+    * poly_sin2()      -- Bipolar squared sine
+    * poly_para()      -- Parabola
+    * poly_trap()      -- Trapezoid (fixed 0.5 pulse width)
+    * poly_trap2()     -- Trapezoid (variable pulse width)
 
-    * poly_lpsqrN()  -- LPF square approximation (order N = 2 or 3)
-    * poly_intsaw()  -- Integrated sawtooth
-    * poly_cubsaw()  -- Cubic sawtooth
-    * poly_sinsaw()  -- Sine sawtooth
-    * poly_hpsaw6()  -- HPF sawtooth approximation
-    * poly_logit3()  -- Logit approximation
+    * poly_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
+    * poly_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
+    * poly_intsaw()    -- Integrated sawtooth
+    * poly_cubsaw()    -- Cubic sawtooth
+    * poly_sinsaw()    -- Sine sawtooth
+    * poly_hpsaw6()    -- HPF sawtooth approximation
+    * poly_logit3()    -- Logit approximation
 
-    * poly_ham()     -- Might not be suitable for vegetarians
-    * poly_stairs()  -- Staircase (fixed 0.5 pulse width)
-    * poly_stairs3() -- Staircase (variable pulse width)
-    * poly_stairs2() -- Uneven staircase
+    * poly_sqrm1()     -- Square wave minus fundamental
+    * poly_sawm1()     -- Sawtooth minus fundamental
+
+    * poly_trin()      -- Stepped triangle
+    * poly_sawn()      -- Stepped sawtooth
+
+    * poly_ham()       -- Might not be suitable for vegetarians
+    * poly_stairs()    -- Staircase (fixed 0.5 pulse width)
+    * poly_stairs3()   -- Staircase (variable pulse width)
+    * poly_stairs2()   -- Uneven staircase
       Example: sample = osc.poly_saw();
       Returns a sample of a waveform, and increments its phase.
 
@@ -179,6 +191,12 @@ function poly_resetf()
 function poly_setpw(pw)
 (
   this.pw = pw;
+);
+
+function poly_setn(num_steps)
+  instance(n)
+(
+  n = num_steps|0;
 );
 
 function poly_sync(phase)
@@ -433,7 +451,7 @@ function poly_para()
   this.poly_inc();
 
   ((poly_bluh(t + 0.5 - ((t + 0.5)|0), dt)
-  - poly_bluh(t, dt)) * /* sqrt(0.5) */ 0.70710678118654752 * sqr(dt)
+  - poly_bluh(t, dt)) * /* 2/3 */ 0.66666666666666667 * sqr(dt)
 
   + (t * 16 - 8) * (abs(t - 0.5) - 0.5)
 
@@ -498,6 +516,38 @@ function poly_tri()
   );
 
   y * a;
+);
+
+// Stepped triangle
+
+function poly_trin()
+  instance(dt, a, n)
+  local(t1, t2, dt2, y1, y2)
+(
+  t1 = (dt2 = 0.5 / n) * 0.5 + 0.25 + this.t;
+  this.poly_inc();
+
+  y1 = (((t1 -= t1|0) * n * 2)|0) * 2 / n;
+  t1 < 0.5 ? y1 -= 1 : y1 = 3 - y1;
+
+  t2 = t1 + 0.5;
+  y2 = 0;
+  loop(n,
+    // y2 -= poly_blep(t1, dt);
+    t1 < dt ? y2 += sqr(t1/dt - 1) : t1 > 1 - dt ? y2 -= sqr((t1 - 1) / dt + 1);
+
+    t1 += dt2;
+
+    t1 -= t1|0;
+    t2 -= t2|0;
+
+    // y2 += poly_blep(t, dt);
+    t2 < dt ? y2 -= sqr(t2/dt - 1) : t2 > 1 - dt ? y2 += sqr((t2 - 1) / dt + 1);
+
+    t2 += dt2;
+  );
+
+  (y2 / n + y1) * a;
 );
 
 // Modified triangle
@@ -669,6 +719,63 @@ function poly_lpsqr3()
   y * a;
 );
 
+// Integrated low-pass filtered square approximations
+
+function poly_intlpsqr2()
+  instance(dt, a)
+  local(t0, t1, t2, y)
+(
+  // (32*t^3 - 48*t^2 + 12*t + 1) / (2*sqrt(2) - 1) = 0
+  t2 = (t1 = (t0 = this.t + 0.41503077834420436) + 0.5) + 0.5;
+  this.poly_inc();
+
+  (t0 -= t0|0) < 0.5 ? y = 0.5 : t0 += (y = -0.5);
+
+  ((((64*t0 - 96)*t0 + 24)*t0 + 2) * y
+
+  + (poly_bluh(t1 - (t1|0), dt)
+  -  poly_bluh(t2 - (t2|0), dt)) * sqr(dt)
+
+  ) * /* -1/(2*sqrt(2) - 1) */ -0.54691816067802716 * a;
+);
+
+function poly_intlpsqr3()
+  instance(dt, a)
+  local(t0, t1, t2, y)
+(
+  // (64*t^4 - 128*t^3 + 96*t^2 - 16*t - 2) / (3*2^(2/3) - 2) = 0
+  t2 = (t1 = (t0 = this.t + 0.37399153968783991) + 0.5) + 0.5;
+  this.poly_inc();
+
+  (t0 -= t0|0) < 0.5 ? y = -0.5 : t0 -= (y = 0.5);
+
+  (((((64*t0 - 128)*t0 + 96)*t0 - 16)*t0 - 2) * y
+
+  + (poly_bluh(t1 - (t1|0), dt)
+  -  poly_bluh(t2 - (t2|0), dt)) * sqr(dt)
+
+  ) * /* -2/(3*2^(2/3) - 2) */ -0.72405970419833828 * a;
+);
+
+// Square wave minus fundamental
+
+function poly_sqrm1()
+  instance(dt, a)
+  local(t1, t2)
+(
+  t2 = (t1 = this.t) + 0.5;
+  this.poly_inc();
+
+  // ((t1 < 0.5) * 2 - 1 - sin(2*$pi*t1) * 4/$pi * (1 - 3.28765 /* @ 1 kHz */ * dt^2)
+  ((sin(t1 * /* 2*$pi */ 6.2831853071795865) * (sqr(dt) * /* 6.5753/$pi */ 2.0929829946242788 - /* 2/$pi */ 0.63661977236758134)
+  + (t1 < 0.5)) * 2 - 1
+
+  + poly_blep(t1, dt)
+  - poly_blep(t2 - (t2|0), dt)
+
+  ) * a;
+);
+
 // Modified square
 
 function poly_sqr2()
@@ -811,6 +918,54 @@ function poly_hpsaw6()
   );
 
   y * a;
+);
+
+// Sawtooth wave minus fundamental
+
+function poly_sawm1()
+  instance(dt, a)
+  local(t1, t2)
+(
+  t2 = (t1 = this.t) + 0.5;
+  this.poly_inc();
+
+  t2 -= t2|0;
+
+  // (t2 * 2 - 1 - sin(2*$pi*t1) * 2/$pi * (1 - 3.28765 /* @ 1 kHz */ * dt^2)
+  ((sin(t1 * /* 2*$pi */ 6.2831853071795865) * (sqr(dt) * /* 3.28765/$pi */ 1.0464914973121394 - /* 1/$pi */ 0.31830988618379067)
+  + t2) * 2 - 1
+
+  - poly_blep(t2, dt)
+
+  ) * a;
+);
+
+// Stepped sawtooth
+
+function poly_sawn()
+  instance(dt, a, n)
+  local(t, dt2, y1, y2)
+(
+  t = this.t + 0.5;
+  this.poly_inc();
+
+  t -= t|0;
+  y1 = (((n + 1) * t)|0) / n * 2 - 1;
+
+  // y1 -= poly_blep(t, dt);
+  t < dt ? y1 += sqr(t/dt - 1) : t > 1 - dt ? y1 -= sqr((t - 1) / dt + 1);
+
+  dt2 = 1/(n + 1);
+  y2 = 0;
+  loop(n,
+    t += dt2;
+    t -= t|0;
+
+    // y2 += poly_blep(t, dt);
+    t < dt ? y2 -= sqr(t/dt - 1) : t > 1 - dt ? y2 += sqr((t - 1) / dt + 1);
+  );
+
+  (y2 / n + y1) * a;
 );
 
 // Half-wave rectified sawtooth

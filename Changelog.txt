@@ -1,5 +1,14 @@
 Tale's JSFX Pack
 
+v20200730 (30 July 2020)
+
+ + four/lfo/poly: Added square/saw minus fundamental, integrated LPF square
+   approximations.
+ + poly: Added stepped triangle/saw, fixed parabola.
+ + os: Normalized/fixed up/downsample gain.
+ + examples: Added waveform generator/viewer.
+ + covid-19: Stay safe!
+
 v20191125 (25 November 2019)
 
  + midi_vibrato: Fixed Poly to Channel Aftertouch conversion.
