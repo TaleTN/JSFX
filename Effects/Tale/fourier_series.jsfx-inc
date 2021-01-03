@@ -89,6 +89,7 @@ desc:Fourier series waveforms
     * four_trap()      -- Trapezoid (fixed 0.5 pulse width)
     * four_trap2()     -- Trapezoid (variable pulse width)
 
+    * four_hyptri()    -- Hyper triangular wave
     * four_lpsqr()     -- Low-pass filtered square
     * four_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
     * four_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
@@ -600,6 +601,24 @@ function four_tri()
     sin[] = 0;
 
     k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
+// Hyper triangular wave
+
+function four_hyptri()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(/* -2/(exp(2) - 1) */ -0.31303528549933130, 0);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size / 2 - 1,
+    cos[] = (k & 1 ? 1.0643063143275772 : /* 8/$pi^2 */ 0.81056946913870217) / (sqr(k) + /* 4/$pi^2 */ 0.40528473456935109);
+    sin[] = 0;
+
+    k += 1; cos += 2; sin += 2;
   );
 );
 

@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2020 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2021 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -47,6 +47,15 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Sets the pulse width [0.0..1.0] of the waveform, and returns this
       value.
 
+    * poly_setf2(freq)
+      Example: lfo.lfo_setf2(6.0);
+      Sets the slave frequency (specified in Hz) of the hard sync waveform,
+      and returns the slave/master frequency ratio.
+
+      Note: You should always first set the master oscillator frequency, and
+      then set the slave frequency. If you change the master frequency, then
+      you will probably also want to update the slave frequency.
+
     * poly_setn(num_steps)
       Example: osc.poly_setn(3);
       Sets the integer number of steps (>=1) for the stepped waveform, and
@@ -80,6 +89,7 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_trap()      -- Trapezoid (fixed 0.5 pulse width)
     * poly_trap2()     -- Trapezoid (variable pulse width)
 
+    * poly_hyptri()    -- Hyper triangular wave
     * poly_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
     * poly_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
     * poly_intsaw()    -- Integrated sawtooth
@@ -93,6 +103,7 @@ desc:PolyBLEP quasi-bandlimited tone generator
 
     * poly_trin()      -- Stepped triangle
     * poly_sawn()      -- Stepped sawtooth
+    * poly_hssaw()     -- Hard sync sawtooth
 
     * poly_ham()       -- Might not be suitable for vegetarians
     * poly_stairs()    -- Staircase (fixed 0.5 pulse width)
@@ -147,6 +158,10 @@ desc:PolyBLEP quasi-bandlimited tone generator
       Example: duty_cycle = osc.pw;
       The pulse width [0.0..1.0] of the waveform.
 
+    * fc
+      Example: freq2 = poly.fc * lfo.dt * srate;
+      The hard sync oscillator frequency ratio.
+
     * a
     * a2
     * a3
@@ -191,6 +206,13 @@ function poly_resetf()
 function poly_setpw(pw)
 (
   this.pw = pw;
+);
+
+function poly_setf2(freq)
+  // global(srate)
+  instance(fc, dt)
+(
+  dt > 0 ? fc = freq / (dt * srate) : fc = 0;
 );
 
 function poly_setn(num_steps)
@@ -516,6 +538,23 @@ function poly_tri()
   );
 
   y * a;
+);
+
+// Hyper triangular wave
+
+function poly_hyptri()
+  instance(dt, a)
+  local(t1, t2)
+(
+  t2 = (t1 = this.t) + 0.5;
+  this.poly_inc();
+
+  ((poly_blamp(t1, dt) * 4/$pi
+  - poly_blamp(t2 - (t2|0), dt) * 9.273) * dt
+
+  + exp((t1 < 0.5 ? t1 : 1 - t1) * 4) * /* 2/(exp(2) - 1) */ 0.31303528549933130 - 1
+
+  ) * a;
 );
 
 // Stepped triangle
@@ -997,6 +1036,38 @@ function poly_hwsaw()
   t2 > 1 - dt ? (
     p = (t2 - 1) / dt + 1;
     y -= (sqr(p) / (pw * 3) * dt + p)*p;
+  );
+
+  y * a;
+);
+
+// Hard sync sawtooth
+
+function poly_hssaw()
+  instance(dt, a, fc)
+  local(n, scale, pw, t1, t2, y)
+(
+  scale = fc - (n = max(ceil(fc) - 1, 0));
+  fc > 0 ? pw = scale / fc : pw = 1;
+
+  t1 = (t2 = this.t + 0.5) + pw;
+  this.poly_inc();
+
+  // Half-wave rectified sawtooth
+  y = (((t1 -= t1|0) < pw ? t1 * 2/pw : 0) - pw
+    - poly_blep(t2 - (t2|0), dt)) * scale;
+
+  n > 0 ? (
+    scale = 2/(pw = (1 - pw) / n);
+    loop(n,
+      t2 = t1 + pw;
+
+      // Half-wave rectified sawtooth
+      y += ((t2 -= t2|0) < pw ? t2 * scale : 0) - pw
+        -  poly_blep(t1, dt);
+
+      t1 = t2;
+    );
   );
 
   y * a;

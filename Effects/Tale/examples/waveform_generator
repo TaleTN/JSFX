@@ -1,8 +1,8 @@
 desc:Waveform generator
-// Copyright (C) 2017-2020 Theo Niessink
+// Copyright (C) 2017-2021 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/gpl.html
 
-slider1:0<0,45,1{Sine,Cosine,Triangle,Square,Rectangle PW,Saw,Ramp,Mod Triangle PW,Mod Square PW,HW Rect Sine,HW Rect Sine PW,FW Rect Sine,Pulse Sine,Saw Pulse,Tri Pulse PW,HW Rect Saw PW,Alt Sine,Camel Sine,Bipolar Sine^2,Parabola,Circle,Cycloid,Trapezoid,Trapezoid PW,LP Square FC,LP Square Approx 2,LP Square Approx 3,Integrated LP Square 2,Integrated LP Square 3,HP Square FC,Integrated Saw,Cubic Saw,Sine Saw,HP Saw FC,HP Saw Approx,Logit Approx,Square Min Fund,Saw Min Fund,Step Sine N,Step Triangle N,Step Saw N,Hard Sync Saw FC,88 8000 000,Staircase,Staircase PW,Uneven Staircase PW}>Waveform
+slider1:0<0,45,1{Sine,Cosine,Triangle,Square,Rectangle PW,Saw,Ramp,Mod Triangle PW,Mod Square PW,HW Rect Sine,HW Rect Sine PW,FW Rect Sine,Pulse Sine,Saw Pulse,Tri Pulse PW,HW Rect Saw PW,Alt Sine,Camel Sine,Bipolar Sine^2,Parabola,Circle,Cycloid,Trapezoid,Trapezoid PW,Hyper Triangle,LP Square FC,LP Square Approx 2,LP Square Approx 3,Integrated LP Square 2,Integrated LP Square 3,HP Square FC,Integrated Saw,Cubic Saw,Sine Saw,HP Saw FC,HP Saw Approx,Logit Approx,Square Min Fund,Saw Min Fund,Step Sine N,Step Triangle N,Step Saw N,Hard Sync Saw FC,88 8000 000,Staircase,Staircase PW,Uneven Staircase PW}>Waveform
 slider2:440.0<20.0,20000.0,1.0>Freq (Hz)
 slider3:0.5<0.0,1.0,0.01>Pulse Width
 slider4:1.0<0.0,10.0,0.01>Freq Cutoff
@@ -23,6 +23,9 @@ import Tale/wavetable.jsfx-inc
 four.four_init(0, 2048);
 gfx_clear = -1;
 
+h2 = 10;
+tr = 14;
+
 function lfo_wave(wave)
 (
   wave == 0 ? this.lfo_sin() :
@@ -37,11 +40,11 @@ function lfo_wave(wave)
   wave == 8 ? this.lfo_sqr2() :
 
   wave == 9 ? this.lfo_half() :
-  wave == 10 ? this.lfo_half2() :
+  wave == h2 ? this.lfo_half2() :
   wave == 11 ? this.lfo_full() :
   wave == 12 ? this.lfo_sinp() :
   wave == 13 ? this.lfo_sawp() :
-  wave == 14 ? this.lfo_trip() :
+  wave == tr ? this.lfo_trip() :
   wave == 15 ? this.lfo_hwsaw() :
   wave == 16 ? this.lfo_alt() :
   wave == 17 ? this.lfo_camel() :
@@ -53,37 +56,35 @@ function lfo_wave(wave)
   wave == 22 ? this.lfo_trap() :
   wave == 23 ? this.lfo_trap2() :
 
-  wave == 24 ? this.lfo_lpsqr() :
-  wave == 25 ? this.lfo_lpsqr2() :
-  wave == 26 ? this.lfo_lpsqr3() :
-  wave == 27 ? this.lfo_intlpsqr2() :
-  wave == 28 ? this.lfo_intlpsqr3() :
-  wave == 29 ? this.lfo_hpsqr() :
-  wave == 30 ? this.lfo_intsaw() :
-  wave == 31 ? this.lfo_cubsaw() :
-  wave == 32 ? this.lfo_sinsaw() :
-  wave == 33 ? this.lfo_hpsaw() :
-  wave == 34 ? this.lfo_hpsaw6() :
-  wave == 35 ? this.lfo_logit3() :
+  wave == 24 ? this.lfo_hyptri() :
+  wave == 25 ? this.lfo_lpsqr() :
+  wave == 26 ? this.lfo_lpsqr2() :
+  wave == 27 ? this.lfo_lpsqr3() :
+  wave == 28 ? this.lfo_intlpsqr2() :
+  wave == 29 ? this.lfo_intlpsqr3() :
+  wave == 30 ? this.lfo_hpsqr() :
+  wave == 31 ? this.lfo_intsaw() :
+  wave == 32 ? this.lfo_cubsaw() :
+  wave == 33 ? this.lfo_sinsaw() :
+  wave == 34 ? this.lfo_hpsaw() :
+  wave == 35 ? this.lfo_hpsaw6() :
+  wave == 36 ? this.lfo_logit3() :
 
-  wave == 36 ? this.lfo_sqrm1() :
-  wave == 37 ? this.lfo_sawm1() :
+  wave == 37 ? this.lfo_sqrm1() :
+  wave == 38 ? this.lfo_sawm1() :
 
-  wave == 38 ? this.lfo_sinn() :
-  wave == 39 ? this.lfo_trin() :
-  wave == 40 ? this.lfo_sawn() :
-  wave == 41 ? this.lfo_hssaw() :
+  wave == 39 ? this.lfo_sinn() :
+  wave == 40 ? this.lfo_trin() :
+  wave == 41 ? this.lfo_sawn() :
+  wave == 42 ? this.lfo_hssaw() :
 
-  wave == 42 ? this.lfo_ham() :
-  wave == 43 ? this.lfo_stairs() :
-  wave == 44 ? this.lfo_stairs3() :
-  wave == 45 ? this.lfo_stairs2() :
+  wave == 43 ? this.lfo_ham() :
+  wave == 44 ? this.lfo_stairs() :
+  wave == 45 ? this.lfo_stairs3() :
+  wave == 46 ? this.lfo_stairs2() :
 
   ( this.lfo_inc(); wave < 0 ? wave : 0; );
 );
-
-h2 = 10;
-tr = 14;
 
 function poly_wave(wave)
 (
@@ -115,26 +116,28 @@ function poly_wave(wave)
   wave == 22 ? this.poly_trap() :
   wave == 23 ? this.poly_trap2() :
 
-  wave == 25 ? this.poly_lpsqr2() :
-  wave == 26 ? this.poly_lpsqr3() :
-  wave == 27 ? this.poly_intlpsqr2() :
-  wave == 28 ? this.poly_intlpsqr3() :
-  wave == 30 ? this.poly_intsaw() + this.lfo_intsaw_dc() :
-  wave == 31 ? this.poly_cubsaw() :
-  wave == 32 ? this.poly_sinsaw() :
-  wave == 34 ? this.poly_hpsaw6() + this.lfo_hpsaw6_dc()  :
-  wave == 35 ? this.poly_logit3() :
+  wave == 24 ? this.poly_hyptri() + lfo_hyptri_dc() :
+  wave == 26 ? this.poly_lpsqr2() :
+  wave == 27 ? this.poly_lpsqr3() :
+  wave == 28 ? this.poly_intlpsqr2() :
+  wave == 29 ? this.poly_intlpsqr3() :
+  wave == 31 ? this.poly_intsaw() + this.lfo_intsaw_dc() :
+  wave == 32 ? this.poly_cubsaw() :
+  wave == 33 ? this.poly_sinsaw() :
+  wave == 35 ? this.poly_hpsaw6() + this.lfo_hpsaw6_dc()  :
+  wave == 36 ? this.poly_logit3() :
 
-  wave == 36 ? this.poly_sqrm1() :
-  wave == 37 ? this.poly_sawm1() :
+  wave == 37 ? this.poly_sqrm1() :
+  wave == 38 ? this.poly_sawm1() :
 
-  wave == 39 ? this.poly_trin() :
-  wave == 40 ? this.poly_sawn() :
+  wave == 40 ? this.poly_trin() :
+  wave == 41 ? this.poly_sawn() :
+  wave == 42 ? this.poly_hssaw() + this.lfo_hssaw_dc() :
 
-  wave == 42 ? this.poly_ham() :
-  wave == 43 ? this.poly_stairs() :
-  wave == 44 ? this.poly_stairs3() + this.lfo_stairs3_dc() :
-  wave == 45 ? this.poly_stairs2() + this.lfo_stairs2_dc() :
+  wave == 43 ? this.poly_ham() :
+  wave == 44 ? this.poly_stairs() :
+  wave == 45 ? this.poly_stairs3() + this.lfo_stairs3_dc() :
+  wave == 46 ? this.poly_stairs2() + this.lfo_stairs2_dc() :
 
   ( this.poly_inc(); wave < 0 ? wave : 0; );
 );
@@ -153,11 +156,11 @@ function four_wave(wave)
   wave == 8 ? this.four_sqr2() :
 
   wave == 9 ? this.four_half() :
-  wave == 10 ? this.four_half2() :
+  wave == h2 ? this.four_half2() :
   wave == 11 ? this.four_full() :
   wave == 12 ? this.four_sinp() :
   wave == 13 ? this.four_sawp() :
-  wave == 14 ? this.four_trip() :
+  wave == tr ? this.four_trip() :
   wave == 15 ? this.four_hwsaw() :
   wave == 16 ? this.four_alt() :
   wave == 17 ? this.four_camel() :
@@ -169,31 +172,32 @@ function four_wave(wave)
   wave == 22 ? this.four_trap() :
   wave == 23 ? this.four_trap2() :
 
-  wave == 24 ? this.four_lpsqr() :
-  wave == 25 ? this.four_lpsqr2() :
-  wave == 26 ? this.four_lpsqr3() :
-  wave == 27 ? this.four_intlpsqr2() :
-  wave == 28 ? this.four_intlpsqr3() :
-  wave == 29 ? this.four_hpsqr() :
-  wave == 30 ? this.four_intsaw() :
-  wave == 31 ? this.four_cubsaw() :
-  wave == 32 ? this.four_sinsaw() :
-  wave == 33 ? this.four_hpsaw() :
-  wave == 34 ? this.four_hpsaw6() :
-  wave == 35 ? this.four_logit3() :
+  wave == 24 ? this.four_hyptri() :
+  wave == 25 ? this.four_lpsqr() :
+  wave == 26 ? this.four_lpsqr2() :
+  wave == 27 ? this.four_lpsqr3() :
+  wave == 28 ? this.four_intlpsqr2() :
+  wave == 29 ? this.four_intlpsqr3() :
+  wave == 30 ? this.four_hpsqr() :
+  wave == 31 ? this.four_intsaw() :
+  wave == 32 ? this.four_cubsaw() :
+  wave == 33 ? this.four_sinsaw() :
+  wave == 34 ? this.four_hpsaw() :
+  wave == 35 ? this.four_hpsaw6() :
+  wave == 36 ? this.four_logit3() :
 
-  wave == 36 ? this.four_sqrm1() :
-  wave == 37 ? this.four_sawm1() :
+  wave == 37 ? this.four_sqrm1() :
+  wave == 38 ? this.four_sawm1() :
 
-  wave == 38 ? this.four_sinn() :
-  wave == 39 ? this.four_trin() :
-  wave == 40 ? this.four_sawn() :
-  wave == 41 ? this.four_hssaw() :
+  wave == 39 ? this.four_sinn() :
+  wave == 40 ? this.four_trin() :
+  wave == 41 ? this.four_sawn() :
+  wave == 42 ? this.four_hssaw() :
 
-  wave == 42 ? this.four_ham() :
-  wave == 43 ? this.four_stairs() :
-  wave == 44 ? this.four_stairs3() :
-  wave == 45 ? this.four_stairs2() :
+  wave == 43 ? this.four_ham() :
+  wave == 44 ? this.four_stairs() :
+  wave == 45 ? this.four_stairs3() :
+  wave == 46 ? this.four_stairs2() :
 
   ( memset(this.coef, 0, this.size); );
 );
@@ -214,17 +218,18 @@ wet = exp(log(10)/20 * slider8);
 
 lfo.lfo_setf(freq);
 lfo.lfo_setpw(pw);
-lfo.lfo_setn(n);
 lfo.lfo_setfc(fc * freq);
+lfo.lfo_setn(n);
 
 poly.poly_setf(freq);
 poly.poly_setpw(pw);
+poly.poly_setf2(fc * freq);
 poly.poly_setn(n);
 
 four.four_setf(freq);
 four.four_setpw(pw);
-four.four_setn(n);
 four.four_setfc(fc * freq);
+four.four_setn(n);
 
 mode == 1 ? (
   four.four_update();
@@ -240,25 +245,20 @@ gfx_update = 1;
 
 @sample
 
+poly.t = four.t = lfo.t;
+
 mode == 0 ? (
   out = lfo.lfo_wave(wave);
-
-  poly.poly_inc();
-  four.wave_inc();
 ) :
 
 mode == 2 ? (
   out = poly.poly_wave(wave);
-
-  lfo.lfo_inc();
-  four.wave_inc();
+  lfo.t = poly.t;
 ) :
 
 mode == 1 ? (
   out = four.wave_spline5();
-
-  lfo.lfo_inc();
-  poly.poly_inc();
+  lfo.t = four.t;
 );
 
 out *= wet;

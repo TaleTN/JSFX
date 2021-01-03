@@ -1,0 +1,99 @@
+desc:Insert to bus convertor
+//tags: processing routing
+//author: Tale
+
+// Copyright (C) 2020 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+// This effect can convert a stereo insert-only effect to a bus effect.
+
+// To work correctly it needs 4 track channels, and the following FX chain:
+//
+// 1. This effect in Input Mode, which will simply duplicate track channels
+//    1/2 to 3/4.
+// 2. The insert-only effect, which should process track channels 1/2 only.
+// 3. This effect in Output Mode, which will subtrack track channels 3/4
+//    from 1/2, and output the results on channels 1/2.
+
+slider1:0<0,1,1{Input,Output}>Mode
+
+@slider
+
+mode = slider1|0;
+
+@block
+
+@sample
+
+num_ch >= 4 ? (
+  mode ? (
+    spl0 -= spl2;
+    spl1 -= spl3;
+  ) : (
+    spl2 = spl0;
+    spl3 = spl1;
+  );
+);
+
+@gfx 416 112
+
+gfx_r = 0; gfx_g = 1; gfx_b = 2/3;
+
+mode ? gfx_a = 0.5 : gfx_a = 1;
+
+gfx_x = 8; gfx_y = 40;
+gfx_drawchar($'I'); gfx_drawchar($'n'); gfx_drawchar($'p'); gfx_drawchar($'u'); gfx_drawchar($'t'); gfx_drawchar($' '); gfx_drawchar($'('); gfx_drawchar($'1'); gfx_drawchar($'/'); gfx_drawchar($'2'); gfx_drawchar($')');
+
+gfx_x += 8; gfx_y += 4;
+gfx_lineto(gfx_x + 32, gfx_y, 0);
+
+gfx_x += 1; gfx_y -= 1;
+gfx_lineto(gfx_x + 23, gfx_y - 23, 0);
+
+gfx_a = 1;
+
+gfx_x += 8; gfx_y -= 4;
+gfx_drawchar($'I'); gfx_drawchar($'n'); gfx_drawchar($'s'); gfx_drawchar($'e'); gfx_drawchar($'r'); gfx_drawchar($'t'); gfx_drawchar($' '); gfx_drawchar($'('); gfx_drawchar($'1'); gfx_drawchar($'/'); gfx_drawchar($'2'); gfx_drawchar($')');
+
+mode ? gfx_a = 1 : gfx_a = 0.5;
+
+gfx_x += 8; gfx_y += 4;
+gfx_lineto(gfx_x + 23, gfx_y + 23, 0);
+
+gfx_x += 1; gfx_y += 1;
+gfx_lineto(gfx_x + 32, gfx_y, 0);
+
+gfx_x += 8; gfx_y -= 4;
+gfx_drawchar($'B'); gfx_drawchar($'u'); gfx_drawchar($'s'); gfx_drawchar($' '); gfx_drawchar($'('); gfx_drawchar($'1'); gfx_drawchar($'/'); gfx_drawchar($'2'); gfx_drawchar($')');
+
+mode || num_ch < 4 ? gfx_a = 0.5 : gfx_a = 1;
+
+gfx_x -= 175 + 48 + 48; gfx_y += 5;
+gfx_lineto(gfx_x + 23, gfx_y + 23, 0);
+
+num_ch >= 4 ? gfx_a = 1;
+
+gfx_x += 21; gfx_y -= 4;
+gfx_drawchar($'D'); gfx_drawchar($'r'); gfx_drawchar($'y'); gfx_drawchar($' '); gfx_drawchar($'('); gfx_drawchar($'3'); gfx_drawchar($'/'); gfx_drawchar($'4'); gfx_drawchar($')');
+
+!mode ? gfx_a = 0.5;
+
+gfx_x += 19; gfx_y += 4;
+gfx_lineto(gfx_x + 23, gfx_y - 23, 0);
+
+num_ch < 4 ? (
+  gfx_r = gfx_a = 1; gfx_g = gfx_b = 0.4;
+
+  gfx_x = 8; gfx_y = 96;
+  gfx_drawchar($'W'); gfx_drawchar($'a'); gfx_drawchar($'r'); gfx_drawchar($'n'); gfx_drawchar($'i'); gfx_drawchar($'n'); gfx_drawchar($'g'); gfx_drawchar($':');
+  gfx_drawchar($' ');
+  gfx_drawchar($'T'); gfx_drawchar($'r'); gfx_drawchar($'a'); gfx_drawchar($'c'); gfx_drawchar($'k');
+  gfx_drawchar($' '); 
+  gfx_drawchar($'c'); gfx_drawchar($'h'); gfx_drawchar($'a'); gfx_drawchar($'n'); gfx_drawchar($'n'); gfx_drawchar($'e'); gfx_drawchar($'l'); gfx_drawchar($'s');
+  gfx_drawchar($' ');
+  gfx_drawchar($'s'); gfx_drawchar($'h'); gfx_drawchar($'o'); gfx_drawchar($'u'); gfx_drawchar($'l'); gfx_drawchar($'d');
+  gfx_drawchar($' '); 
+  gfx_drawchar($'b'); gfx_drawchar($'e');
+  gfx_drawchar($' ');
+  gfx_drawchar($'4');  
+);
