@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20210110 (10 January 2021)
+
+ + waveform_generator: Added polyBLEP LP/HP filtered square/saw.
+ + waveform_generator: Fixed naive LP/HP filtered square gain.
+ + waveform_generator: Added Retina support.
+ + poly: Optimized hard sync sawtooth.
+
 v20210103 (3 January 2021)
 
  + insert_to_bus: Added insert to bus convertor plug-in.

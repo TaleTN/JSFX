@@ -1045,28 +1045,29 @@ function poly_hwsaw()
 
 function poly_hssaw()
   instance(dt, a, fc)
-  local(n, scale, pw, t1, t2, y)
+  local(n, scale, pw, t, y)
 (
   scale = fc - (n = max(ceil(fc) - 1, 0));
   fc > 0 ? pw = scale / fc : pw = 1;
 
-  t1 = (t2 = this.t + 0.5) + pw;
+  t = this.t + 0.5;
   this.poly_inc();
 
-  // Half-wave rectified sawtooth
-  y = (((t1 -= t1|0) < pw ? t1 * 2/pw : 0) - pw
-    - poly_blep(t2 - (t2|0), dt)) * scale;
+  y = (t -= t|0) * fc;
+  y = (y - (y|0)) * 2 - sqr(pw) * fc + pw - 1;
+
+  // y -= poly_blep(t, dt) * scale;
+  t < dt ? y += sqr(t/dt - 1) * scale : t > 1 - dt ? y -= sqr((t - 1) / dt + 1) * scale;
 
   n > 0 ? (
-    scale = 2/(pw = (1 - pw) / n);
+    t += pw;
+    pw = (1 - pw) / n;
+
     loop(n,
-      t2 = t1 + pw;
+      // y -= poly_blep(t - (t|0), dt);
+      (t -= t|0) < dt ? y += sqr(t/dt - 1) : t > 1 - dt ? y -= sqr((t - 1) / dt + 1);
 
-      // Half-wave rectified sawtooth
-      y += ((t2 -= t2|0) < pw ? t2 * scale : 0) - pw
-        -  poly_blep(t1, dt);
-
-      t1 = t2;
+      t += pw;
     );
   );
 

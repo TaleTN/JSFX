@@ -12,7 +12,9 @@ slider7:0.0<-150.0,24.0,0.1>Dry (dB)
 slider8:-24.0<-150.0,24.0,0.1>Wet (dB)
 
 import Tale/lfo.jsfx-inc
+
 import Tale/poly_blep.jsfx-inc
+import Tale/rc_filter.jsfx-inc
 
 import Tale/fft_real_synth.jsfx-inc
 import Tale/fourier_series.jsfx-inc
@@ -21,10 +23,15 @@ import Tale/wavetable.jsfx-inc
 @init
 
 four.four_init(0, 2048);
-gfx_clear = -1;
 
-h2 = 10;
-tr = 14;
+gfx_clear = -1;
+gfx_ext_retina = 1;
+
+half2 = 10;
+trip = 14;
+lpsqr = 25;
+hpsqr = 30;
+hpsaw = 34;
 
 function lfo_wave(wave)
 (
@@ -40,11 +47,11 @@ function lfo_wave(wave)
   wave == 8 ? this.lfo_sqr2() :
 
   wave == 9 ? this.lfo_half() :
-  wave == h2 ? this.lfo_half2() :
+  wave == half2 ? this.lfo_half2() :
   wave == 11 ? this.lfo_full() :
   wave == 12 ? this.lfo_sinp() :
   wave == 13 ? this.lfo_sawp() :
-  wave == tr ? this.lfo_trip() :
+  wave == trip ? this.lfo_trip() :
   wave == 15 ? this.lfo_hwsaw() :
   wave == 16 ? this.lfo_alt() :
   wave == 17 ? this.lfo_camel() :
@@ -57,16 +64,16 @@ function lfo_wave(wave)
   wave == 23 ? this.lfo_trap2() :
 
   wave == 24 ? this.lfo_hyptri() :
-  wave == 25 ? this.lfo_lpsqr() :
+  wave == lpsqr ? this.lfo_lpsqr() :
   wave == 26 ? this.lfo_lpsqr2() :
   wave == 27 ? this.lfo_lpsqr3() :
   wave == 28 ? this.lfo_intlpsqr2() :
   wave == 29 ? this.lfo_intlpsqr3() :
-  wave == 30 ? this.lfo_hpsqr() :
+  wave == hpsqr ? this.lfo_hpsqr() :
   wave == 31 ? this.lfo_intsaw() :
   wave == 32 ? this.lfo_cubsaw() :
   wave == 33 ? this.lfo_sinsaw() :
-  wave == 34 ? this.lfo_hpsaw() :
+  wave == hpsaw ? this.lfo_hpsaw() :
   wave == 35 ? this.lfo_hpsaw6() :
   wave == 36 ? this.lfo_logit3() :
 
@@ -100,11 +107,11 @@ function poly_wave(wave)
   wave == 8 ? this.poly_sqr2() :
 
   wave == 9 ? this.poly_half() + this.lfo_half_dc() :
-  wave == h2 ? this.poly_half2() + this.lfo_half2_dc() :
+  wave == half2 ? this.poly_half2() + this.lfo_half2_dc() :
   wave == 11 ? this.poly_full() + this.lfo_full_dc() :
   wave == 12 ? this.poly_sinp() + this.lfo_sinp_dc() :
   wave == 13 ? this.poly_sawp() + this.lfo_sawp_dc() :
-  wave == tr ? this.poly_trip() + this.lfo_trip_dc() :
+  wave == trip ? this.poly_trip() + this.lfo_trip_dc() :
   wave == 15 ? this.poly_hwsaw() + this.lfo_hwsaw_dc() :
   wave == 16 ? this.poly_alt() :
   wave == 17 ? this.poly_camel() + this.lfo_camel_dc() :
@@ -117,13 +124,16 @@ function poly_wave(wave)
   wave == 23 ? this.poly_trap2() :
 
   wave == 24 ? this.poly_hyptri() + lfo_hyptri_dc() :
+  wave == lpsqr ? rc.rc_lp(this.poly_sqr()) :
   wave == 26 ? this.poly_lpsqr2() :
   wave == 27 ? this.poly_lpsqr3() :
   wave == 28 ? this.poly_intlpsqr2() :
   wave == 29 ? this.poly_intlpsqr3() :
+  wave == hpsqr ? rc.rc_hp_precise(this.poly_sqr()) :
   wave == 31 ? this.poly_intsaw() + this.lfo_intsaw_dc() :
   wave == 32 ? this.poly_cubsaw() :
   wave == 33 ? this.poly_sinsaw() :
+  wave == hpsaw ? rc.rc_hp_precise(this.poly_saw()) + this.lfo_hpsaw_dc() :
   wave == 35 ? this.poly_hpsaw6() + this.lfo_hpsaw6_dc()  :
   wave == 36 ? this.poly_logit3() :
 
@@ -156,11 +166,11 @@ function four_wave(wave)
   wave == 8 ? this.four_sqr2() :
 
   wave == 9 ? this.four_half() :
-  wave == h2 ? this.four_half2() :
+  wave == half2 ? this.four_half2() :
   wave == 11 ? this.four_full() :
   wave == 12 ? this.four_sinp() :
   wave == 13 ? this.four_sawp() :
-  wave == tr ? this.four_trip() :
+  wave == trip ? this.four_trip() :
   wave == 15 ? this.four_hwsaw() :
   wave == 16 ? this.four_alt() :
   wave == 17 ? this.four_camel() :
@@ -173,16 +183,16 @@ function four_wave(wave)
   wave == 23 ? this.four_trap2() :
 
   wave == 24 ? this.four_hyptri() :
-  wave == 25 ? this.four_lpsqr() :
+  wave == lpsqr ? this.four_lpsqr() :
   wave == 26 ? this.four_lpsqr2() :
   wave == 27 ? this.four_lpsqr3() :
   wave == 28 ? this.four_intlpsqr2() :
   wave == 29 ? this.four_intlpsqr3() :
-  wave == 30 ? this.four_hpsqr() :
+  wave == hpsqr ? this.four_hpsqr() :
   wave == 31 ? this.four_intsaw() :
   wave == 32 ? this.four_cubsaw() :
   wave == 33 ? this.four_sinsaw() :
-  wave == 34 ? this.four_hpsaw() :
+  wave == hpsaw ? this.four_hpsaw() :
   wave == 35 ? this.four_hpsaw6() :
   wave == 36 ? this.four_logit3() :
 
@@ -205,10 +215,10 @@ function four_wave(wave)
 @slider
 
 wave = slider1|0;
-freq = max(slider2, 0.0);
+freq = max(slider2, 0);
 
-pw = min(max(0.0, slider3), 1.0);
-fc = max(slider4, 0.0);
+pw = min(max(0, slider3), 1);
+fc = max(slider4, 0);
 n = max(slider5|0, 1);
 
 mode = slider6|0;
@@ -231,6 +241,18 @@ four.four_setpw(pw);
 four.four_setfc(fc * freq);
 four.four_setn(n);
 
+lp = wave == lpsqr;
+hp = wave == hpsqr;
+
+mode == 0 ? (
+  lp || hp ? (
+    gain = exp(-$pi * fc);
+    gain = (1 - gain) / (1 + gain) + hp;
+  ) : (
+    gain = 1;
+  );
+) :
+
 mode == 1 ? (
   four.four_update();
   four.four_wave(wave);
@@ -238,8 +260,12 @@ mode == 1 ? (
 ) :
 
 mode == 2 ? (
-  (wave == h2 || wave == tr) && pw < poly.dt * 2 ? wave = -1;
+  (wave == half2 || wave == trip) && pw < poly.dt * 2 ? wave = -1;
 );
+
+rc.rc_setf_precise(freq * fc);
+!lp || rc.a <= 0 ? rc.lp = 0;
+!(hp |= wave == hpsaw) ? rc.hp = rc.in = 0;
 
 gfx_update = 1;
 
@@ -247,18 +273,18 @@ gfx_update = 1;
 
 poly.t = four.t = lfo.t;
 
-mode == 0 ? (
-  out = lfo.lfo_wave(wave);
-) :
-
-mode == 2 ? (
+mode < 2 ? (
+  mode < 1 ? (
+    out = lfo.lfo_wave(wave) * gain;
+  ) : (
+    out = four.wave_spline5();
+    lfo.t = four.t;
+  );
+  lp ? rc.rc_lp(out) :
+  hp ? rc.rc_hp_precise(out);
+) : (
   out = poly.poly_wave(wave);
   lfo.t = poly.t;
-) :
-
-mode == 1 ? (
-  out = four.wave_spline5();
-  lfo.t = four.t;
 );
 
 out *= wet;
@@ -319,6 +345,21 @@ gfx_update ? (
   loop(gfx_w - 16,
     h = (0.5 - 0.5 * gfx_lfo.lfo_wave(wave)) * (gfx_h - 17);
     x > 0 ? (
+      gfx_ext_retina >= 1.5 ? (
+        gfx_a *= 0.5;
+        gfx_x = (tmp_x = gfx_x) + 1;
+        gfx_y = (tmp_y = gfx_y) + 1;
+        gfx_lineto(9 + x, 9 + h, 1);
+        gfx_x = tmp_x;
+        gfx_y = tmp_y + 1;
+        gfx_lineto(8 + x, 9 + h, 1);
+        gfx_x = tmp_x + 1;
+        gfx_y = tmp_y;
+        gfx_lineto(9 + x, 8 + h, 1);
+        gfx_x = tmp_x;
+        gfx_y = tmp_y;
+        gfx_a *= 2;
+      );
       gfx_lineto(8 + x, 8 + h, 1);
     ) : (
       gfx_x = 8 /* + x */;
