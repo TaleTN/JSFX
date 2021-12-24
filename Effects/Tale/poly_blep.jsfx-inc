@@ -83,6 +83,8 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_hwsaw()     -- Half-wave rectified sawtooth
     * poly_alt()       -- Alternating sine
     * poly_camel()     -- Camel sine
+    * poly_camela()    -- Alternating camel sine
+    * poly_camel2()    -- Bipolar camel sine
 
     * poly_sin2()      -- Bipolar squared sine
     * poly_para()      -- Parabola
@@ -446,6 +448,45 @@ function poly_camel()
   ) * a;
 );
 
+// Alternating camel sine
+
+function poly_camela()
+  instance(dt, a)
+  local(t1, t2, t3, y)
+(
+  t3 = (t2 = (t1 = this.t) + 0.5) + 0.25;
+  this.poly_inc();
+
+  y = sin(t1 * /* 4*$pi */ 12.566370614359173);
+  t1 < 0.5 ? y = abs(y);
+
+  ((poly_blamp(t2 - (t2|0), dt)
+  + poly_blamp(t3 - (t3|0), dt)) * /* 4*$pi */ 12.566370614359173 * dt
+
+  + y - /* 1/$pi */ 0.31830988618379067
+
+  ) * a;
+);
+
+// Bipolar camel sine
+
+function poly_camel2()
+  instance(dt, a)
+  local(t1, t2)
+(
+  t2 = (t1 = this.t + 0.25) + 0.5;
+  this.poly_inc();
+
+  t1 -= t1|0;
+
+  ((poly_blamp(t2 - (t2|0), dt)
+  - poly_blamp(t1, dt)) * /* 4*$pi */ 12.566370614359173 * dt
+
+  + sin(abs(t1 - 0.5) * /* 4*$pi */ 12.566370614359173)
+
+  ) * a;
+);
+
 // Bipolar squared sine
 
 function poly_sin2()
@@ -504,6 +545,25 @@ function poly_circ()
 
   // ... with sine.
   + sin(t1 * /* 2*$pi */ 6.2831853071795865)) * 0.5 * a;
+);
+
+// Cycloid
+
+// Warning: Anti-aliasing probably isn't correct!
+
+function poly_arc()
+  instance(dt, a)
+  local(t)
+(
+  t = this.t + 0.25;
+  this.poly_inc();
+
+  t -= t|0;
+
+  (poly_blamp(t, dt) * sqrt(dt) * /* 2*$pi */ 6.2831853071795865
+  + sqrt(t - sqr(t)) * 4 - 1
+
+  ) * a;
 );
 
 // Triangle

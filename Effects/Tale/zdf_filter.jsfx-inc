@@ -1,6 +1,6 @@
 desc:2nd-order zero-delay feedback state variable filter
 
-// Copyright (C) 2013-2018 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2021 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -56,6 +56,12 @@ desc:2nd-order zero-delay feedback state variable filter
       you change the filter frequency/Q afterwards, then this will reset the
       gain to 1.0, and so you will have to modify it again.
 
+    * zdf_setf(freq, q)
+      Example: lp.zdf_setf(1000, 0.7);
+      Sets up the specialized low-pass, high-pass, or band-pass filter.
+
+      Note: This works only with zdf_svf_lp(), zdf_svf_hp(), or zdf_svf_bp().
+
    Filter Functions
 
     * zdf_svf(sample)
@@ -65,11 +71,11 @@ desc:2nd-order zero-delay feedback state variable filter
     * zdf_svf_multi(sample)
       Example: output = lp.zdf_svf_multi(input);
       Sends a sample through the filter, returns its output, and also stores
-      the individual lowpass, bandpass, and highpass outputs.
+      the individual low-pass, band-pass, and high-pass outputs.
 
-    * zdf_svf_lp(s) -- Low-pass
-    * zdf_svf_hp(s) -- High-pass
-    * zdf_svf_bp(s) -- Band-pass
+    * zdf_svf_lp(sample) -- Low-pass
+    * zdf_svf_hp(sample) -- High-pass
+    * zdf_svf_bp(sample) -- Band-pass
       Example: output = lp.zdf_svf_lp(input);
       Specialized versions of zdf_svf(), each optimized for a specific
       filter type.
@@ -91,11 +97,14 @@ desc:2nd-order zero-delay feedback state variable filter
     * g  -- Embedded integrator gain
     * r2 -- Damping (1/Q)
     * h  -- Feedback precomputation factor
+      Example: lp2.g = lp1.g; lp2.r2 = lp1.r2; lp2.h = lp1.h;
+      Filter coefficients.
+
     * cl -- Low-pass mix
     * cb -- Band-pass mix
     * ch -- High-pass mix
-      Example: lp2.g = lp1.g; lp2.r2 = lp1.r2; lp2.h = lp1.h; lp2.cl = lp1.cl; lp2.cb = lp1.cb; lp2.ch = lp1.ch;
-      Filter coefficients.
+      Example: lp2.cl = lp1.cl; lp2.cb = lp1.cb; lp2.ch = lp1.ch;
+      Filter mode output mix.
 
     * s1
     * s2
@@ -117,7 +126,7 @@ function zdf_bwtoq(bw)
 (
   // q = 1/(2 * sinh(log(2) / 2 * bw))
   x = exp(0.5*log(2) * bw);
-  1/(x - 1/x);
+  x/(sqr(x) - 1);
 );
 
 function zdf_qtobw(q)
@@ -131,7 +140,7 @@ function zdf_qtobw(q)
 function _zdf_seth()
   instance(g, r2, h)
 (
-  h = 1/(1 + (r2 + g) * g);
+  h = 1/((r2 + g)*g + 1);
 );
 
 // Low-pass
@@ -289,28 +298,24 @@ function zdf_gain(gain)
   ch *= gain;
 );
 
-// Returns an appropriate linear combination of the 3 outputs [lowpass,
-// bandpass, highpass] of the core SVF in order to achieve various filter
-// modes.
-
 function zdf_svf(sample)
   instance(s1, s2, g, r2, h, cl, cb, ch)
   local(yl, yb, yh)
 (
-  // compute highpass output via Eq. 5.1:
+  // High-pass
   yh = (sample - (r2 + g) * s1 - s2) * h;
 
-  // compute bandpass output by applying 1st integrator to highpass output:
+  // Band-pass
   yb = g*yh + s1;
-  // state update in 1st integrator
   s1 = g*yh + yb;
+
   // Zero denormals
   abs(s1) < 0.00000000000000006 ? s1 = 0;
 
-  // compute lowpass output by applying 2nd integrator to bandpass output:
+  // Low-pass
   yl = g*yb + s2;
-  // state update in 2nd integrator
   s2 = g*yb + yl;
+
   abs(s2) < 0.00000000000000006 ? s2 = 0;
 
   cl*yl + cb*yb + ch*yh;
@@ -330,6 +335,15 @@ function zdf_svf_multi(sample)
 );
 
 // Optimized versions of zdf_svf() returning only 1 of the 3 outputs.
+
+function zdf_setf(freq, q)
+  // global(srate)
+  instance(g, r2)
+(
+  g = tan($pi * min(freq / srate, 0.49));
+  r2 = 1/q;
+  this._zdf_seth();
+);
 
 function zdf_svf_lp(sample)
   instance(s1, s2, g, r2, h)

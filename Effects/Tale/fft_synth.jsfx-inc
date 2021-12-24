@@ -1,6 +1,6 @@
 desc:FFT bandlimited synthesis
 
-// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2015-2021 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -271,7 +271,7 @@ function four_setdc(dc, phase)
   coef + 2;
 );
 
-function four_getdc(dc)
+function four_getdc()
   instance(coef)
 (
   coef[0];

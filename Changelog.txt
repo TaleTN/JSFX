@@ -1,5 +1,18 @@
 Tale's JSFX Pack
 
+v20211224 (24 December 2021)
+
+ + four/lfo/poly: Added alternating/bipolar camel sine.
+ + poly: Added (incorrect) cycloid.
+ + waveform_generator: Added alternating/bipolar camel sine,
+   polyBLEP cycloid.
+ + waveform_generator: Tweaked draw waveform offset.
+ + zdf: Added specialized set LP/HP/BP.
+ + zdf/rbj: Nitpicked/optimized bandwidth to Q.
+ + Documentation: Minor ZDF SVF improvements, recalculated LFO RMS values
+   with zero DC.
+ + Happy holidays!
+
 v20210110 (10 January 2021)
 
  + waveform_generator: Added polyBLEP LP/HP filtered square/saw.
