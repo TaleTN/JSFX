@@ -2,7 +2,7 @@ desc:Simple drum synth
 //tags: generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2019 Theo Niessink
+// Copyright (C) 2014-2022 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This electronic drum synth supports the following General MIDI (GM)
@@ -113,13 +113,13 @@ out_pin:Cowbell
 
 options:no_meter
 
-import Tale/midi_queue.jsfx-inc
-import Tale/adsr.jsfx-inc
-import Tale/noise.jsfx-inc
-import Tale/sine.jsfx-inc
-import Tale/poly_blep.jsfx-inc
-import Tale/rc_filter.jsfx-inc
-import Tale/rbj_filter.jsfx-inc
+import midi_queue.jsfx-inc
+import adsr.jsfx-inc
+import noise.jsfx-inc
+import sine.jsfx-inc
+import poly_blep.jsfx-inc
+import rc_filter.jsfx-inc
+import rbj_filter.jsfx-inc
 
 @init
 
@@ -213,7 +213,7 @@ bd.env.s = 1;
 bd.lp.a = bd.lp2.rc_setf(90);
 
 function bd(note, vel)
-  instance(env, osc)
+  instance(env, osc, lp, lp2)
   local(a, r, freq)
 (
   note == 36 || note == 35 ? (

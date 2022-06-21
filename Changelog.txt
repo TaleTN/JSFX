@@ -1,5 +1,15 @@
 Tale's JSFX Pack
 
+v20220621 (21 June 2022)
+
+ + drum_synth: Fixed Bass Drum 2 filter reset.
+ + rbj: Optimized filter setting functions.
+ + rbj: Deprecated scale coefficient function.
+ + lfo: Added rounded square/rectangle, tanh approximation.
+ + poly: Added stepped sine.
+ + waveform_generator: Added naive rounded square/rectangle,
+   polyBLEP stepped sine.
+
 v20211224 (24 December 2021)
 
  + four/lfo/poly: Added alternating/bipolar camel sine.
@@ -428,4 +438,4 @@ v20120809 (9 August 2012)
 
  + Initial release.
 
-Copyright (C) 2012-2021 Theo Niessink
+Copyright (C) 2012-2022 Theo Niessink

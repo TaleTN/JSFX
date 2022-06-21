@@ -103,6 +103,7 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_sqrm1()     -- Square wave minus fundamental
     * poly_sawm1()     -- Sawtooth minus fundamental
 
+    * poly_sinn()      -- Stepped sine
     * poly_trin()      -- Stepped triangle
     * poly_sawn()      -- Stepped sawtooth
     * poly_hssaw()     -- Hard sync sawtooth
@@ -321,6 +322,42 @@ function poly_cos()
   this.poly_inc();
 
   cos(t * /* 2*$pi */ 6.2831853071795865) * a;
+);
+
+// Stepped sine
+
+function poly_sinn()
+  instance(dt, a, n)
+  local(t1, t2, t3, dt2, dt3, y1, y2, s0, s1)
+(
+  t1 = this.t;
+  this.poly_inc();
+
+  n >= 2 ? (
+    y1 = sin(((t1 * n * 2 + 0.5)|0) * $pi / n);
+    t1 += (dt2 = 0.5 / n) * 0.5;
+  ) : (
+    t1 < 0.5 ? y1 = /* 1/sqrt(2) */ 0.70710678118654752 : y1 = /* -1/sqrt(2) */ -0.70710678118654752;
+    dt2 = 0.25;
+  );
+
+  t2 = t1 + 0.5;
+  t3 = dt3 = dt2 * /* 2*$pi */ 6.2831853071795865;
+
+  y2 = s0 = 0;
+  loop(n,
+    t1 -= t1|0;
+    t2 -= t2|0;
+
+    s1 = s0;
+    y2 += (poly_blep(t1, dt) - poly_blep(t2, dt)) * ((s0 = sin(t3)) - s1);
+
+    t1 += dt2;
+    t2 += dt2;
+    t3 += dt3;
+  );
+
+  ((n >= 2 ? 0.5 : /* 1/sqrt(2) */ 0.70710678118654752) * y2 + y1) * a;
 );
 
 // Half-wave rectified sine
@@ -609,7 +646,7 @@ function poly_hyptri()
   t2 = (t1 = this.t) + 0.5;
   this.poly_inc();
 
-  ((poly_blamp(t1, dt) * 4/$pi
+  ((poly_blamp(t1, dt) * /* 4/$pi */ 1.2732395447351627
   - poly_blamp(t2 - (t2|0), dt) * 9.273) * dt
 
   + exp((t1 < 0.5 ? t1 : 1 - t1) * 4) * /* 2/(exp(2) - 1) */ 0.31303528549933130 - 1
@@ -640,7 +677,7 @@ function poly_trin()
     t1 -= t1|0;
     t2 -= t2|0;
 
-    // y2 += poly_blep(t, dt);
+    // y2 += poly_blep(t2, dt);
     t2 < dt ? y2 -= sqr(t2/dt - 1) : t2 > 1 - dt ? y2 += sqr((t2 - 1) / dt + 1);
 
     t2 += dt2;

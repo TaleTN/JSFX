@@ -1,6 +1,6 @@
 desc:2nd-order RBJ filter
 
-// Copyright (C) 2012-2021 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2022 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -75,9 +75,6 @@ desc:2nd-order RBJ filter
       Example: q = rbj_bwtoq(2.0);
       Converts bandwidth (in octaves) to Q factor, or vice versa.
 
-    * rbj_scale(a0)
-      Scales the filter coefficients (i.e. divides by a0), and returns a0.
-
    Instance Variables
 
     * a1
@@ -107,6 +104,11 @@ desc:2nd-order RBJ filter
       Example: lp2.w0 = lp1.w0; lp2.w1 = lp1.w1;
       Direct Form 2 filter state.
 
+    * s0
+    * s1
+      Example: lp2.s0 = lp1.s0; lp2.s1 = lp1.s1;
+      Transposed Direct Form 2 filter state.
+
 */
 
 @init
@@ -127,40 +129,24 @@ function rbj_qtobw(q)
   2/log(2) * log(x + sqrt(sqr(x) + 1));
 );
 
-function rbj_scale(a0)
-  instance(a1, a2, b0, b1, b2)
-  local(scale)
-(
-  scale = 1/a0;
-
-  a1 *= scale;
-  a2 *= scale;
-
-  b0 *= scale;
-  b1 *= scale;
-  b2 *= scale;
-
-  a0;
-);
-
 // Low-pass
 
 function rbj_lp(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, cos_w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
-  cos_w0 = cos(w0);
   alpha = sin(w0) / (2*q);
 
-  b1 = 1 - cos_w0;
-  b0 = b2 = 0.5 * b1;
-  a0 = 1 + alpha;
-  a1 = -2 * cos_w0;
-  a2 = 1 - alpha;
+  scale = 1/(a0 = 1 + alpha);
+  a1 = cos(w0) * -2 * scale;
+  a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = b0 = (1 + a1 + a2) * 0.25;
+  b1 = b0 * 2;
+
+  a0;
 );
 
 // High-pass
@@ -168,19 +154,19 @@ function rbj_lp(freq, q)
 function rbj_hp(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, cos_w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
-  cos_w0 = cos(w0);
   alpha = sin(w0) / (2*q);
 
-  b1 = -1 - cos_w0;
-  b0 = b2 = -0.5 * b1;
-  a0 = 1 + alpha;
-  a1 = -2 * cos_w0;
-  a2 = 1 - alpha;
+  scale = 1/(a0 = 1 + alpha);
+  a1 = cos(w0) * -2 * scale;
+  a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = b0 = (1 - a1  + a2) * 0.25;
+  b1 = b0 * -2;
+
+  a0;
 );
 
 // Band-pass (constant skirt gain, peak gain = Q)
@@ -188,19 +174,19 @@ function rbj_hp(freq, q)
 function rbj_bp(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   alpha = sin(w0) / (2*q);
 
-  b0 = q * alpha;
-  b1 = 0;
-  b2 = -b0;
-  a0 = 1 + alpha;
-  a1 = -2 * cos(w0);
-  a2 = 1 - alpha;
+  scale = 1/(a0 = 1 + alpha);
+  a1 = cos(w0) * -2 * scale;
+  a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = -(b0 = (1 - a2) * 0.5 * q);
+  b1 = 0;
+
+  a0;
 );
 
 // Band-pass (constant 0 dB peak gain)
@@ -208,19 +194,19 @@ function rbj_bp(freq, q)
 function rbj_bp2(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   alpha = sin(w0) / (2*q);
 
-  b0 = alpha;
-  b1 = 0;
-  b2 = -alpha;
-  a0 = 1 + alpha;
-  a1 = -2 * cos(w0);
-  a2 = 1 - alpha;
+  scale = 1/(a0 = 1 + alpha);
+  a1 = cos(w0) * -2 * scale;
+  a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = -(b0 = (1 - a2) * 0.5);
+  b1 = 0;
+
+  a0;
 );
 
 // Band-stop
@@ -228,17 +214,19 @@ function rbj_bp2(freq, q)
 function rbj_bs(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   alpha = sin(w0) / (2*q);
 
-  b0 = b2 = 1;
-  b1 = a1 = -2 * cos(w0);
-  a0 = 1 + alpha;
-  a2 = 1 - alpha;
+  scale = 1/(a0 = 1 + alpha);
+  a1 = cos(w0) * -2 * scale;
+  a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = b0 = scale;
+  b1 = a1;
+
+  a0;
 );
 
 // All-pass
@@ -246,16 +234,18 @@ function rbj_bs(freq, q)
 function rbj_ap(freq, q)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, alpha, a0)
+  local(w0, alpha, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   alpha = sin(w0) / (2*q);
 
-  b0 = a2 = 1 - alpha;
-  b1 = a1 = -2 * cos(w0);
-  b2 = a0 = 1 + alpha;
+  scale = 1/(a0 = 1 + alpha);
+  b1 = a1 = cos(w0) * -2 * scale;
+  b0 = a2 = (1 - alpha) * scale;
 
-  this.rbj_scale(a0);
+  b2 = 1;
+
+  a0;
 );
 
 // Peaking EQ
@@ -263,19 +253,24 @@ function rbj_ap(freq, q)
 function rbj_eq(freq, q, gain)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, alpha, a, a0)
+  local(w0, alpha, a, tmp, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   alpha = sin(w0) / (2*q);
   a = sqrt(gain);
 
-  b0 = 1 + alpha * a;
-  b1 = a1 = -2 * cos(w0);
-  b2 = 1 - alpha * a;
-  a0 = 1 + alpha / a;
-  a2 = 1 - alpha / a;
+  tmp = alpha / a;
 
-  this.rbj_scale(a0);
+  scale = 1/(a0 = 1 + tmp);
+  b1 = a1 = cos(w0) * -2 * scale;
+  a2 = (1 - tmp) * scale;
+
+  tmp = alpha * a * scale;
+
+  b0 = scale + tmp;
+  b2 = scale - tmp;
+
+  a0;
 );
 
 // Low-shelf
@@ -283,24 +278,28 @@ function rbj_eq(freq, q, gain)
 function rbj_ls(freq, q, gain)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
+  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   cos_w0 = cos(w0);
   a = sqrt(gain);
 
-  tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
-  tmp1 = (a + 1) - (a - 1) * cos_w0;
-  tmp2 = (a + 1) + (a - 1) * cos_w0;
+  tmp0 = (a - 1) * cos_w0 + a + 1;
+  tmp1 = sqrt(a) * sin(w0) / q;
+  tmp2 = (a + 1) * cos_w0;
 
-  b0 = a * (tmp1 + tmp0);
-  b1 = 2 * a * ((a - 1) - (a + 1) * cos_w0);
-  b2 = a * (tmp1 - tmp0);
-  a0 = tmp2 + tmp0;
-  a1 = -2 * ((a - 1) + (a + 1) * cos_w0);
-  a2 = tmp2 - tmp0;
+  scale = 1/(a0 = tmp0 + tmp1);
+  a1 = (1 - a - tmp2) * 2 * scale;
+  a2 = (tmp0 - tmp1) * scale;
 
-  this.rbj_scale(a0);
+  tmp0 = (1 - a) * cos_w0 + a + 1;
+  scale *= a;
+
+  b0 = (tmp0 + tmp1) * scale;
+  b1 = (a - 1 - tmp2) * 2 * scale;
+  b2 = (tmp0 - tmp1) * scale;
+
+  a0;
 );
 
 // High-shelf
@@ -308,24 +307,28 @@ function rbj_ls(freq, q, gain)
 function rbj_hs(freq, q, gain)
   // global(srate)
   instance(a1, a2, b0, b1, b2)
-  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
+  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0, scale)
 (
   w0 = 2*$pi * min(freq / srate, 0.49);
   cos_w0 = cos(w0);
   a = sqrt(gain);
 
-  tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
-  tmp1 = (a + 1) - (a - 1) * cos_w0;
-  tmp2 = (a + 1) + (a - 1) * cos_w0;
+  tmp0 = (1 - a) * cos_w0 + a + 1;
+  tmp1 = sqrt(a) * sin(w0) / q;
+  tmp2 = (a + 1) * cos_w0;
 
-  b0 = a * (tmp2 + tmp0);
-  b1 = -2 * a * ((a - 1) + (a + 1) * cos_w0);
-  b2 = a * (tmp2 - tmp0);
-  a0 = tmp1 + tmp0;
-  a1 = 2 * ((a - 1) - (a + 1) * cos_w0);
-  a2 = tmp1 - tmp0;
+  scale = 1/(a0 = tmp0 + tmp1);
+  a1 = (a - 1 - tmp2) * 2 * scale;
+  a2 = (tmp0 - tmp1) * scale;
 
-  this.rbj_scale(a0);
+  tmp0 = (a - 1) * cos_w0 + a + 1;
+  scale *= a;
+
+  b0 = (tmp0 + tmp1) * scale;
+  b1 = (1 - a - tmp2) * 2 * scale;
+  b2 = (tmp0 - tmp1) * scale;
+
+  a0;
 );
 
 function rbj_gain(gain)
@@ -418,3 +421,11 @@ function rbj_mute() instance(a1, a2, b0, b1, b2) (  a1 = a2 = b0 = b1 = b2 = 0; 
 
 function rbj_reset1(input) ( this.rbj_reset_df1(input) );
 function rbj_reset2(input) ( this.rbj_reset_df2(input) );
+
+function rbj_scale(a0)
+  instance(a1, a2, b0, b1, b2)
+  local(scale)
+(
+  a1 *= (scale = 1/a0); a2 *= scale; b0 *= scale; b1 *= scale; b2 *= scale;
+  a0;
+);

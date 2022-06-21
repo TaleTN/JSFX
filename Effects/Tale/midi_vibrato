@@ -2,7 +2,7 @@ desc:MIDI vibrato via Pitch Bend
 //tags: MIDI processing pitch
 //author: Tale
 
-// Copyright (C) 2019 Theo Niessink
+// Copyright (C) 2019-2022 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 slider1:0<0,1,1{Normal,Bypassed}>Bypass
@@ -22,9 +22,9 @@ slider14:32<1,960,1>Resolution (PPQ)
 
 // slider64:0<-1,1,0.001>Pitch Bend
 
-import Tale/lfo.jsfx-inc
-import Tale/noise.jsfx-inc
-import Tale/rc_filter.jsfx-inc
+import lfo.jsfx-inc
+import noise.jsfx-inc
+import rc_filter.jsfx-inc
 
 @init
 

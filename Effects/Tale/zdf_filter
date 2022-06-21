@@ -2,7 +2,7 @@ desc:Multimode ZDF filter
 //tags: filter
 //author: Tale
 
-// Copyright (C) 2017 Theo Niessink
+// Copyright (C) 2017-2022 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect filters the input signal using a 2nd-order (12 dB) zero-delay
@@ -20,8 +20,8 @@ slider5:1.0<0.1,10.0,0.01>Q
 slider6:-120.0<-120.0,24.0,0.1>Dry (dB)
 slider7:0.0<-120.0,24.0,0.1>Wet (dB)
 
-import Tale/zdf_filter.jsfx-inc
-import Tale/rc_filter.jsfx-inc
+import zdf_filter.jsfx-inc
+import rc_filter.jsfx-inc
 
 @init
 

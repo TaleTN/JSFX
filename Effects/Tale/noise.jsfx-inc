@@ -1,6 +1,6 @@
 desc:Noise generator
 
-// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2022 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -162,7 +162,7 @@ function lcg_white()
 // Pink (1/f) Noise".
 // http://www.firstpr.com.au/dsp/pink-noise/
 
-function lcg_pink(s)
+function lcg_pink()
   instance(b0, b1, b2)
   local(white)
 (

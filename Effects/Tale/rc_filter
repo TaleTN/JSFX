@@ -2,7 +2,7 @@ desc:Multimode RC filter
 //tags: filter
 //author: Tale
 
-// Copyright (C) 2015-2017 Theo Niessink
+// Copyright (C) 2015-2022 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This effect filters the input signal using a single 1st-order RC filter
@@ -21,7 +21,7 @@ slider5:0<0,1,1{6 dB,12 dB}>Slope (dB/oct)
 slider6:-120.0<-120.0,24.0,0.1>Dry (dB)
 slider7:0.0<-120.0,24.0,0.1>Wet (dB)
 
-import Tale/rc_filter.jsfx-inc
+import rc_filter.jsfx-inc
 
 @init
 
