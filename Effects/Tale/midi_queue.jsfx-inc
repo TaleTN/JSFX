@@ -1,6 +1,6 @@
 desc:Sample accurate MIDI queue
 
-// Copyright (C) 2012-2018 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2022 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -87,6 +87,14 @@ desc:Sample accurate MIDI queue
       so it can and should be used on its own (i.e. without the other
       functions).
 
+    * midiq_recv_sysex()
+      Context: @sample
+      Example: is_avail = (len = midi.midiq_recv_sysex()) > 0;
+      Like midiq_recv(), but supports regular 3-byte MIDI messages as well
+      as SysEx messages. Stores the first 3 bytes in msg1, msg2, and msg3,
+      but also stores the full message in the buf[] instance variable, and
+      returns the message length.
+
    Initialization Functions
 
     * midiq_init(index[, size])
@@ -95,7 +103,14 @@ desc:Sample accurate MIDI queue
       memory buffer to store the queue in, and returns the next available
       memory index (i.e. index+size*3).
 
+    * midiq_init_sysex(index, size)
+      Example: midi.midiq_init_sysex(0, 1024);
+      Sets the offset and size (>=4) of the local memory buffer to store a
+      single SysEx message in, and returns the next available memory index
+      (i.e. index+size).
+
     * midiq_alloc(size)
+    * midiq_alloc_sysex(size)
     * midiq_free()
       Example: midi.midiq_alloc(1024);
       Allocates/deallocates a block of local memory to store the queue in,
@@ -167,7 +182,8 @@ desc:Sample accurate MIDI queue
     * size
       Example: next_avail_index = midi.buf + midi.size * 3;
       The local memory index and maximum size (in MIDI messages) of the
-      queue.
+      queue, or the index and maximum size (in bytes) of a single SysEx
+      message.
 
     * head
     * tail
@@ -182,10 +198,7 @@ desc:Sample accurate MIDI queue
 function midiq_init(index, size)
   instance(buf)
 (
-  buf = index;
-  this.size = size;
-
-  buf + size * 3;
+  (buf = index) + (this.size = size) * 3;
 );
 
 function midiq_init(index)
@@ -193,6 +206,12 @@ function midiq_init(index)
 (
   size = 0;
   buf = index;
+);
+
+function midiq_init_sysex(index, size)
+  instance(buf)
+(
+  (buf = index) + (this.size = max(size, 4));
 );
 
 function midiq_rewind()
@@ -247,8 +266,14 @@ function _midiq_collect(ch, mask)
 );
 
 function _midiq_collect()
+  local(ofs, msg1, msg23)
 (
-  this._midiq_collect(-1, 127);
+  while(
+    midirecv(ofs, msg1, msg23) ? (
+      msg1 >= 0x80 && !(msg23 & 0x8080) ? this.midiq_add(ofs, msg1, msg23);
+      midisend(ofs, msg1, msg23);
+    );
+  );
 );
 
 function midiq_collect(ch, mask)
@@ -259,7 +284,8 @@ function midiq_collect(ch, mask)
 
 function midiq_collect()
 (
-  this.midiq_collect(-1, 127);
+  this.midiq_rewind();
+  this._midiq_collect();
 );
 
 function midiq_remove()
@@ -283,7 +309,7 @@ function midiq_recv()
   // global(samplesblock)
   instance(pend, idx, ofs, msg1, msg2, msg3)
 (
-  !pend && midirecv(ofs, msg1, msg2) ? (
+  pend <= 0 && midirecv(ofs, msg1, msg2) ? (
     midisend(ofs, msg1, msg2);
 
     msg3 = msg2 >> 8;
@@ -292,11 +318,37 @@ function midiq_recv()
     pend = msg1 >= 0x80 && (msg2|msg3) < 0x80;
   );
 
-  pend && idx >= ofs ? (
+  pend > 0 && idx >= ofs ? (
     pend = 0;
     1;
   ) : (idx += 1) >= samplesblock ? (
-    pend ? ofs -= samplesblock;
+    pend > 0 ? ofs -= samplesblock;
+    idx = 0;
+  );
+);
+
+function midiq_recv_sysex()
+  // global(samplesblock)
+  instance(pend, idx, ofs, buf, size, msg1, msg2, msg3)
+  local(len)
+(
+  pend <= 0 && (len = midirecv_buf(ofs, buf, size)) > 0 ? (
+    midisend_buf(ofs, buf, len);
+
+    msg1 = buf[0];
+    msg2 = buf[1];
+    msg3 = buf[2];
+
+    (len == 3 && msg1 >= 0x80 && (msg2|msg3) < 0x80) ||
+    (len >= 4 && msg1 == 0xF0 && buf[len - 1] == 0xF7) ? pend = len;
+  );
+
+  pend > 0 && idx >= ofs ? (
+    len = pend;
+    pend = 0;
+    len;
+  ) : (idx += 1) >= samplesblock ? (
+    pend > 0 ? ofs -= samplesblock;
     idx = 0;
   );
 );

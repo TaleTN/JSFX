@@ -128,34 +128,46 @@ function lcg_leaky_set(rc)
 function lcg_rand(x)
   static(seed)
 (
-  !seed ? seed = 1;
+  seed < 1 ? seed = 1;
 
   // seed = (seed * 48271) % (2^31 - 1)
-  seed *= 48271;
-  seed -= ((seed * 0.00000000046566128752457969)|0) * 2147483647;
+  seed = seed * 48271 + ((seed * 0.000022477936010098986)|0) * -2147483647;
 
   // (seed - 1) / (2^31 - 3) * x
-  (seed - 1) * 0.00000000046566128795826056 * x;
+  (seed * x - x) * 0.00000000046566128795826056;
 );
 
 function _lcg_rand2()
   instance(seed)
 (
-  !seed ? seed = 1;
+  seed < 1 ? seed = 1;
 
-  seed *= 48271;
-  seed -= ((seed * 0.00000000046566128752457969)|0) * 2147483647;
+  // seed = (seed * 48271) % (2^31 - 1)
+  seed = seed * 48271 + ((seed * 0.000022477936010098986)|0) * -2147483647;
 );
 
 function lcg_rand2(x)
+  instance(seed)
 (
-  (this._lcg_rand2() - 1) * 0.00000000046566128795826056 * x;
+  seed < 1 ? seed = 1;
+
+  // seed = (seed * 48271) % (2^31 - 1)
+  seed = seed * 48271 + ((seed * 0.000022477936010098986)|0) * -2147483647;
+
+  // (seed - 1) / (2^31 - 3) * x
+  (seed * x - x) * 0.00000000046566128795826056;
 );
 
 function lcg_white()
+  instance(seed)
 (
+  seed < 1 ? seed = 1;
+
+  // seed = (seed * 48271) % (2^31 - 1)
+  seed = seed * 48271 + ((seed * 0.000022477936010098986)|0) * -2147483647;
+
   // (seed - 1) / (2^31 - 3) * 2 - 1
-  (this._lcg_rand2() - 1) * 0.00000000093132257591652112 - 1;
+  seed * 0.00000000093132257591652112 + -1.0000000009313226;
 );
 
 // "Pinking" filter (Paul Kellet's economy method) from "DSP generation of

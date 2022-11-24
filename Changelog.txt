@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20221124 (24 November 2022)
+
+ + midiq: Added SysEx support to simple interface.
+ + midiq: Minor nitpicks/optimizations.
+ + lcg: Optimized random generators for speed.
+ + Updated system requirements to REAPER 4.60+.
+
 v20220621 (21 June 2022)
 
  + drum_synth: Fixed Bass Drum 2 filter reset.

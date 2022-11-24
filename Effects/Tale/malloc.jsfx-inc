@@ -1,6 +1,6 @@
 desc:Dynamic memory management
 
-// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2015-2022 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -294,8 +294,13 @@ function four_free()
 function midiq_alloc(size)
   instance(buf)
 (
-  this.size = size;
-  buf = malloc(size * 3);
+  buf = malloc((this.size = size) * 3);
+);
+
+function midiq_alloc_sysex(size)
+  instance(buf)
+(
+  buf = malloc(this.size = max(size, 4));
 );
 
 function midiq_free()
@@ -309,8 +314,7 @@ function midiq_free()
 function wave_alloc(size)
   instance(buf)
 (
-  this.size = size;
-  buf = malloc(size);
+  buf = malloc(this.size = size);
 );
 
 function wave_free()
