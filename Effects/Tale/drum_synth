@@ -1,8 +1,8 @@
 desc:Simple drum synth
-//tags: generator synthesis
+//tags: instrument generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2022 Theo Niessink
+// Copyright (C) 2014-2023 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This electronic drum synth supports the following General MIDI (GM)

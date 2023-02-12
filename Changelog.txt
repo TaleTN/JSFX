@@ -1,5 +1,9 @@
 Tale's JSFX Pack
 
+v20230212 (12 February 2023)
+
+ + mono_synth/drum_synth: Added instrument tag.
+
 v20221124 (24 November 2022)
 
  + midiq: Added SysEx support to simple interface.
@@ -445,4 +449,4 @@ v20120809 (9 August 2012)
 
  + Initial release.
 
-Copyright (C) 2012-2022 Theo Niessink
+Copyright (C) 2012-2023 Theo Niessink

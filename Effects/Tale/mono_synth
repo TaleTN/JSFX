@@ -1,8 +1,8 @@
 desc:Simple mono/poly synth
-//tags: generator synthesis
+//tags: instrument generator synthesis
 //author: Tale
 
-// Copyright (C) 2012-2017 Theo Niessink
+// Copyright (C) 2012-2023 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 slider1:-6.0<-120.0,24.0,1.0>Volume (dB)
