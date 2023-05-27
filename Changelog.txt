@@ -1,5 +1,10 @@
 Tale's JSFX Pack
 
+v20230527 (27 May 2023)
+
+ + music_box: Added toy music box synth plug-in.
+ + pc_speaker: PC speaker square wave synth plug-in.
+
 v20230212 (12 February 2023)
 
  + mono_synth/drum_synth: Added instrument tag.
@@ -9,7 +14,7 @@ v20221124 (24 November 2022)
  + midiq: Added SysEx support to simple interface.
  + midiq: Minor nitpicks/optimizations.
  + lcg: Optimized random generators for speed.
- + Updated system requirements to REAPER 4.60+.
+ + Updated system requirements to REAPER v4.60+.
 
 v20220621 (21 June 2022)
 
@@ -275,7 +280,7 @@ v20150405 (5 April 2015)
  + colored_noise/drum_synth/mono_synth: Fixed noise gain depending on sample
    rate.
  + poly: Optimized waveform generators.
- + poly: Restored REAPER 4.25..4.591 support.
+ + poly: Restored REAPER v4.25..v4.591 support.
 
 v20150322 (22 March 2015)
 

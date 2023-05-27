@@ -1,0 +1,378 @@
+desc:PC speaker square wave synth
+//tags: instrument generator synthesis
+//author: Tale
+
+// Copyright (C) 2019-2023 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+// Simple chiptune mono synth based on the 1980s PC speaker (8253 timer),
+// supporting Mod Wheel (CC#1), Sustain (CC#64) and Portamento (CC#65)
+// pedals, Aftertouch, and Pitch Bend.
+
+slider1:2<0,12,1>Pitch Bend Range
+slider2:0<0,1,1{Off,On}>Portamento
+slider3:0<0,1,1{Off,On}>Aftertouch
+slider4:35<0,127,1>Vibrato Speed
+slider5:7<0,7,1>Vibrato Depth
+slider6:0<0,1,1{Direct,Speaker}>Output
+slider7:-6.0<-36.0,24.0,0.1>Volume (dB)
+slider8:10.0<0.0,100.0,1.0>Ambience (%)
+
+in_pin:Mono
+in_pin:Mono
+
+out_pin:Left
+out_pin:Right
+
+import array.jsfx-inc
+import lfo.jsfx-inc
+import midi_queue.jsfx-inc
+import poly_blep.jsfx-inc
+import rc_filter.jsfx-inc
+import rbj_filter.jsfx-inc
+
+@init
+
+function init_note_tbl(tbl)
+  // global(int8_clk)
+  local(x, y)
+(
+  memset(tbl, 65535, x = 14);
+
+  // f(x) = int8_clk / (440*2^((x - 69)/12)) for 0 <= x < 128.
+  y = int8_clk * 0.054483893704606600;
+
+  loop(128 - x,
+    tbl[x] = (y + 0.5)|0;
+    x += 1;
+
+    y *= /* 2^(-1/12) */ 0.94387431268169350;
+  );
+);
+
+function init_pb_tbl(tbl)
+  local(x, y)
+(
+  x = 0;
+
+  // f(x) = 32768*2^(-1/12 * x/128) for 0 <= x < 128.
+  y = 32768;
+
+  loop(128,
+    tbl[x] = (y + 0.5)|0;
+    x += 1;
+
+    y *= /* 2^(-1/12 * 1/128) */ 0.99954883411027504;
+  );
+);
+
+function init_mod_tbl(tbl)
+  local(x, y)
+(
+  x = 0;
+
+  // f(x) = 32768*2^(-50/1200 * (x/64 - 1)) for 0 <= x < 128.
+  y = 33728.175690333947;
+
+  loop(128,
+    tbl[x] = (y + 0.5)|0;
+    x += 1;
+
+    y *= /* 2^(-50/1200 * 1/64) */ 0.99954883411027504;
+  );
+);
+
+function midi_note_on(note)
+  // global(note_buf*, note_no, porta_div, osc_upd)
+  local(ptr)
+(
+  note >= 14 ? (
+    note_no = note;
+    !note_buf.size ? porta_div = 0;
+
+    (ptr = note_buf.array_find(note)) >= 0 ? note_buf.array_remove(ptr);
+    ptr = note_buf.array_add();
+
+    ptr[0] = note;
+    ptr[1] = 0;
+
+    osc_upd = 1;
+  );
+);
+
+function midi_note_off(note)
+  // global(note_buf*, note_no, hold_pedal, at_poly, at_chan, osc_upd)
+  local(ptr)
+(
+  (ptr = note_buf.array_find(note)) >= 0 ? note_buf.array_remove(ptr);
+
+  note == note_no && !hold_pedal ? (
+    (ptr = note_buf.array_last()) >= 0 && (note_no = ptr[0]) >= 14 ? (
+      at_poly = ptr[1];
+    ) : (
+      note_no = at_poly = at_chan = 0;
+    );
+    osc_upd = 1;
+  );
+);
+
+function midi_poly_at(note, at)
+  // global(note_buf*, note_no, at_poly, at_on, osc_upd)
+  local(ptr)
+(
+  note == note_no ? (
+    at_poly = at > 1 ? at : 0;
+    osc_upd |= at_on;
+  );
+
+  (ptr = note_buf.array_find(note)) >= 0 ? ptr[1] = at;
+);
+
+function midi_cc(cc, val)
+  // global(mod_wheel, hold_pedal, porta_pedal, note_no, at_poly, at_chan, note_buf*, osc_upd)
+(
+  // Mod Wheel
+  cc == 1 ? (
+    mod_wheel = val;
+    osc_upd |= note_buf.size > 0;
+  ) :
+
+  // Sustain Pedal
+  cc == 64 ? (
+    !(hold_pedal = val >= 64) && note_no && !note_buf.size ? (
+      note_no = at_poly = at_chan = 0;
+      osc_upd = 1;
+    );
+  ) :
+
+  // Portamento Pedal
+  cc == 65 ? (
+    porta_pedal = val >= 64;
+    osc_upd |= note_buf.size > 0;
+  ) :
+
+  // All Notes Off
+  cc == 123 ? (
+    note_no = at_poly = at_chan = 0;
+    note_buf.array_clear();
+    osc_upd = 1;
+  );
+);
+
+function early_ref_init(buf)
+  // global(srate)
+  instance(buf, len0, len1)
+  local(ptr, step, delay)
+(
+  ptr = buf;
+  step = 0.020 * srate;
+  delay = 0.5;
+
+  loop(11,
+    ptr[0] = (delay += step)|0;
+    ptr += 2;
+  );
+
+  len0 = ceil(delay - 0.5);
+  len1 = ceil(16/44100 * srate);
+
+  buf[ 1] = /* -(10^(/-47.3/20)) */ -0.0043151907682776522;  //  20 ms
+  buf[ 3] = /* -(10^(/-41.7/20)) */ -0.0082224264994707114;  //  40 ms
+  buf[ 5] = /* +(10^(/-36.1/20)) */ +0.015667510701081491;   //  60 ms
+  buf[ 7] = /* +(10^(/-48.1/20)) */ +0.0039355007545577746;  //  80 ms
+  buf[ 9] = /* +(10^(/-44.3/20)) */ +0.0060953689724016916;  // 100 ms
+  buf[11] = /* +(10^(/-55.0/20)) */ +0.0017782794100389228;  // 120 ms
+  buf[13] = /* +(10^(/-54.9/20)) */ +0.0017988709151287878;  // 140 ms
+  buf[15] = /* +(10^(/-65.3/20)) */ +0.00054325033149243321; // 160 ms
+  buf[17] = /* +(10^(/-46.3/20)) */ +0.0048417236758409934;  // 180 ms
+  buf[19] = /* +(10^(/-56.5/20)) */ +0.0014962356560944334;  // 200 ms
+  buf[21] = /* +(10^(/-58.0/20)) */ +0.0012589254117941672;  // 220 ms
+
+  buf + len0 + len1;
+);
+
+function early_ref_reset()
+  instance(buf, idx0, idx1, len0, len1)
+(
+  memset(buf + 22, 0, len0 + len1);
+  idx1 = idx0 = 0;
+);
+
+function early_ref_process(in)
+  instance(out0, idx0, len0, out1, idx1, len1)
+  local(ptr, buf, idx, gain)
+(
+  out0 = 0.0;
+  buf = (ptr = this.buf) + 22;
+
+  loop(11,
+    (idx = idx0 - ptr[0]) < 0 ? idx += len0;
+    out0 += ptr[1] * buf[idx];
+    ptr += 2;
+  );
+
+  buf[idx0] = in;
+  (idx0 += 1) >= len0 ? idx0 = 0;
+
+  buf += len0;
+  out1 = buf[idx1];
+
+  buf[idx1] = out0;
+  (idx1 += 1) >= len1 ? idx1 = 0;
+);
+
+int8_clk = 105/88 * 10^6;
+
+init_note_tbl(note_tbl = 0);
+init_pb_tbl(pb_tbl = note_tbl + 128);
+init_mod_tbl(mod_tbl = pb_tbl + 128);
+
+er.buf = note_buf.array_init(mod_tbl + 128, 128, 2);
+pb_wheel = 8192;
+
+int8.lfo_setf(int8_freq = int8_clk / 16384);
+hp.rc_set_precise(0.022);
+
+// Poor man's 2.25" speaker simulation (or rather what I imagine it would
+// sound like).
+spk_hp.rbj_hp(200, sqrt(0.5));
+spk_lp.rbj_lp(2200, 4.0);
+
+er_smooth.a = vol_smooth.rc_sett(0.0165);
+er_smooth.lp = vol_smooth.lp = -1.0;
+
+er.early_ref_init(er.buf);
+er_lp.rc_setf_precise(500);
+
+@slider
+
+pb_range = min(max(0, slider1|0), 12);
+pb_range > 1 ? pb_div = (65536 / pb_range + 0.5)|0 : pb_div = 65535;
+
+porta_on = slider2 >= 0.5;
+at_on = slider3 >= 0.5;
+
+lfo_inc = min(max(0, slider4|0), 127) * 128 + 13;
+mod_depth = 7 - min(max(0, slider5|0), 7);
+
+slider6 >= 0.5 && spk_off ? (
+  spk_hp.rbj_reset_tdf2();
+  spk_lp.rbj_reset_tdf2();
+
+  er.early_ref_reset();
+);
+spk_off = slider6 < 0.5;
+
+vol_gain = exp(slider7 * /* log(10)/20 */ 0.11512925464970228);
+er_gain = min(max(0.0, slider8), 100.0) * 0.3;
+
+osc_upd = 1;
+
+@block
+
+vol_smooth.lp < 0.0 ? vol_smooth.lp = vol_gain;
+er_smooth.lp < 0.0 ? er_smooth.lp = er_gain;
+
+@sample
+
+while(midi.midiq_recv()) (
+  (midi.msg1 &= 0xF0) < 0xC0 ? (
+    midi.msg1 < 0xA0 ? (
+      // Note On
+      midi.msg1 == 0x90 && midi.msg3 ? (
+        midi_note_on(midi.msg2);
+      ) :
+      // Note Off
+      /* (midi.msg1 == 0x90 && !midi.msg3) || midi.msg1 == 0x80 ? */ (
+        midi_note_off(midi.msg2);
+      );
+    ) : (
+      // Poly Aftertouch
+      midi.msg1 == 0xA0 ? (
+        midi_poly_at(midi.msg2, midi.msg3);
+      ) :
+      // Control Change
+      /* midi.msg1 == 0xB0 ? */ (
+        midi_cc(midi.msg2, midi.msg3);
+      );
+    );
+  ) : midi.msg1 < 0xE0 ? (
+    // Channel Aftertouch
+    midi.msg1 == 0xD0 ? (
+      note_no ? (
+        at_chan = midi.msg2 > 1 ? midi.msg2 : 0;
+        osc_upd |= at_on;
+      );
+    );
+  ) : (
+    // Pitch Bend
+    midi.msg1 == 0xE0 ? (
+      pb_wheel = midi.msg3 * 128 + midi.msg2;
+      osc_upd |= pb_range > 0;
+    );
+  );
+);
+
+int8.t < int8.dt ? (
+  osc_upd ? (
+    osc_upd = 0;
+
+    note_no ? (
+      // Pitch Bend
+      pb_wheel != 8192 && pb_range > 0 ? (
+        tmp = (pb_wheel * 1024 / pb_div)|0;
+        osc_div = (note_tbl[min(note_no + (tmp >> 7) - pb_range, 127)] * pb_tbl[tmp & 0x7F]) >> 15;
+      ) : (
+        osc_div = note_tbl[note_no];
+      );
+
+      // Portamento
+      (porta_on | porta_pedal) && porta_div > 0 && abs((porta_div = (porta_div + osc_div) >> 1) - osc_div) > 1 ? (
+        osc_div = porta_div;
+        osc_upd = 1;
+      );
+      porta_div = osc_div;
+
+      // Vibrato
+      (tmp = max(at_on ? max(at_chan, at_poly) : 0, mod_wheel) >> mod_depth) > 0 ? (
+        lfo_idx < 32768 ? lfo_tri = lfo_idx - 16384 : lfo_tri = 49151 - lfo_idx;
+        osc_div = min((mod_tbl[(lfo_tri * tmp + 2080768) >> 15] * osc_div) >> 15, 65535);
+        osc_upd = 1;
+      );
+
+      osc.poly_setf(osc_freq = int8_clk / osc_div);
+      osc.a *= -0.15;
+
+      osc.poly_setpw((osc_div + (osc_div & 1)) / osc_div * 0.5);
+      osc_dc = osc.a * osc.pw * 2;
+    ) : (
+      osc_dc = osc.a = 0;
+    );
+
+  );
+  lfo_idx = (lfo_idx + lfo_inc) & 65535;
+);
+int8.lfo_inc();
+
+spk_in = osc.poly_rect() + osc_dc;
+spk_in = hp.rc_hp_precise(spk_in);
+
+spk_in *= vol_smooth.rc_lp(vol_gain);
+
+spk_off ? (
+  spl0 += spk_in;
+  spl1 += spk_in;
+) : (
+  spk_in += (spl0 + spl1) * 0.5;
+
+  spk_out = spk_hp.rbj_tdf2(spk_in);
+  spk_out = spk_lp.rbj_tdf2(spk_out);
+
+  er.early_ref_process(er_lp.rc_lp(spk_out));
+
+  er.out0 *= er_smooth.rc_lp(er_gain);
+  er.out1 *= er_smooth.lp;
+
+  spl0 = spk_out + er.out0;
+  spl1 = spk_out - er.out1;
+);
