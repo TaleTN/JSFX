@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2021 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2023 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -48,13 +48,13 @@ desc:PolyBLEP quasi-bandlimited tone generator
       value.
 
     * poly_setf2(freq)
-      Example: lfo.lfo_setf2(6.0);
-      Sets the slave frequency (specified in Hz) of the hard sync waveform,
-      and returns the slave/master frequency ratio.
+      Example: osc.poly_setf2(6.0);
+      Sets the follower frequency (specified in Hz) of the hard sync
+      waveform, and returns the follower/leader frequency ratio.
 
-      Note: You should always first set the master oscillator frequency, and
-      then set the slave frequency. If you change the master frequency, then
-      you will probably also want to update the slave frequency.
+      Note: You should always first set the leader oscillator frequency, and
+      then set the follower frequency. If you change the leader frequency,
+      then you will probably also want to update the follower frequency.
 
     * poly_setn(num_steps)
       Example: osc.poly_setn(3);
@@ -94,6 +94,7 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_hyptri()    -- Hyper triangular wave
     * poly_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
     * poly_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
+    * poly_bpsqr2()    -- BPF square approximation
     * poly_intsaw()    -- Integrated sawtooth
     * poly_cubsaw()    -- Cubic sawtooth
     * poly_sinsaw()    -- Sine sawtooth
@@ -891,6 +892,28 @@ function poly_intlpsqr3()
   -  poly_bluh(t2 - (t2|0), dt)) * sqr(dt)
 
   ) * /* -2/(3*2^(2/3) - 2) */ -0.72405970419833828 * a;
+);
+
+// Band-pass filtered square approximation
+
+function poly_bpsqr2()
+  instance(dt, a)
+  local(t1, t2)
+(
+  t2 = (t1 = this.t) + 0.5;
+  this.poly_inc();
+
+  t2 -= t2|0;
+
+  (((poly_blamp(t1, dt)
+  - poly_blamp(t2, dt)) * 3.2
+
+  + (poly_bluh(t2, dt)
+  - poly_bluh(t1, dt)) * /* 8/15 */ 0.53333333333333333 * dt) * dt
+
+  + (t1 < 0.5 ? (0.75 - t1)*t1 - 0.0625 : (t1 - 1.75)*t1 + 0.6875) * 12.8
+
+  ) * a;
 );
 
 // Square wave minus fundamental

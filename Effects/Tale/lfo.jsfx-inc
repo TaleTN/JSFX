@@ -1,6 +1,6 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
 
-// Copyright (C) 2012-2022 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2023 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -56,12 +56,12 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_setfc(freq)
       Example: lfo.lfo_setf2(6.0);
       Example: lfo.lfo_setfc(6.0);
-      Sets the slave/cutoff frequency (specified in Hz) of the hard sync or
-      filtered waveform, and returns the slave/master frequency ratio.
+      Sets the follower/cutoff frequency (specified in Hz) of the hard sync
+      or filtered waveform, and returns the follower/leader frequency ratio.
 
-      Note: You should always first set the master oscillator frequency, and
-      then set the slave/cutoff frequency. If you change the master
-      frequency, then you will probably also want to update the slave
+      Note: You should always first set the leader oscillator frequency, and
+      then set the follower/cutoff frequency. If you change the leader
+      frequency, then you will probably also want to update the follower
       frequency.
 
     * lfo_setn(num_steps)
@@ -110,6 +110,7 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_lpsqr()       -- Low-pass filtered square
     * lfo_lpsqrN()      -- LPF square approximation (order N = 2 or 3)
     * lfo_intlpsqrN()   -- Integrated LPF square (order N = 2 or 3)
+    * lfo_bpsqr2()      -- BPF square approximation
     * lfo_hpsqr()       -- High-pass filtered square
     * lfo_intsaw()      -- Integrated sawtooth
     * lfo_cubsaw()      -- Cubic sawtooth
@@ -179,7 +180,7 @@ desc:Naive (non-bandlimited) low-frequency oscillator
 
     * lfo_stairs3_dc()  -- Staircase (variable pulse width)
       Example: sample = lfo.lfo_rect() - lfo.lfo_rect_dc();
-      Returns the (constant or pulse width/slave frequency dependent) DC
+      Returns the (constant or pulse width/follower frequency dependent) DC
       value for the waveform.
 
     * _lfo_sin(x)
@@ -1080,6 +1081,27 @@ function lfo_hwlowp_nonorm_dc()
     (exp(x+x + 2*$pi) - x * (exp(2*$pi) + 1) - exp(2*$pi)) / (fc * (1 - exp(2*$pi)) * $pi) + pw;
   ) : 1;
 ); */
+
+// Band-pass filtered square approximation [DC = 0; RMS = 4*sqrt(195)/75]
+
+function lfo_bpsqr2()
+  local(t)
+(
+  t = this.t;
+  this.lfo_inc();
+
+  (t < 0.5 ? (0.75 - t)*t - 0.0625 : (t - 1.75)*t + 0.6875) * 12.8;
+
+  // Alternate definition
+
+  // lfo1.lfo_setdt(dt);
+  // lfo1.lfo_sync(t);
+
+  // lfo2.lfo_setdt(dt);
+  // lfo2.lfo_sync(t + 0.75);
+
+  // (lfo1.lfo_para() + lfo2.lfo_tri()) * 0.8;
+);
 
 // High-pass filtered square wave [DC = 0]
 

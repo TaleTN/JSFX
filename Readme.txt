@@ -9,6 +9,6 @@ installation. To navigate to the right location launch REAPER, and choose
 
 System Requirements
 
-Tale's JSFX Pack should run on REAPER 4.60 or newer.
+Tale's JSFX Pack should run on REAPER v4.60 or newer.
 
 Copyright (C) Theo Niessink 2012-2023

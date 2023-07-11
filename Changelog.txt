@@ -1,9 +1,14 @@
 Tale's JSFX Pack
 
+v20230711 (11 July 2023)
+
+ + lfo/four/poly: Added BP filtered square approximation.
+ + waveform_generator: Added BP filtered square approximation.
+
 v20230527 (27 May 2023)
 
  + music_box: Added toy music box synth plug-in.
- + pc_speaker: PC speaker square wave synth plug-in.
+ + pc_speaker: Added PC speaker square wave synth plug-in.
 
 v20230212 (12 February 2023)
 
@@ -23,8 +28,7 @@ v20220621 (21 June 2022)
  + rbj: Deprecated scale coefficient function.
  + lfo: Added rounded square/rectangle, tanh approximation.
  + poly: Added stepped sine.
- + waveform_generator: Added naive rounded square/rectangle,
-   polyBLEP stepped sine.
+ + waveform_generator: Added polyBLEP stepped sine.
 
 v20211224 (24 December 2021)
 
@@ -44,13 +48,13 @@ v20210110 (10 January 2021)
  + waveform_generator: Added polyBLEP LP/HP filtered square/saw.
  + waveform_generator: Fixed naive LP/HP filtered square gain.
  + waveform_generator: Added Retina support.
- + poly: Optimized hard sync sawtooth.
+ + poly: Optimized hard sync saw.
 
 v20210103 (3 January 2021)
 
  + insert_to_bus: Added insert to bus convertor plug-in.
  + four/lfo/poly: Added hyper triangular wave.
- + poly: Added hard sync sawtooth.
+ + poly: Added hard sync saw.
  + lfo: Optimized modified triangle, LPF square order 2 approximation.
  + lfo: Deprecated "fast" exp(x) approximation.
  + 2021: Happy New Year!
@@ -73,7 +77,7 @@ v20191124 (24 November 2019)
  + midi_vibrato: Added MIDI vibrato via Pitch Bend plug-in.
  + colored_noise: Improved stereo width.
  + drum_synth: Fixed GUI pad trigger, optimizations.
- + four/lfo/poly: Added cubic sawtooth, saw pulse, sine sawtooth waveforms.
+ + four/lfo/poly: Added cubic saw, saw pulse, sine saw waveforms.
  + lfo/poly: Many (minor) optimizations.
  + uint: Added 32/64-bit absolute value, signed/unsigned/float convertors.
  + Documentation nitpicks.
@@ -86,7 +90,7 @@ v20190122 (22 January 2019)
  + array: Optimized find while loop, return value.
  + array: Fixed single column init typo.
  + array: Fixed find searching past end of buffer.
- + four: Added hard sync sawtooth.
+ + four: Added hard sync saw.
  + lfo: Minor optimizations, added precise sin/cos.
  + midiq: Added alternate rewind/collect functions.
  + poly: Added parabola, bipolar squared sine waveforms.
@@ -113,25 +117,23 @@ v20171015 (15 October 2017)
  + uint: Added uint.jsfx-inc 32/64-bit unsigned integer operations library.
  + four: Added fft_real_synth.jsfx-inc real FFT version of Fourier synthesis
    library.
- + four: Added alternating sine, bipolar squared sine, camel sine, high-pass
-   filtered sawtooth approximation, high-pass filtered square wave,
-   integrated sawtooth, logit approximation, low-pass filtered square wave
-   approximations, pulse sine, uneven staircase, variable pulse width
-   staircase waveforms.
+ + four: Added alternating sine, bipolar squared sine, camel sine,
+   HP filtered saw approximation, HP filtered square, integrated saw,
+   logit approximation, LP filtered square approximations, pulse sine,
+   uneven staircase, variable pulse width staircase waveforms.
  + four: Added four_setf(note, tuning) to set MIDI note frequency.
  + four: Added get RMS from Fourier coefficients.
- + lfo: Added alternating sine, bipolar squared sine, camel sine, high-pass
-   filtered sawtooth approximation, high-pass filtered square wave,
-   integrated sawtooth, logit approximation, low-pass filtered square wave
-   approximations, pulse sine, uneven staircase, variable pulse width
-   staircase waveforms.
+ + lfo: Added alternating sine, bipolar squared sine, camel sine,
+   HP filtered saw approximation, HP filtered square, integrated saw,
+   logit approximation, LP filtered square approximations, pulse sine,
+   uneven staircase, variable pulse width staircase waveforms.
  + lfo: Improved fast sine/cosine approximations.
  + lfo: Added lfo_setf(note, tuning) to set MIDI note frequency.
- + poly: Added alternating sine, camel sine, half-wave rectified sawtooth,
-   high-pass filtered sawtooth approximation, integrated sawtooth, logit
-   approximation, low-pass filtered square wave approximations, pulse sine,
-   uneven staircase, variable pulse width half-wave rectified sine, variable
-   pulse width staircase waveforms.
+ + poly: Added alternating sine, camel sine, half-wave rectified saw,
+   HP filtered saw approximation, integrated saw, logit approximation,
+   LP filtered square approximations, pulse sine, uneven staircase,
+   variable pulse width half-wave rectified sine, variable pulse width
+   staircase waveforms.
  + poly: Added poly_setf(note, tuning) to set MIDI note frequency.
  + sin: Added sin_setf(note, tuning) to set MIDI note frequency.
  + wave: Added wave_setf(note, tuning) to set MIDI note frequency.
@@ -201,9 +203,9 @@ v20151024 (24 October 2015)
  + wave: Added wavetable_oscillator.jsfx-inc wavetable oscillator library.
  + lfo: Reimplemented sine as Maclaurin series.
  + lfo: Added (Maclaurin series) cosine, ramp, variable pulse width
-   half-wave rectified sine, half-wave rectified sawtooth, low-pass filtered
-   square, high-pass filtered sawtooth, stepped sine, stepped triangle,
-   stepped sawtooth, hard sync sawtooth.
+   half-wave rectified sine, half-wave rectified saw, LP filtered square,
+   HP filtered saw, stepped sine, stepped triangle, stepped saw,
+   hard sync saw.
  + lfo: Optimized modified triangle, full-wave rectified sine, circle.
  + lfo: Corrected phase of full-wave rectified sine, triangular pulse.
  + lfo: Fixed sample and hold skipping first sample.
@@ -359,7 +361,7 @@ v20130405 (5 April 2013)
 
 v20130404 (4 April 2013)
 
- + mono_synth: Added pan slider (0 dB pan law, thanks Justin!).
+ + mono_synth: Added pan slider (0 dB pan law, thanks Justin Frankel!).
 
 v20130401a (1 April 2013)
 
@@ -440,7 +442,7 @@ v20120828 (28 August 2012)
 v20120817 (17 August 2012)
 
  + midiq: Fixed offset/timing bug (thanks Fabrizio Benedetti).
- + mono_synth: Optimize 50% pulse => square wave.
+ + mono_synth: Optimized 50% pulse as square wave.
 
 v20120810 (10 August 2012)
 

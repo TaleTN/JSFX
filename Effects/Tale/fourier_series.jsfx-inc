@@ -1,6 +1,6 @@
 desc:Fourier series waveforms
 
-// Copyright (C) 2015-2021 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2015-2023 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -46,12 +46,12 @@ desc:Fourier series waveforms
     * four_setfc(freq)
       Example: osc.four_setf2(660);
       Example: osc.four_setfc(660);
-      Sets the slave/cutoff frequency (specified in Hz) of the hard sync or
-      filtered waveform, and returns the slave/master frequency ratio.
+      Sets the follower/cutoff frequency (specified in Hz) of the hard sync
+      or filtered waveform, and returns the follower/leader frequency ratio.
 
-      Note: You should always first set the master oscillator frequency, and
-      then set the slave/cutoff frequency. If you change the master
-      frequency, then you will probably also want to update the slave
+      Note: You should always first set the leader oscillator frequency, and
+      then set the follower/cutoff frequency. If you change the leader
+      frequency, then you will probably also want to update the follower
       frequency.
 
     * four_setn(num_steps)
@@ -95,6 +95,7 @@ desc:Fourier series waveforms
     * four_lpsqr()     -- Low-pass filtered square
     * four_lpsqrN()    -- LPF square approximation (order N = 2 or 3)
     * four_intlpsqrN() -- Integrated LPF square (order N = 2 or 3)
+    * four_bpsqr2()    -- BPF square approximation
     * four_hpsqr()     -- High-pass filtered square
     * four_intsaw()    -- Integrated sawtooth
     * four_cubsaw()    -- Cubic sawtooth
@@ -897,6 +898,24 @@ function four_intlpsqr3()
   loop(size / 4,
     cos[] = /* 192/(3*2^(2/3) - 2)/$pi^4 */ 0.71358567116468444 / sqr(sqr(k));
     sin[] = (/* 384/(3*2^(2/3) - 2)/$pi^5 */ 0.45428274754162916 / sqr(k) - /* 96/(3*2^(2/3) - 2)/$pi^3 */ 1.1208977511189573) / (sqr(k)*k);
+
+    k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
+  );
+);
+
+// Band-pass filtered square approximation
+
+function four_bpsqr2()
+  instance(size)
+  local(cos, sin, k)
+(
+  cos = this.four_setdc(0, 0);
+  sin = cos + 1;
+
+  k = 1;
+  loop(size / 4,
+    cos[] = /* 32/(5*$pi^2) */ 0.64845557531096174 / sqr(k);
+    sin[] = /* 128/(5*$pi^3) */ 0.82563928148990692 / (sqr(k)*k);
 
     k += 2; cos[2] = sin[2] = 0; cos += 4; sin += 4;
   );
