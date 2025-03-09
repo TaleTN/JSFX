@@ -1,0 +1,37 @@
+desc:VGA text mode "Hello, World!"
+
+// Copyright (C) 2025 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+import Tale/text_mode.jsfx-inc
+
+@gfx 752 572
+
+!vga.dest ? (
+  vga.txt_loadfont_vga();
+  vga.txt_setimgdim(1, 80, 25);
+
+  // Light gray on blue
+  attr = 0x17;
+  vga.txt_clear(txt_packed_vga(attr));
+
+  gfx_x = 2 * vga.textw;
+  gfx_y = vga.texth;
+
+  txt_set_vga(attr);
+  vga.txt_drawstr("Hello, ");
+
+  // Yellow on dark gray
+  attr = 0x8E;
+  txt_set_vga(attr);
+  vga.txt_drawstr(" World! ", txt_packed_vga(attr));
+);
+
+gfx_w != old_w || gfx_h != old_h ? (
+  old_w = gfx_w;
+  old_h = gfx_h;
+
+  vga.txt_blit_vga(-1, 16, 16);
+);

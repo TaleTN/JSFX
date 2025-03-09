@@ -1,0 +1,514 @@
+desc:Retro PC text mode font/color support
+
+// Copyright (C) 2025 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+/* Example
+
+   desc:VGA text mode "Hello, World!"
+
+   import Tale/text_mode.jsfx-inc
+
+   @gfx 752 572
+
+   !vga.dest ? (
+     vga.txt_loadfont_vga();
+     vga.txt_setimgdim(1, 80, 25);
+
+     // Light gray on blue
+     attr = 0x17;
+     vga.txt_clear(txt_packed_vga(attr));
+
+     gfx_x = 2 * vga.textw;
+     gfx_y = vga.texth;
+
+     txt_set_vga(attr);
+     vga.txt_drawstr("Hello, ");
+
+     // Yellow on dark gray
+     attr = 0x8E;
+     txt_set_vga(attr);
+     vga.txt_drawstr(" World! ", txt_packed_vga(attr));
+   );
+
+   gfx_w != old_w || gfx_h != old_h ? (
+     old_w = gfx_w;
+     old_h = gfx_h;
+
+     vga.txt_blit_vga(-1, 16, 16);
+   );
+
+   Font Functions
+
+    * txt_loadfont(image, filename[, w, h])
+      Example: vga.txt_loadfont(0, "vga_font.png", 9, 16);
+      Loads a bitmap font from a 256-frame vertical image strip into image
+      slot [0..127]. Returns the image slot index if successful, or -1
+      otherwise.
+
+      If the character cell dimensions w and h are omitted, then they are
+      calculated using the image strip dimensions, where w = image_width,
+      and h = image_height/256.
+
+    * txt_loadfont_cga([image]) -- CGA (8x8 pixels)
+    * txt_loadfont_ega([image]) -- EGA (8x14 pixels)
+    * txt_loadfont_mda([image]) -- MDA (9x14 pixels)
+    * txt_loadfont_vga([image]) -- VGA (9x16 pixels)
+      Example: vga.txt_loadfont_vga();
+      Loads an embedded bitmap font into image slot [0..127] (defaults to
+      0), and returns this image slot index.
+
+      Note: The embedded EGA, MDA, and VGA fonts require REAPER v6.14+. You
+      can disable embedded font support by setting the preprocessor variable
+      txt_noembed to 1.0 (requires REAPER v6.74+).
+
+    * txt_drawchar(char[, rgb])
+      Example: vga.txt_drawchar(1);
+      Displays a single bitmap font character. The character can be any of
+      the 256 characters in code page 437.
+
+      If rgb is omitted or -1, then the background is transparent, and
+      gfx_r, gfx_g, gfx_b, and gfx_a are used for the foreground. If rgb is
+      greater or equal to 0, then the background is filled with that color,
+      and gfx_r, gfx_g, and gfx_b are used for the foreground. The value for
+      rgb is in packed RGB [0..255] format, i.e. red+green*256+blue*65536.
+
+    * txt_drawstr(str[, rgb])
+      Example: vga.txt_drawstr("Hello, World!");
+      Displays a string of bitmap font characters.
+
+   Blit Functions
+
+    * txt_setimgdim(image, cols, rows)
+      Example: vga.txt_setimgdim(1, 80, 25);
+      Prepares image slot [0..127] for use as an offscreen buffer that can
+      hold the specified number of bitmap font character cells.
+
+      Note: You should load a font before calling this function.
+
+    * txt_clear([rgb])
+      Example: vga.txt_clear(dark_blue);
+      Clears the offscreen buffer by filling with the specified packed RGB
+      color (defaults to black), and selects the offscreen buffer for
+      drawing by setting gfx_dest to it.
+
+    * txt_blit(dest, x, y, w, h[, scale])
+      Example: vga.txt_blit(-1, 16, 16, 720, 540, gfx_ext_retina);
+      Selects the specified destination for drawing by setting gfx_dest to
+      it, and then blits the offscreen buffer to that destination at
+      coordinates (x, y) and scaled to w x h.
+
+      If scale is specified, then x, y, w, and h will be multiplied by this
+      scale.
+
+    * txt_blit_cga(dest, x, y[, scale]) -- CGA (1:2.4)
+    * txt_blit_ega(dest, x, y[, scale]) -- EGA (1:1.37)
+    * txt_blit_mda(dest, x, y[, scale]) -- MDA (1:1.5)
+    * txt_blit_vga(dest, x, y[, scale]) -- VGA (1:1.35)
+      Example: vga.txt_blit_vga(-1, 16, 16);
+      Blits the offscreen buffer using a predefined pixel aspect ratio.
+
+   Color Functions
+
+    * txt_set_cga(attr)
+    * txt_set_ega(attr)
+    * txt_set_vga(attr)
+      Example: txt_set_vga(0x17);
+      Sets gfx_r, gfx_g, and gfx_b (and gfx_a) to the foreground color in
+      attr&15.
+
+    * txt_packed_cga(attr)
+    * txt_packed_ega(attr)
+    * txt_packed_vga(attr)
+      Example: dark_blue = txt_packed_vga(0x17);
+      Returns the packed RGB background color as defined by (attr/16)&15.
+
+    * txt_set_ega(r, g, b) -- EGA (6-bit RGB)
+    * txt_set_vga(r, g, b) -- VGA (18-bit RGB)
+      Example: txt_set_vga(1.0, 0.5, 0.0);
+      Sets gfx_r, gfx_g, and gfx_b (and gfx_a) to RGB values [0.0..1.0].
+
+    * txt_packed_ega(r, g, b) -- EGA (6-bit RGB)
+    * txt_packed_vga(r, g, b) -- VGA (18-bit RGB)
+      Example: orange = txt_packed_vga(1.0, 0.5, 0.0);
+      Returns the packed RGB color for RGB values [0.0..1.0].
+
+    * txt_set_mda(attr)    -- attr
+    * txt_set_mda_normal() -- 0x07
+    * txt_set_mda_bright() -- 0x0F
+    * txt_set_mda_black()  -- 0x70 or 0xF0
+    * txt_set_mda_dark()   -- 0x78 or 0xF8
+      Example: txt_set_mda(0x01);
+      Sets gfx_r, gfx_g, and gfx_b (and gfx_a) according to the value in
+      attr.
+
+      Note: The packed RGB value in gfx_clear is used for the background
+      color.
+
+    * txt_packed_mda(attr)    -- attr
+    * txt_packed_mda_black()  -- 0x07
+    * txt_packed_mda_normal() -- 0x70 or 0x78
+    * txt_packed_mda_bright() -- 0xF0 or 0xF8
+      Example: underline = txt_packed_mda(0x01);
+      Returns the packed RGB background color as defined by the attr value.
+
+   Instance Variables
+
+    * font
+      Example: source = vga.font;
+      The image slot index of the bitmap font.
+
+    * textw
+    * texth
+      Example: gfx_x = 5 * vga.textw; gfx_y += vga.texth;
+      The width and height of a single character cell.
+
+    * dest
+      Example: gfx_dest = vga.dest;
+      The image slot index of the offscreen buffer.
+
+    * w
+    * h
+      Example: vga.txt_blit(-1, 16, 16, vga.w, vga.h * 1.35);
+      The dimensions of the offscreen buffer.
+
+*/
+
+@init
+
+/* <? txt_noembed >= 0.5 ? _suppress = 1; ?> */
+
+function __txt_loadfont(image, str, w, h)
+  instance(font, textw, texth)
+  local(dest, a, x, y, i, byte)
+(
+  textw = w; // 8 or 9
+  texth = h;
+
+  dest = gfx_dest; a = gfx_a; x = gfx_x; y = gfx_y;
+
+  // REAPER v4.59+ if 256*h <= 2048, REAPER v6.14+ if 256*h > 2048.
+  gfx_setimgdim(gfx_dest = image, 8, h *= 256);
+  gfx_muladdrect(0, 0, 8, h, 0.0, 0.0, 0.0, 0.0);
+
+  gfx_a = 1.0;
+  gfx_y = texth;
+  i = 0;
+
+  loop(254 * texth,
+    byte = str_getchar(str, i);
+    i += 1;
+
+    (byte ~= 69 /* noice */ ) ? (
+      gfx_x = 0;
+
+      loop(8,
+        byte & 1 ? gfx_setpixel(1.0, 1.0, 1.0);
+        byte = (byte / 2)|0;
+        gfx_x += 1;
+      );
+    );
+
+    gfx_y += 1;
+  );
+
+  gfx_dest = dest; gfx_a = a; gfx_x = x; gfx_y = y;
+  font = image;
+);
+
+function txt_loadfont_cga(image)
+(
+  this.__txt_loadfont(image,
+  ";\304\340\304\370\334\304;;\272\236\272\206\242\272;s:::{YMEMY{:{YMEY{Y::.MYMMY{:{MYEE]yy]EE\272\272\242\206\206\242\272\272Ey#\7\7#yE\272\206\334\370\370\334\206\272\265\245\265\373vvv[y###y];]\271\211\271IIKJB\273\203\273\203\203\243\"F]\236y\242\242y\236]DBZ:ZBDE\5\659:95\5E]y;]];y]#####E#E\273\236\236\233\235\235\235E9\203YssYv[EEEE;;;E]y;];y]\272]y;]]]]E]]]];y]EE]u:u]EEEIC:CIEEEEFFF:EEEa#\272#aEEE]y;\272\272EEE\272\272;y]EEEEEEEEEEI[[IIEIEsssEEEEEss:s:ssEI{F[uZIEE&v]I#&EYsY+~v+ECCFEEEEE]ICCCI]ECI]]]ICEE#y\272y#EEEIIzIIEEEEEEEIICEEEzEEEEEEEEEIIE%u]ICFDE{&6>*\"{EIKIIIIzE[vuYCvzE[vuYuv[E}ysv:u=EzFZuuv[EYCFZvv[Ezvu]IIIE[vv[vv[E[vv{u]KEEIIEEIIEEIIEEIIC]ICFCI]EEEzEEzEECI]u]ICE[vu]IEIE{&>>>F[EI[vvzvvEz##{##zEy#FFF#yEZs###sZE:\3S[S\3:E:\3S[SCJEy#FF6#9EvvvzvvvE[IIIII[E=uuuvv[E\"#s[s#\"EJCCC\3#:E&2::.&&E&\"*>6&&EYs&&&sYEz##{CCJE[vvv~[}Ez##{s#\"E[vCI]v[EzhIIII[EvvvvvvzEvvvvv[IE&&&.:2&E&&sYYs&Evvv[II[E:&t]\t#:E[CCCCC[EFCI]u%\5E[]]]]][EMYs&EEEEEEEEEEE\272II]EEEEEEE[u{v+EBCC{##~EEE[vFv[E}uu{vv+EEE[vzF[EYsCJCCJEEE+vv{uZBCs+##\"EIEKIII[EuEuuuvv[BC#s[s\"EKIIIII[EEEv::.&EEEZvvvvEEE[vvv[EEE~##{CJEE+vv{u=EE~+#CJEEE{F[uZEMI{IIi]EEEvvvv+EEEvvv[IEEE&.::sEEE&sYs&EEEvvv{uZEEz\\IczE}IIBII}E]]]E]]]EBII}IIBE+~EEEEEEEMYs&&:E[vFv[]u[EvEvvv;E}E[vzF[E;\206y%9#\271EvE[u{v;EBE[u{v;EII[u{v;EEE[FF[uY;\206y#;CyEvE[vzF[EBE[vzF[EvEKIII[E{&Y]]]yEBEKIII[E&Ys&:&&EIIE[vzvE}EzC[CzEEE\273u\273v\273E9sv:vv6E[vE[vv[EEvE[vv[EEBE[vv[E[vEvvv;EEBEvvv;EEvEvv{uZ\206]y##y]EvEvvvv[E]];FF;]]YscJC\"zEvv[zIzIIZvv\32&\266&\246\65\235]y]]^K}E[u{v;EYEKIII[EE}E[vv[EE}Evvv;EEZEZvvvEzEvrz~vEyss9E;EEYssYE{EEIEICFv[EEEEzFFEEEEEzuuEE\206&v>\211#v\265\206&v\236\251\263\266\205]]E]]]]EE\211#v#\211EEEv#\211#vEE\1T\1T\1T\1T\357\20\357\20\357\20\357\20\236\253\236\62\236\253\236\62]]]]]]]]]]]]Z]]]]]Z]Z]]]))))*)))EEEE:)))EEZ]Z]]]))*%*)))))))))))EE:%*)))))*%:EEE)))):EEE]]Z]ZEEEEEEEZ]]]]]]]\275EEE]]]]\272EEEEEEE\272]]]]]]]\275]]]EEEE\272EEE]]]]\272]]]]]\275]\275]]]))))\251)))))\251I\271EEEEE\271I\251)))))\252E\272EEEEE\272E\252)))))\251I\251)))EE\272E\272EEE))\252E\252)))]]\272E\272EEE))))\272EEEEE\272E\272]]]EEEE\272)))))))\271EEE]]\275]\275EEEEE\275]\275]]]EEEE\271)))))))\272)))]]\272]\272]]]]]]]ZEEEEEEE\275]]]\272\272\272\272\272\272\272\272EEEE\272\272\272\272JJJJJJJJ\265\265\265\265\265\265\265\265\272\272\272\272EEEEEE+~V~+EE[vZvZFFEzvFFFFEE:sssssEzvCICvzEEE;^^^KEE####{CFE+~]]]]EzI[vv[IzYs&:&sYEYs&&ss2E}I]{vv[EEE;\236\236;EE%u;\236\236;CFYCFZFCYE[vvvvvvEEzEzEzEEIIzIIEzECI]ICEzE]ICI]EzE5\235\235]]]]]]]]]]^^KIIEzEIIEE+~E+~EEYssYEEEEEEE]]EEEEEEE]EEE\265uuursy}[ssssEEEK]IC[EEEEEyyyyEE"
+  , 8, 8);
+);
+
+function txt_loadfont_ega(image)
+(
+  this.__txt_loadfont(image,
+  "EE;\304\340\304\304\370\334\304;EEEEE;\272\236\272\272\206\242\272;EEEEEEs::::{YMEEEEEEMY{:{YMEEEEEE]yy\242\242\242]]yEEEEE]y;\272\272;]]yEEEEEEEE]yy]EEEEE\272\272\272\272\272\242\206\206\242\272\272\272\272\272EEEEy#\7\7#yEEEE\272\272\272\272\206\334\370\370\334\206\272\272\272\272EE=5\35\t[vvv[EEEEEy###y];]]EEEEE\271\211\271IIIKJBEEEEE\273\203\273\203\203\203\243\242\"FEEEE]]\236y\242y\236]]EEEEEDFBZ:ZBFDEEEEE\5%59:95%\5EEEEE]y;]]];y]EEEEE######E##EEEEE\273\236\236\236\233\235\235\235\235EEEE{&CYs&&sYu&{EEEEEEEEE:::EEEEE]y;]]];y];EEEE]y;]]]]]]EEEEE]]]]]];y]EEEEEEE]u:u]EEEEEEEEEIC:CIEEEEEEEEEEFFF:EEEEEEEEEQs:sQEEEEEEEEMYY{{::EEEEEEE::{{YYMEEEEEEEEEEEEEEEEEEEE]yyy]]E]]EEEE###aEEEEEEEEEEEss:sss:ssEEE]]{&\6F{%$&{]]EEEEE\6&u]I#&EEEEEYssY+~vv+EEEEIIICEEEEEEEEEEEu]IIIII]uEEEEEI]uuuuu]IEEEEEEE#y\272y#EEEEEEEEE]];]]EEEEEEEEEEEEE]]]IEEEEEEEE:EEEEEEEEEEEEEEEE]]EEEEE\5%u]ICFDEEEEEE{&6>*\"&&{EEEEE]Y[]]]]];EEEEE{&%u]IC&:EEEEE{&%%y%%&{EEEEEu}ysv:uu=EEEEE:FFFz%%&{EEEEEYCFFz&&&{EEEEE:&%u]IIIIEEEEE{&&&{&&&{EEEEE{&&&;%%u[EEEEEE]]EEE]]EEEEEEE]]EEE]]IEEEEE%u]ICI]u%EEEEEEEE;EE;EEEEEEECI]u%u]ICEEEEE{&&u]]E]]EEEEE{&&>>>~F{EEEEEMYs&&:&&&EEEEEz###{###zEEEEEy#\6FFF\6#yEEEEEZs#####sZEEEEE:#\3S[S\3#:EEEEE:#\3S[SCCJEEEEEy#\6FF>&#\31EEEEE&&&&:&&&&EEEEEy]]]]]]]yEEEEE=uuuuuvv[EEEEE\"#ss[ss#\"EEEEEJCCCCC\3#:EEEEE&2::.&&&&EEEEE&\"*:>6&&&EEEEEYs&&&&&sYEEEEEz###{CCCJEEEEE{&&&&.>{u5EEEEz###{s##\"EEEEE{&&CYu&&{EEEEE;;\37]]]]]yEEEEE&&&&&&&&{EEEEE&&&&&&sYMEEEEE&&&&..:{sEEEEE&&sYYYs&&EEEEE####y]]]yEEEEE:&t]IC\6&:EEEEEyIIIIIIIyEEEEEDFBKY}5%\5EEEEEyuuuuuuuyEEEMYs&EEEEEEEEEEEEEEEEEEEEEE\272EII]EEEEEEEEEEEEEEEE[u{vv+EEEEEBCC[s###{EEEEEEEE{&FF&{EEEEE}uuysvvv+EEEEEEEE{&:F&{EEEEEYscCJCCCJEEEEEEEE+vvv{uv[EEEBCCs+###\"EEEEE]]EY]]]]yEEEEE%%E5%%%%##yEEEBCC#s[s#\"EEEEEY]]]]]]]yEEEEEEEEr:...&EEEEEEEE~#####EEEEEEEE{&&&&{EEEEEEEE~###{CCJEEEEEE+vvv{uu=EEEEEE~+#CCJEEEEEEEE{&K}&{EEEEEMIIzIII)}EEEEEEEEvvvvv+EEEEEEEE####y]EEEEEEEE&&..:sEEEEEEEE&sYYs&EEEEEEEE&&&&;%uZEEEEEE:v]I#:EEEEE5]]]K]]]5EEEEE]]]]E]]]]EEEEEK]]]5]]]KEEEEE+~EEEEEEEEEEEEEEMYs&&:EEEEEEy#\6FF\6#yu%{EEEvvEvvvvv+EEEEu]IE{&:F&{EEEEMYsE[u{vv+EEEEEvvE[u{vv+EEEECI]E[u{vv+EEEEYsYE[u{vv+EEEEEEEy#C#yu%yEEEMYsE{&:F&{EEEEEvvE{&:F&{EEEECI]E{&:F&{EEEEE##EY]]]]yEEEE]y#EY]]]]yEEEECI]EY]]]]yEEEE&&MYs&&:&&EEEYsYEYs&&:&&EEE]ICE:#C{C#:EEEEEEEv+);^^3EEEEE9svv:vvv6EEEEMYsE{&&&&{EEEEE&&E{&&&&{EEEECI]E{&&&&{EEEEI[vEvvvvv+EEEECI]Evvvvv+EEEEE&&E&&&&;%u[EE&&Ys&&&&sYEEEE&&E&&&&&&{EEEE]]y#CC#y]]EEEEYscCJCCC\"zEEEEE##y];];]]EEEEZvvZfv>vv&EEEE5\235]]];]]]]^KEE]ICE[u{vv+EEEEu]IEY]]]]yEEEE]ICE{&&&&{EEEE]ICEvvvvv+EEEEE+~E~#####EEE+~E&\"*:>6&&EEEEyss9E;EEEEEEEEYssYE{EEEEEEEEEIIEIIC&&{EEEEEEEEE:FFFEEEEEEEEEE:%%%EEEEEFF&v^IC~$u]9EEFF&v^I#6<9%%EEE]]E]]yyy]EEEEEEE)s^s)EEEEEEEEE^s)s^EEEEE\315g\315g\315g\315g\315g\315g\315g\357\20\357\20\357\20\357\20\357\20\357\20\357\20\376\253\376\253\376\253\376\253\376\253\376\253\376\253]]]]]]]]]]]]]]]]]]]]]Z]]]]]]]]]]]Z]Z]]]]]])))))))*))))))EEEEEEE:))))))EEEEEZ]Z]]]]]])))))*%*))))))))))))))))))))EEEEE:%*)))))))))))*%:EEEEEE))))))):EEEEEE]]]]]Z]ZEEEEEEEEEEEEEZ]]]]]]]]]]]]]\275EEEEEE]]]]]]]\272EEEEEEEEEEEEE\272]]]]]]]]]]]]]\275]]]]]]EEEEEEE\272EEEEEE]]]]]]]\272]]]]]]]]]]]\275]\275]]]]]])))))))\251)))))))))))\251I\271EEEEEEEEEEE\271I\251)))))))))))\252E\272EEEEEEEEEEE\272E\252)))))))))))\251I\251))))))EEEEE\272E\272EEEEEE)))))\252E\252))))))]]]]]\272E\272EEEEEE)))))))\272EEEEEEEEEEE\272E\272]]]]]]EEEEEEE\272)))))))))))))\271EEEEEE]]]]]\275]\275EEEEEEEEEEE\275]\275]]]]]]EEEEEEE\271)))))))))))))\272))))))]]]]]\272]\272]]]]]]]]]]]]]ZEEEEEEEEEEEEE\275]]]]]]\272\272\272\272\272\272\272\272\272\272\272\272\272\272EEEEEEE\272\272\272\272\272\272\272JJJJJJJJJJJJJJ\265\265\265\265\265\265\265\265\265\265\265\265\265\265\272\272\272\272\272\272\272EEEEEEEEEEEE+~^^~+EEEEEEE{&z&&zFFGEEE:&&FFFFFFEEEEEEE:ssssssEEEEE:&CI]IC&:EEEEEEEE;^^^^KEEEEEEE####{CCFEEEEEE+~]]]]]EEEEE;]y###y];EEEEEYs&&:&&sYEEEEEYs&&&sss2EEEEE=I]u9###yEEEEEEEE;\236\236;EEEEEEE\205%;\236\236\212;CFEEEEE}ICC{CCI}EEEEEE{&&&&&&&EEEEEE:EE:EE:EEEEEEE]];]]EE\272EEEEEI]u%u]IE;EEEEEu]ICI]uE;EEEEE5\235\235]]]]]]]]]]]]]]]]]^^KEEEEEE]]E;E]]EEEEEEEE+~E+~EEEEEEYssYEEEEEEEEEEEEEEE]]EEEEEEEEEEEEE]EEEEEEE\265uuuuursy}EEEE^sssssEEEEEEEEK^ICVZEEEEEEEEEEE{{{{{{EEEE"
+  , 8, 14);
+);
+
+function txt_loadfont_mda(image)
+(
+  this.__txt_loadfont(image,
+  "EE;\304\340\304\304\370\334\304;EEEEE;\272\236\272\272\206\242\272;EEEEEE)\273\273\273\2739}UEEEEEEU}9\2739}UEEEEEE]yy\242\242\242]]yEEEEE]y;\272\272;]]yEEEEEEEE]yy]EEEEE\272\272\272\272\272\242\206\206\242\272\272\272\272\272EEEEy#\7\7#yEEEE\272\272\272\272\206\334\370\370\334\206\272\272\272\272EE\265\245\365\335y###yEEEEEy###y];]]EEEEE\271\211\271IIIKJBEEEEE\273\203\273\203\203\203\243\242\"FEEEE]]\236y\242y\236]]EEEEEGCK{\273{KCGEEEEE\305\205\245\275\273\275\245\205\305EEEEE]y;]]];y]EEEEE\211\211\211\211\211\211E\211\211EEEEE\273\236\236\236\233\235\235\235\235EEEE9\203I})\203\203)}%\2039EEEEEEEEE\273\273\273EEEEE]y;]]];y];EEEE]y;]]]]]]EEEEE]]]]]];y]EEEEEEEu%\273%uEEEEEEEEE]I\273I]EEEEEEEEEECCC\273EEEEEEEEEa#\272#aEEEEEEEEU}}99\273\273EEEEEEE\273\27399}}UEEEEEEEEEEEEEEEEEEEE]yyy]]E]]EEEE\203\203\203\1EEEEEEEEEEE))\273)))\273))EEEuu9\203\303C9\205\207\2039uuEEEEE\303\203%u]\211\203EEEEE}))}\231\63##\231EEEEIIICEEEEEEEEEEEu]IIIII]uEEEEE]u%%%%%u]EEEEEEE#y\272y#EEEEEEEE]]]\272]]]EEEEEEEEEEEE]]]IEEEEEEEE\272EEEEEEEEEEEEEEEE]]EEEEE\305\205%u]ICGEEEEEE9\203\243\263\233\213\203\2039EEEEEu}yuuuuu\271EEEEE9\203\205%u]I\203\273EEEEE9\203\205\205=\205\205\2039EEEEE%5=)#\273%%\265EEEEE\273CCC;\205\205\2039EEEEE}ICC;\203\203\2039EEEEE\273\203\205%u]]]]EEEEE9\203\203\2039\203\203\2039EEEEE9\203\203\203\271\205\205%yEEEEEE]]EEE]]EEEEEEE]]EEE]]IEEEEE%u]ICI]u%EEEEEEEE;EE;EEEEEEECI]u%u]ICEEEEE9\203\203%uuEuuEEEEE9\203\203\263\263\263\63C9EEEEEU})\203\203\273\203\203\203EEEEE;\211\211\2119\211\211\211;EEEEE=\211\303CCC\303\211=EEEEE{)\211\211\211\211\211){EEEEE\273\211\311iyi\311\211\273EEEEE\273\211\311iyiII[EEEEE=\211\303CC\263\203\211\375EEEEE\203\203\203\203\273\203\203\203\203EEEEEy]]]]]]]yEEEEE\265%%%%%##yEEEEE\213\211))y))\211\213EEEEE[IIIII\311\211\273EEEEE\206\242\272\236\206\206\206\206\206EEEEE\203\213\233\273\263\243\203\203\203EEEEE})\203\203\203\203\203)}EEEEE;\211\211\2119III[EEEEE9\203\203\203\203\223\2639%\245EEEE;\211\211\2119)\211\211\213EEEEE9\203\203I}%\203\2039EEEEE\272\236\334]]]]]yEEEEE\203\203\203\203\203\203\203\2039EEEEE\206\206\206\206\206\206#y]EEEEE\206\206\206\206\236\236\272##EEEEE\206\206#y]y#\206\206EEEEE\206\206\206#y]]]yEEEEE\272\206$u]I\303\206\272EEEEEyIIIIIIIyEEEEEGCKY}5\245\205\305EEEEEyuuuuuuuyEEEU})\203EEEEEEEEEEEEEEEEEEEEEE\272E]]uEEEEEEEEEEEEEEEEy%9##\231EEEEEKIIy)\211\211\211\63EEEEEEEE9\203CC\2039EEEEE5%%=)###\231EEEEEEEE9\203\273C\2039EEEEE})\tI{III[EEEEEEEE\231###9%#yEEEKII)\231\211\211\211\213EEEEEuuE}uuuu=EEEEE%%E5%%%%##yEEEKII\211)y)\211\213EEEEE}uuuuuuu=EEEEEEEE\"\272\236\236\236\236EEEEEEEE3\211\211\211\211\211EEEEEEEE9\203\203\203\2039EEEEEEEE3\211\211\2119II[EEEEEE\231###9%%\265EEEEEE3\231\211II[EEEEEEEE9\203Y5\2039EEEEEU]];]]]\235\65EEEEEEEE#####\231EEEEEEEE\206\206\206#y]EEEEEEEE\206\206\236\236\272#EEEEEEEE\203)}})\203EEEEEEEE\203\203\203\203\271\205%yEEEEEE\273#u]\211\273EEEEE5]]]K]]]5EEEEE]]]]E]]]]EEEEEK]]]5]]]KEEEEE\231\63EEEEEEEEEEEEEEU})\203\203\273EEEEEE=\211\303CC\303\211=%\2059EEE##E#####\231EEEE%u]E9\203\273C\2039EEEEU})Ey%9##\231EEEEE##Ey%9##\231EEEEI]uEy%9##\231EEEE})}Ey%9##\231EEEEEEEy#C#yu%yEEEU})E9\203\273C\2039EEEEE##E9\203\273C\2039EEEEI]uE9\203\273C\2039EEEEE##EY]]]]yEEEE]y#EY]]]]yEEEECI]EY]]]]yEEEE\203\203U})\203\203\273\203\203EEE})}E})\203\203\273\203\203EEEu]IE\273\211I9I\211\273EEEEEEE3\231\235;^~\253EEEEE\275)##\273###\243EEEEU})E9\203\203\203\2039EEEEE\203\203E9\203\203\203\2039EEEEI]uE9\203\203\203\2039EEEE]y#E#####\231EEEEI]uE#####\231EEEEE\203\203E\203\203\203\203\271\205%yEE\203\203})\203\203\203\203)}EEEE\203\203E\203\203\203\203\203\2039EEEE]];\206FF\206;]]EEEE})\tI[III\213;EEEEE\206#y]\272]\272]]EEEEz##{\3#\263##\212EEEE5\235]]];]]]]^KEEu]IEy%9##\231EEEEu]IEY]]]]yEEEEu]IE9\203\203\203\2039EEEEu]IE#####\231EEEEE\231\63E3\211\211\211\211\211EEE\231\63E\203\213\233\273\263\243\203\203EEEEyss9E;EEEEEEEEYssYE{EEEEEEEEE]]E]]I\203\2039EEEEEEEEE\273CCCEEEEEEEEEE\273\205\205\205EEEEECB\203#s]I3\206%u\275EECB\203#s]\211\243\266\275\205\205EEE]]E]]yyy]EEEEEEE\235)s)\235EEEEEEEEEs)\235)sEEEEE\315g\315g\315g\315g\315g\315g\315g\357\20\357\20\357\20\357\20\357\20\357\20\357\20\376\253\376\253\376\253\376\253\376\253\376\253\376\253]]]]]]]]]]]]]]]]]]]]]Z]]]]]]]]]]]Z]Z]]]]]])))))))*))))))EEEEEEE:))))))EEEEEZ]Z]]]]]])))))*%*))))))))))))))))))))EEEEE:%*)))))))))))*%:EEEEEE))))))):EEEEEE]]]]]Z]ZEEEEEEEEEEEEEZ]]]]]]]]]]]]]\275EEEEEE]]]]]]]\272EEEEEEEEEEEEE\272]]]]]]]]]]]]]\275]]]]]]EEEEEEE\272EEEEEE]]]]]]]\272]]]]]]]]]]]\275]\275]]]]]])))))))\251)))))))))))\251I\271EEEEEEEEEEE\271I\251)))))))))))\252E\272EEEEEEEEEEE\272E\252)))))))))))\251I\251))))))EEEEE\272E\272EEEEEE)))))\252E\252))))))]]]]]\272E\272EEEEEE)))))))\272EEEEEEEEEEE\272E\272]]]]]]EEEEEEE\272)))))))))))))\271EEEEEE]]]]]\275]\275EEEEEEEEEEE\275]\275]]]]]]EEEEEEE\271)))))))))))))\272))))))]]]]]\272]\272]]]]]]]]]]]]]ZEEEEEEEEEEEEE\275]]]]]]\272\272\272\272\272\272\272\272\272\272\272\272\272\272EEEEEEE\272\272\272\272\272\272\272JJJJJJJJJJJJJJ\265\265\265\265\265\265\265\265\265\265\265\265\265\265\272\272\272\272\272\272\272EEEEEEEEEEEE\231\63ss3\231EEEEEEE9\203;\203\203;CCAEEE\273\203\203CCCCCCEEEEEEE\273))))))EEEEE\273\203I]u]I\203\273EEEEEEEE\271ssssYEEEEEEE\211\211\211\2119IICEEEEEE\231\63uuuuuEEEEE;]y###y];EEEEE})\203\203\273\203\203)}EEEEE})\203\203\203)))\253EEEEE=I]u9###yEEEEEEEE;\236\236;EEEEEEE\205%;\236\236\212;CFEEEEE}ICC{CCI}EEEEEE9\203\203\203\203\203\203\203EEEEEE\273EE\273EE\273EEEEEE]]]\272]]]E\272EEEEEI]u%u]IE;EEEEEu]ICI]uE;EEEEE5\235\235]]]]]]]]]]]]]]]]]^^KEEEEE]]EE\272EE]]EEEEEEE\231\63E\231\63EEEEEEYssYEEEEEEEEEEEEEEE]]EEEEEEEEEEEEE]EEEEEEE\265uuuuursy}EEEE^sssssEEEEEEEEK^ICVZEEEEEEEEEEE999999EEEE"
+  , 9, 14);
+);
+
+function txt_loadfont_vga(image)
+(
+  this.__txt_loadfont(image,
+  "EE;\304\340\304\304\370\334\304\304;EEEEEE;\272\236\272\272\206\242\272\272;EEEEEEEEs::::{YMEEEEEEEEMY{:{YMEEEEEEEE]yy\242\242\242]]yEEEEEEE]y;\272\272;]]yEEEEEEEEEE]yy]EEEEEE\272\272\272\272\272\272\242\206\206\242\272\272\272\272\272\272EEEEEy#\7\7#yEEEEE\272\272\272\272\272\206\334\370\370\334\206\272\272\272\272\272EE=5\35\t[vvvv[EEEEEEy####y];]]EEEEEE\271\211\271IIIIKJBEEEEEE\273\203\273\203\203\203\203\243\242\"FEEEEEE]]\236y\242y\236]]EEEEEDFBJZ:ZJBFDEEEEE\5%5=9:9=5%\5EEEEEE]y;]]];y]EEEEEEE#######E##EEEEEE\273\236\236\236\233\235\235\235\235\235EEEEE{&CYs&&sYu&{EEEEEEEEEEE::::EEEEEE]y;]]];y];EEEEEE]y;]]]]]]]EEEEEE]]]]]]];y]EEEEEEEEE]u:u]EEEEEEEEEEEIC:CIEEEEEEEEEEEEFFF:EEEEEEEEEEEa#\272#aEEEEEEEEEEMYY{{::EEEEEEEEE::{{YYMEEEEEEEEEEEEEEEEEEEEEEE]yyy]]]E]]EEEEE###aEEEEEEEEEEEEEEss:sss:ssEEEE]]{&\6F{%%$&{]]EEEEEE\6&u]IC&$EEEEEEYssY+~vvv+EEEEEIIICEEEEEEEEEEEEEu]IIIIII]uEEEEEEI]uuuuuu]IEEEEEEEEE#y\272y#EEEEEEEEEEE]];]]EEEEEEEEEEEEEEE]]]IEEEEEEEEEE:EEEEEEEEEEEEEEEEEE]]EEEEEEEE\5%u]ICFDEEEEEEy#\206\206\236\236\206\206#yEEEEEE]Y[]]]]]];EEEEEE{&%u]ICF&:EEEEEE{&%%y%%%&{EEEEEEu}ysv:uuu=EEEEEE:FFFz%%%&{EEEEEEYCFFz&&&&{EEEEEE:&%%u]IIIIEEEEEE{&&&{&&&&{EEEEEE{&&&;%%%u[EEEEEEEE]]EEE]]EEEEEEEEE]]EEE]]IEEEEEEE%u]ICI]u%EEEEEEEEE;EE;EEEEEEEEEECI]u%u]ICEEEEEE{&&u]]]E]]EEEEEEE{&&>>>~F{EEEEEEMYs&&:&&&&EEEEEEz###{####zEEEEEEy#\6FFFF\6#yEEEEEEZs######sZEEEEEE:#\3S[SC\3#:EEEEEE:#\3S[SCCCJEEEEEEy#\6FF>&&#\31EEEEEE&&&&:&&&&&EEEEEEy]]]]]]]]yEEEEEE=uuuuuvvv[EEEEEE\"##s[[s##\"EEEEEEJCCCCCC\3#:EEEEEE\206\242\272\272\236\206\206\206\206\206EEEEEE&\"*:>6&&&&EEEEEE{&&&&&&&&{EEEEEEz###{CCCCJEEEEEE{&&&&&&.>{u5EEEEz###{s###\"EEEEEE{&&CYu%&&{EEEEEE\272\236\334]]]]]]yEEEEEE&&&&&&&&&{EEEEEE\206\206\206\206\206\206\206#y]EEEEEE\206\206\206\206\206\236\236\272##EEEEEE\206\206#y]]y#\206\206EEEEEE\206\206\206#y]]]]yEEEEEE\272\206$u]IC\306\206\272EEEEEEyIIIIIIIIyEEEEEEEDFBKY}5%\5EEEEEEyuuuuuuuuyEEEEMYs&EEEEEEEEEEEEEEEEEEEEEEEEE\272EEII]EEEEEEEEEEEEEEEEEE[u{vvv+EEEEEEBCC[s####{EEEEEEEEE{&FFF&{EEEEEE}uuysvvvv+EEEEEEEEE{&:FF&{EEEEEEYscCJCCCCJEEEEEEEEE+vvvvv{uv[EEEBCCs+####\"EEEEEE]]EY]]]]]yEEEEEE%%E5%%%%%%##yEEEBCC#s[[s#\"EEEEEEY]]]]]]]]yEEEEEEEEE\"\272\236\236\236\236\236EEEEEEEEE~######EEEEEEEEE{&&&&&{EEEEEEEEE~#####{CCJEEEEEE+vvvvv{uu=EEEEEE~+#CCCJEEEEEEEEE{&CYu&{EEEEEEMIIzIIII)}EEEEEEEEEvvvvvv+EEEEEEEEE\206\206\206\206#y]EEEEEEEEE\206\206\206\236\236\272#EEEEEEEEE\206#y]y#\206EEEEEEEEE&&&&&&;%uZEEEEEE:v]IC&:EEEEEE5]]]K]]]]5EEEEEE]]]]E]]]]]EEEEEEK]]]5]]]]KEEEEEE+~EEEEEEEEEEEEEEEEMYs&&&:EEEEEEEy#\6FFF\6#yu%{EEEEvEEvvvvvv+EEEEEu]IE{&:FF&{EEEEEMYsE[u{vvv+EEEEEEvEE[u{vvv+EEEEECI]E[u{vvv+EEEEEYsYE[u{vvv+EEEEEEEEy#CC#yu%yEEEEMYsE{&:FF&{EEEEEE&EE{&:FF&{EEEEECI]E{&:FF&{EEEEEE#EEY]]]]]yEEEEE]y#EY]]]]]yEEEEECI]EY]]]]]yEEEEE&EMYs&&:&&&EEEEYsYEYs&&:&&&EEEE]ICE:#C{CC#:EEEEEEEEE3\231\235;^~\253EEEEEE9svv:vvvv6EEEEEMYsE{&&&&&{EEEEEE&EE{&&&&&{EEEEECI]E{&&&&&{EEEEEI[vEvvvvvv+EEEEECI]Evvvvvv+EEEEEE&EE&&&&&&;%u[EE&E{&&&&&&&{EEEEE&E&&&&&&&&{EEEEE]];\206FFF\206;]]EEEEEYscCJCCCC\"zEEEEEE\206#y]\272]\272]]]EEEEEz##{\3#\263###\212EEEEE5\235]]];]]]]]^KEEE]ICE[u{vvv+EEEEEu]IEY]]]]]yEEEEE]ICE{&&&&&{EEEEE]ICEvvvvvv+EEEEEE+~E~######EEEE+~E&\"*:>6&&&EEEEEyss9E;EEEEEEEEEEYssYE{EEEEEEEEEEEIIEIICF&&{EEEEEEEEEE:FFFFEEEEEEEEEEE:%%%%EEEEEEFF\6&v]IC6\234%u\275EEEFF\6&v]I#6,9%%EEEE]]E]]]yyy]EEEEEEEEE)s^s)EEEEEEEEEEE^s)s^EEEEEE\315g\315g\315g\315g\315g\315g\315g\315g\357\20\357\20\357\20\357\20\357\20\357\20\357\20\357\20\376\253\376\253\376\253\376\253\376\253\376\253\376\253\376\253]]]]]]]]]]]]]]]]]]]]]]]Z]]]]]]]]]]]]]Z]Z]]]]]]]])))))))*))))))))EEEEEEE:))))))))EEEEEZ]Z]]]]]]]])))))*%*))))))))))))))))))))))))EEEEE:%*)))))))))))))*%:EEEEEEEE))))))):EEEEEEEE]]]]]Z]ZEEEEEEEEEEEEEEEZ]]]]]]]]]]]]]]]\275EEEEEEEE]]]]]]]\272EEEEEEEEEEEEEEE\272]]]]]]]]]]]]]]]\275]]]]]]]]EEEEEEE\272EEEEEEEE]]]]]]]\272]]]]]]]]]]]]]\275]\275]]]]]]]])))))))\251)))))))))))))\251I\271EEEEEEEEEEEEE\271I\251)))))))))))))\252E\272EEEEEEEEEEEEE\272E\252)))))))))))))\251I\251))))))))EEEEE\272E\272EEEEEEEE)))))\252E\252))))))))]]]]]\272E\272EEEEEEEE)))))))\272EEEEEEEEEEEEE\272E\272]]]]]]]]EEEEEEE\272)))))))))))))))\271EEEEEEEE]]]]]\275]\275EEEEEEEEEEEEE\275]\275]]]]]]]]EEEEEEE\271)))))))))))))))\272))))))))]]]]]\272]\272]]]]]]]]]]]]]]]ZEEEEEEEEEEEEEEE\275]]]]]]]]\272\272\272\272\272\272\272\272\272\272\272\272\272\272\272\272EEEEEEE\272\272\272\272\272\272\272\272\272JJJJJJJJJJJJJJJJ\265\265\265\265\265\265\265\265\265\265\265\265\265\265\265\265\272\272\272\272\272\272\272EEEEEEEEEEEEEE+~^^^~+EEEEEE[vvv^v&&&vEEEEEE:&&FFFFFFFEEEEEEEE:sssssssEEEEEEE:&CI]IC&:EEEEEEEEE;^^^^^KEEEEEEEE#####{CCFEEEEEEE+~]]]]]]EEEEEEE;]y###y];EEEEEEEYs&&:&&sYEEEEEEYs&&&ssss2EEEEEE=I]u9####yEEEEEEEEE;\236\236\236;EEEEEEEEE\205%;\236\236\212;CFEEEEEE}ICC{CCCI}EEEEEEE{&&&&&&&&EEEEEEEE:EE:EE:EEEEEEEEE]];]]EE\272EEEEEEEI]u%u]IE;EEEEEEEu]ICI]uE;EEEEEE5\235\235]]]]]]]]]]]]]]]]]]]^^^KEEEEEEEE]]E;E]]EEEEEEEEEE+~E+~EEEEEEEYssYEEEEEEEEEEEEEEEEEE]]EEEEEEEEEEEEEEE]EEEEEEEE\265uuuuurssy}EEEEE^sssssEEEEEEEEEEK^ICVZEEEEEEEEEEEEE{{{{{{{EEEEE"
+  , 9, 16);
+);
+
+/* <? _suppress = 0; ?> */
+
+function txt_loadfont(image, filename)
+  instance(font, textw, texth)
+(
+  font = gfx_loadimg(image, filename);
+
+  gfx_getimgdim(image, textw, texth);
+  texth = (texth / 256)|0;
+
+  font;
+);
+
+function txt_loadfont(image, filename, w, h)
+  instance(font, textw, texth)
+(
+  textw = w;
+  texth = h;
+
+  font = gfx_loadimg(image, filename);
+);
+
+function __txt_set_packed(rgb)
+(
+  gfx_set((rgb & 0xFF) * 1/255, (rgb & 0xFF00) * 1/65280, (rgb & 0xFF0000) * 1/16711680);
+);
+
+function __txt_rect_packed(x, y, w, h, rgb)
+  local(r, g, b)
+(
+  r = gfx_r; g = gfx_g; b = gfx_b;
+
+  __txt_set_packed(rgb); // gfx_a = 1.0
+  gfx_rect(x, y, w, h);
+
+  gfx_r = r; gfx_g = g; gfx_b = b;
+);
+
+function txt_drawchar(char)
+  instance(font, textw, texth)
+  local(dest, a, w)
+(
+  dest = gfx_dest;
+  a = gfx_a;
+
+  gfx_dest = font;
+  gfx_a = 1.0;
+
+  gfx_muladdrect(0, 0, w = textw & 0x7FFFFFFE, texth, 0.0, 0.0, 0.0, 0.0);
+  gfx_blit(font, 1.0, 0.0, 0, char * texth, w, texth, 0, 0);
+  gfx_muladdrect(0, 0, w, texth, gfx_r, gfx_g, gfx_b);
+
+  gfx_dest = dest;
+  gfx_a = a;
+
+  gfx_blit(font, 1.0, 0.0, 0, 0, w, texth, gfx_x, gfx_y);
+  gfx_x += textw;
+
+  // 9th inning I mean pixel (MDA/VGA)
+  textw > w && char >= 0xC0 && char < 0xE0 ? (
+    gfx_blit(font, 1.0, 0.0, w - 1, 0, 1, texth, gfx_x - 1, gfx_y);
+  );
+);
+
+function txt_drawchar(char, rgb)
+  instance(textw, texth)
+  local(a, y)
+(
+  a = gfx_a;
+
+  rgb >= 0 ? (
+    __txt_rect_packed(gfx_x, gfx_y, textw, texth, rgb);
+
+    // Underline
+    (rgb & 0x1000000) > 0 ? (
+      y = ((texth * (7/8))|0) + gfx_y;
+      gfx_line(gfx_x, y, gfx_x + textw - 1, y, 0.0);
+    );
+  );
+
+  this.txt_drawchar(char);
+  gfx_a = a;
+);
+
+function txt_drawstr(str)
+  local(i)
+(
+  i = -1;
+  loop(strlen(str), this.txt_drawchar(str_getchar(str, i += 1)));
+);
+
+function txt_drawstr(str, rgb)
+  instance(textw, texth)
+  local(a, w, y)
+(
+  a = gfx_a;
+
+  rgb >= 0 ? (
+    __txt_rect_packed(gfx_x, gfx_y, w = strlen(str) * textw, texth, rgb);
+
+    // Underline
+    (rgb & 0x1000000) > 0 ? (
+      y = ((texth * (7/8))|0) + gfx_y;
+      gfx_line(gfx_x, y, gfx_x + w - 1, y, 0.0);
+    );
+  );
+
+  this.txt_drawstr(str);
+  gfx_a = a;
+);
+
+function txt_setimgdim(image, cols, rows)
+  instance(dest, w, h, textw, texth)
+(
+  gfx_setimgdim(dest = image, w = cols * textw, h = rows * texth);
+);
+
+function txt_clear(rgb)
+  instance(dest, w, h)
+(
+  gfx_dest = dest;
+
+  rgb >= 0 ? (
+    __txt_set_packed(rgb);
+    gfx_rect(0, 0, w, h);
+  );
+);
+
+function txt_blit(dest, x, y, w, h)
+(
+  gfx_dest = dest;
+  gfx_blit(this.dest, 1.0, 0.0, 0, 0, this.w, this.h, x, y, w, h);
+);
+
+function txt_blit(dest, x, y, w, h, scale)
+(
+  this.txt_blit(dest, x * scale, y * scale, w * scale, h * scale);
+);
+
+function txt_blit_cga(dest, x, y)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * 2.4); 
+);
+
+function txt_blit_cga(dest, x, y, scale)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * 2.4, scale);
+);
+
+function txt_blit_ega(dest, x, y)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * (48/35));
+);
+
+function txt_blit_ega(dest, x, y, scale)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * (48/35), scale);
+);
+
+function txt_blit_mda(dest, x, y)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * (48/35));
+);
+
+function txt_blit_mda(dest, x, y, scale)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * (48/35), scale);
+);
+
+function txt_blit_vga(dest, x, y)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * 1.35);
+);
+
+function txt_blit_vga(dest, x, y, scale)
+  instance(w, h)
+(
+  this.txt_blit(dest, x, y, w, h * 1.35, scale);
+);
+
+function txt_set_cga(attr)
+  local(shr)
+(
+  (attr &= 0x0F) > 0 ? (
+    shr = 1.0 / (1 << (attr * 2));
+    gfx_set(((0xFF55AA00 * shr) & 3) * (1/3), ((0xF5F590A0 * shr) & 3) * (1/3), ((0xDDDD8888 * shr) & 3) * (1/3));
+  ) : (
+    gfx_set(8/255);
+  );
+);
+
+function txt_packed_cga(attr)
+(
+  (attr &= 0xF0) > 0 ? (
+    attr === 0x60 ? 0x0055AA :
+    (attr & 0x10) * 696320 + (attr & 0x20) * 1360 + (attr & 0x40) * (170/64) + (attr & 0x80) * (5592405/128);
+  ) : (
+    0x080808;
+  );
+);
+
+function txt_set_ega(attr) ( txt_set_cga(attr); );
+function txt_packed_ega(attr) ( txt_packed_cga(attr); );
+
+function txt_set_ega(r, g, b)
+(
+  gfx_set(((r * 3)|0) * (1/3), ((g * 3)|0) * (1/3), ((b * 3)|0) * (1/3));
+);
+
+function txt_packed_ega(r, g, b)
+(
+  ((r * 3)|0) * 85 + ((g * 3)|0) * 21760 + ((b * 3)|0) * 5570560;
+);
+
+function txt_set_vga(attr)
+  local(shr)
+(
+  shr = 1.0 / (1 << ((attr & 0x0F) * 2));
+  gfx_set(((0xFF55AA00 * shr) & 3) * (1/3), ((0xF5F590A0 * shr) & 3) * (1/3), ((0xDDDD8888 * shr) & 3) * (1/3));
+);
+
+function txt_packed_vga(attr)
+(
+  (attr & 0xF0) === 0x60 ? 0x0055AA :
+  (attr & 0x10) * 696320 + (attr & 0x20) * 1360 + (attr & 0x40) * (170/64) + (attr & 0x80) * (5592405/128);
+);
+
+function txt_set_vga(r, g, b)
+(
+  gfx_set(((r * 63)|0) * (1/63), ((g * 63)|0) * (1/63), ((b * 63)|0) * (1/63));
+);
+
+function txt_packed_vga(r, g, b)
+(
+  ((r * 63)|0) * (255/63) + ((g * 63)|0) * (65280/63) + ((b * 63)|0) * (16711680/63);
+);
+
+function txt_set_mda_black() ( __txt_set_packed(max(gfx_clear, 0)); );
+function txt_set_mda_dark() ( gfx_set(5/255, 69/255, 26/255); );
+function txt_set_mda_normal() ( gfx_set(16/255, 208/255, 80/255); );
+function txt_set_mda_bright() ( gfx_set(64/255, 1.0, 128/255); );
+
+function txt_set_mda(attr)
+(
+  (attr &= 0x7F) === 0x00 || attr === 0x08 || attr === 0x70 ? txt_set_mda_black() :
+  attr === 0x78 ? txt_set_mda_dark() :
+  (attr & 0x08) <= 0 ? txt_set_mda_normal() : txt_set_mda_bright();
+);
+
+function txt_packed_mda_black() ( max(gfx_clear, 0); );
+function txt_packed_mda_dark() ( 0x1A4505; );
+function txt_packed_mda_normal() ( 0x50D010; );
+function txt_packed_mda_bright() ( 0x80FF40; );
+
+function txt_packed_mda(attr)
+(
+  (attr & 0x77) !== 0x70 ? txt_packed_mda_black() + ((attr & 0x07) === 0x01 ? 0x1000000 : 0) :
+  (attr & 0x80) <= 0 ? txt_packed_mda_normal() : txt_packed_mda_bright();
+);

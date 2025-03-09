@@ -2,7 +2,7 @@ desc:Simple drum synth
 //tags: instrument generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2023 Theo Niessink
+// Copyright (C) 2014-2024 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This electronic drum synth supports the following General MIDI (GM)
@@ -152,8 +152,6 @@ gui_pad = /* gui_default + */ 25;
 25[45] =         25[46] = 82;   25[47] = 54;   25[49] = "TB";
 25[50] =         25[51] = 31;   25[52] = 56;   25[54] = "CB";
 
-noise_gain = sqrt(srate * 1/44100);
-
 function gain(db, inf)
 (
   db > inf ? exp(db * /* log(10)/20 */ 0.11512925464970228); // 0 otherwise
@@ -206,11 +204,6 @@ function sample(out)
 );
 
 // Bass Drum
-
-bd.env.d = 1; // adsr_setd(0)
-bd.env.s = 1;
-
-bd.lp.a = bd.lp2.rc_setf(90);
 
 function bd(note, vel)
   instance(env, osc, lp, lp2)
@@ -265,13 +258,6 @@ function bd()
 
 // Snare Drum
 
-sd.env.adsr_seta(0.005);
-sd.env.adsr_setd(0.025);
-sd.env.s = 0.5;
-sd.env.adsr_setr(0.350);
-
-sd.lp.rc_setf(200);
-
 function sd(note, vel)
   instance(env, lp, dry)
 (
@@ -299,14 +285,6 @@ function sd()
 
 // Side Stick/Rimshot
 
-rs.env.a = 1; // adsr_seta(0)
-rs.env.adsr_setd(0.100);
-rs.env.s = 0;
-rs.env.r = 1; // adsr_setr(0)
-
-rs.hp.rc_setf(1000);
-rs.lp.rc_setf(1500);
-
 function rs(note, vel)
   instance(env, hp, lp)
 (
@@ -328,9 +306,6 @@ function rs()
 );
 
 // Hi-hat
-
-hh.env.a = 1; // adsr_seta(0)
-hh.hp.rc_setf(6000);
 
 function hh(note, vel)
   instance(env)
@@ -378,14 +353,6 @@ function hh()
 
 // Low Tom
 
-lt.env.adsr_seta(0.015);
-lt.env.d = 1; // adsr_setd(0)
-lt.env.s = 1;
-lt.env.adsr_setr(1.5);
-
-lt.lp.rc_setf(115);
-lt.osc.sin_setf(75);
-
 function lt(note, a, b, vel)
   instance(env, lp, lp2)
 (
@@ -410,36 +377,15 @@ function lt(note, vel) ( this.lt(note, 41, 43, vel) );
 
 // Mid Tom
 
-mt.env.adsr_seta(0.015);
-mt.env.d = 1; // adsr_setd(0)
-mt.env.s = 1;
-mt.env.adsr_setr(1.25);
-
-mt.osc.sin_setf(100);
-mt.lp.rc_setf(125);
-
 function mt(note, vel) ( this.lt(note, 45, 47, vel) );
 function mt() ( this.lt() );
 
 // High Tom
 
-ht.env.adsr_seta(0.015);
-ht.env.d = 1; // adsr_setd(0)
-ht.env.s = 1;
-ht.env.adsr_setr(1.0);
-
-ht.osc.sin_setf(115);
-ht.lp.rc_setf(115);
-
 function ht(note, vel) ( this.lt(note, 48, 50, vel) );
 function ht() ( this.lt() );
 
 // Ride Cymbal/Bell
-
-rd.env.a = 1; // adsr_seta(0)
-rd.env.adsr_setd(0.015);
-rd.env.s = 0.25;
-rd.env.adsr_setr(1.5);
 
 function rd(note, vel)
   instance(env, bp)
@@ -480,13 +426,6 @@ function rd()
 
 // Crash Cymbal
 
-cy.env.a = 1; // adsr_seta(0)
-cy.env.adsr_setd(0.100);
-cy.env.s = 0.9;
-cy.env.adsr_setr(2.5);
-
-cy.bp.rbj_bp(4000, 2.5);
-
 function cy(note, vel)
   instance(env)
 (
@@ -499,13 +438,6 @@ function cy()
 );
 
 // Tambourine/Shaker
-
-tb.env.adsr_seta(0.040);
-tb.env.adsr_setd(0.060);
-tb.env.s = 0.1;
-tb.env.adsr_setr(0.120);
-
-tb.lp.rc_setf(1833);
 
 function tb(note, vel)
   instance(env, hp)
@@ -545,14 +477,6 @@ function tb()
 
 // Cowbell
 
-cb.env.adsr_seta(0.003);
-cb.env.adsr_setd(0.350);
-// cb.env.s = 0;
-cb.env.r = 1; // adsr_setr(0)
-
-cb.osc.poly_setf(465);
-cb.bp.rbj_bp(1860, sqrt(0.5));
-
 function cb(note, vel)
   instance(env)
 (
@@ -570,13 +494,6 @@ function cb()
 );
 
 // Sticks
-
-st.env.a = 1; // adsr_seta(0)
-st.env.adsr_setd(0.050);
-st.env.s = 0.1;
-st.env.adsr_setr(0.050);
-
-st.bp.rbj_bp(2700, 4.0);
 
 function st(note, vel)
   instance(env, rng)
@@ -616,6 +533,132 @@ gui_slider_update = 1;
 slider_update = 1;
 
 @block
+
+srate != old_srate ? (
+  old_srate = srate;
+
+  noise_gain = sqrt(srate * 1/44100);
+
+  // Bass Drum
+
+  bd.note = 0;
+
+  bd.env.d = 1; // adsr_setd(0)
+  bd.env.s = 1;
+
+  bd.lp.a = bd.lp2.rc_setf(90);
+
+  // Snare Drum
+
+  sd.env.adsr_seta(0.005);
+  sd.env.adsr_setd(0.025);
+  sd.env.s = 0.5;
+  sd.env.adsr_setr(0.350);
+
+  sd.lp.rc_setf(200);
+
+  // Side Stick/Rimshot
+
+  rs.env.a = 1; // adsr_seta(0)
+  rs.env.adsr_setd(0.100);
+  rs.env.s = 0;
+  rs.env.r = 1; // adsr_setr(0)
+
+  rs.hp.rc_setf(1000);
+  rs.lp.rc_setf(1500);
+
+  // Hi-hat
+
+  hh.note = 0;
+
+  hh.env.a = 1; // adsr_seta(0)
+  hh.hp.rc_setf(6000);
+
+  // Low Tom
+
+  lt.env.adsr_seta(0.015);
+  lt.env.d = 1; // adsr_setd(0)
+  lt.env.s = 1;
+  lt.env.adsr_setr(1.5);
+
+  lt.lp.rc_setf(115);
+  lt.osc.sin_setf(75);
+
+  // Mid Tom
+
+  mt.env.adsr_seta(0.015);
+  mt.env.d = 1; // adsr_setd(0)
+  mt.env.s = 1;
+  mt.env.adsr_setr(1.25);
+
+  mt.osc.sin_setf(100);
+  mt.lp.rc_setf(125);
+
+  // High Tom
+
+  ht.env.adsr_seta(0.015);
+  ht.env.d = 1; // adsr_setd(0)
+  ht.env.s = 1;
+  ht.env.adsr_setr(1.0);
+
+  ht.osc.sin_setf(115);
+  ht.lp.rc_setf(115);
+
+  // Ride Cymbal/Bell
+
+  rd.note = 0;
+
+  rd.env.a = 1; // adsr_seta(0)
+  rd.env.adsr_setd(0.015);
+  rd.env.s = 0.25;
+  rd.env.adsr_setr(1.5);
+
+  rd.bp.rbj_reset_df1();
+
+  // Crash Cymbal
+
+  cy.env.a = 1; // adsr_seta(0)
+  cy.env.adsr_setd(0.100);
+  cy.env.s = 0.9;
+  cy.env.adsr_setr(2.5);
+
+  cy.bp.rbj_reset_df1();
+  cy.bp.rbj_bp(4000, 2.5);
+
+  // Tambourine/Shaker
+
+  tb.note = 0;
+
+  tb.env.adsr_seta(0.040);
+  tb.env.adsr_setd(0.060);
+  tb.env.s = 0.1;
+  tb.env.adsr_setr(0.120);
+
+  tb.hp.rbj_reset_df1();
+  tb.lp.rc_setf(1833);
+
+  // Cowbell
+
+  cb.env.adsr_seta(0.003);
+  cb.env.adsr_setd(0.350);
+  // cb.env.s = 0;
+  cb.env.r = 1; // adsr_setr(0)
+
+  cb.osc.poly_setf(465);
+
+  cb.bp.rbj_reset_df2();
+  cb.bp.rbj_bp(1860, sqrt(0.5));
+
+  // Sticks
+
+  st.env.a = 1; // adsr_seta(0)
+  st.env.adsr_setd(0.050);
+  st.env.s = 0.1;
+  st.env.adsr_setr(0.050);
+
+  st.bp.rbj_reset_df2();
+  st.bp.rbj_bp(2700, 4.0);
+);
 
 slider_update ? (
   slider_update = 0;

@@ -1,6 +1,6 @@
 desc:Naive (non-bandlimited) low-frequency oscillator
 
-// Copyright (C) 2012-2023 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2012-2025 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -126,6 +126,9 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_trin()        -- Stepped triangle
     * lfo_sawn()        -- Stepped sawtooth
     * lfo_yawn()        -- Very boring :-O
+
+    * lfo_hstri()       -- Hard sync triangle
+    * lfo_hssqr()       -- Hard sync square
     * lfo_hssaw()       -- Hard sync sawtooth
 
     * lfo_ham()         -- Hammond 88 8000 000
@@ -176,6 +179,9 @@ desc:Naive (non-bandlimited) low-frequency oscillator
     * lfo_intsaw_dc()   -- Integrated sawtooth
     * lfo_hpsaw_dc()    -- High-pass filtered sawtooth
     * lfo_hpsaw6_dc()   -- HPF sawtooth approximation
+
+    * lfo_hstri_dc()    -- Hard sync triangle
+    * lfo_hssqr_dc()    -- Hard sync square
     * lfo_hssaw_dc()    -- Hard sync sawtooth
 
     * lfo_stairs3_dc()  -- Staircase (variable pulse width)
@@ -780,6 +786,31 @@ function lfo_trip_dc()
   pw - 1;
 );
 
+// Hard sync triangle
+
+function lfo_hstri()
+  instance(fc)
+  local(t)
+(
+  t = this.t + 0.5;
+  this.lfo_inc();
+
+  t = (t - (t|0)) * fc + 0.75;
+  abs((((t + 0.75)|0) - t) * 4 - 1) - 1;
+);
+
+function lfo_hstri_dc()
+  local(fc, x)
+(
+  (fc = this.fc) > 0 ? (
+    (x = fc - (fc|0)) > 0.5 ? (
+      fc = -fc;
+      x -= 0.5;
+    );
+    (sqr(x) * 2 - x) / fc;
+  ) : -1;
+);
+
 // Trapezoid [DC = 0; RMS = sqrt(1/3 + 2/3*pw)]
 
 function lfo_trap()
@@ -1030,6 +1061,8 @@ function lfo_hwlowp()
   instance(pw, fc)
   local(t, x)
 (
+  // RMS = sqrt((4*pi^2*fc^2*(pw - pw^2) - (pi*fc + 1)*exp(-4*pi*fc*(1 - pw)) + fc*(pi - 4*pi*pw) + exp(-2*pi*fc*(1 - pw))*(4*pi*fc*pw + 2) - 1)) / (pi*fc*(1 - exp(-2*pi*fc*(1 - pw))))
+
   t = this.t;
   this.lfo_inc();
 
@@ -1081,6 +1114,47 @@ function lfo_hwlowp_nonorm_dc()
     (exp(x+x + 2*$pi) - x * (exp(2*$pi) + 1) - exp(2*$pi)) / (fc * (1 - exp(2*$pi)) * $pi) + pw;
   ) : 1;
 ); */
+
+// Half-wave low-pass filtered pulse approximation
+
+function lfo_hwlowp3()
+  instance(pw)
+  local(t)
+(
+  // RMS = 3*sqrt((7*pw + 1)*(1 - pw)) / (2*sqrt(7))
+
+  t = this.t;
+  this.lfo_inc();
+
+  t < pw ? 1 : (
+    t = (1 - t) / (1 - pw);
+    sqr(t)*t * 2 - 1;
+  );
+);
+
+function lfo_hwlowp3_dc()
+  instance(pw)
+(
+  pw * 1.5 - 0.5;
+);
+
+function _lfo_hwlowp(n)
+  instance(pw)
+  local(t)
+(
+  // RMS = 2*n*sqrt(((2*n + 1)*pw + 1)*(1 - pw) / (2*n + 1)) / (n + 1)
+
+  t = this.t;
+  this.lfo_inc();
+
+  t < pw ? 1 : pow((1 - t) / (1 - pw), n) * 2 - 1;
+);
+
+function _lfo_hwlowp_dc(n)
+  instance(pw)
+(
+  ((pw * 2 - 1) * n + 1) / (n + 1);
+);
 
 // Band-pass filtered square approximation [DC = 0; RMS = 4*sqrt(195)/75]
 
@@ -1182,6 +1256,26 @@ function lfo_sqr2()
   // lfo2.lfo_sync(t + 0.25 - 0.25*pw);
 
   // (lfo1.lfo_sqr() + lfo2.lfo_sqr()) * 0.5;
+);
+
+// Hard sync square [RMS = sqrt(1 - DC^2)]
+
+function lfo_hssqr()
+  instance(fc)
+  local(t)
+(
+  t = this.t + 0.5;
+  this.lfo_inc();
+
+  t = (t - (t|0)) * fc;
+  (t - (t|0) < /* 1 - pw */ 0.5) * -2 + 1;
+);
+
+function lfo_hssqr_dc()
+  instance(fc)
+  local(x)
+(
+  (x = fc|0) + 0.5 > fc ? x / max(fc, 0.5) - 1 : 1 - (x + 1) / fc;
 );
 
 // Rectangle [RMS = sqrt(4*pw - 4*pw^2)]

@@ -11,4 +11,4 @@ System Requirements
 
 Tale's JSFX Pack should run on REAPER v4.60 or newer.
 
-Copyright (C) Theo Niessink 2012-2023
+Copyright (C) Theo Niessink 2012-2025

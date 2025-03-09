@@ -1,0 +1,105 @@
+desc:Text mode character/attribute test
+
+// Copyright (C) 2025 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+// Uses EEL2 preprocessor (and I'm too lazy to make it backward compatible),
+// so requires REAPER v6.74+.
+config:mode "Text mode" 3 0="MDA" 1="CGA" 2="EGA" 3="VGA"
+
+import Tale/text_mode.jsfx-inc
+
+@init
+
+<?
+
+mode == 0 ? (
+  name = "MDA";
+  suffix = "mda";
+  bg = 0x080808;
+) :
+
+mode == 1 ? (
+  name = "CGA";
+  suffix = "cga";
+  border = 0x90;
+) :
+
+mode == 2 ? (
+  name = "EGA";
+  suffix = "ega";
+) :
+
+mode == 3 ? (
+  name = "VGA";
+  suffix = "vga";
+);
+
+?>
+
+gfx_ext_retina = 1.0;
+gfx_clear = <? !mode ? printf("%d", bg) : printf("txt_packed_%s(%d)", suffix, border); ?>;
+
+@gfx 752 572
+
+!txt.dest ? (
+  <? !font ? printf("txt.txt_loadfont_%s();", suffix) : printf("txt.txt_loadfont(0, %s);", font); ?>
+
+  <? mode ? suffix = "cga"; ?>
+
+  txt.txt_setimgdim(1, 80, 25);
+  txt.txt_clear(<? printf(!mode ? "gfx_clear" : "txt_packed_cga(0x17)"); ?>);
+
+  <? printf("txt_set_%s(%d);", suffix, !mode ? 0x07 : 0x17); ?>
+
+  gfx_x = 2 * txt.textw;
+  gfx_y = txt.texth;
+  txt.txt_drawstr(<? printf("\"%s\"", name); ?> " Character Set");
+
+  <? printf("txt_set_%s(attr = %d);", suffix, !mode ? 0x70 : 0x91); ?>
+  rgb = <? printf("txt_packed_%s", suffix); ?>(attr);
+  gfx_x = 2 * txt.textw;
+  gfx_y += 2 * txt.texth;
+  txt.txt_drawchar(' ', rgb);
+  loop(2, txt.txt_drawstr(" 0 1 2 3 4 5 6 7 8 9 A B C D E F", rgb));
+
+  char = 0;
+  loop(8,
+    <? printf("txt_set_%s", suffix); ?>(attr);
+    gfx_x = 2 * txt.textw;
+    gfx_y += txt.texth;
+    txt.txt_drawchar((char < 0xA0 ? '0' : 'A' - 10) + ((char / 16)|0), rgb);
+
+    <? printf("txt_set_%s(%d);", suffix, !mode ? 0x07 : 0x17); ?>
+    loop(32,
+      gfx_x += txt.textw;
+      txt.txt_drawchar(char);
+      char += 1;
+    );
+  );
+
+  gfx_x = 2 * txt.textw;
+  gfx_y += 2 * txt.texth;
+  txt.txt_drawstr(<? printf("\"%s\"", name); ?> " Attributes");
+
+  gfx_y += txt.texth;
+  attr = 0;
+  loop(8,
+    gfx_x = 2 * txt.textw;
+    gfx_y += txt.texth;
+    loop(32,
+      <? printf("txt_set_%s", suffix); ?>(attr);
+      txt.txt_drawstr(sprintf(#, "%02X", attr), <? printf("txt_packed_%s", suffix); ?>(attr));
+      attr += 1;
+    );
+  );
+);
+
+gfx_w != old_w || gfx_h != old_h ? (
+  old_w = gfx_w;
+  old_h = gfx_h;
+
+  txt.txt_blit(-1, 16, 16, 720, 540, gfx_ext_retina);
+);

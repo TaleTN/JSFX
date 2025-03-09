@@ -1,5 +1,12 @@
 Tale's JSFX Pack
 
+v20250309 (9 March 2025)
+
+ + drum_synth: Fixed sample rate change, oops!
+ + lfo/poly: Added hard sync triangle/square wave.
+ + poly: Optimized hard sync saw.
+ + txt: Added retro PC text mode font/color library.
+
 v20230711 (11 July 2023)
 
  + lfo/four/poly: Added BP filtered square approximation.
@@ -456,4 +463,4 @@ v20120809 (9 August 2012)
 
  + Initial release.
 
-Copyright (C) 2012-2023 Theo Niessink
+Copyright (C) 2012-2025 Theo Niessink

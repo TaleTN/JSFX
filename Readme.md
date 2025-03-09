@@ -40,6 +40,7 @@ The following JSFX libraries are included:
 * [**rbj_filter.jsfx-inc**](Effects/Tale/rbj_filter.jsfx-inc): 2nd-order RBJ filter. [#](https://www.taletn.com/reaper/mono_synth/#rbj)
 * [**rc_filter.jsfx-inc**](Effects/Tale/rc_filter.jsfx-inc): 1st-order RC filter. [#](https://www.taletn.com/reaper/mono_synth/#rc)
 * [**sine.jsfx-inc**](Effects/Tale/sine.jsfx-inc): Efficient sine/cosine wave oscillator. [#](https://www.taletn.com/reaper/mono_synth/#sin)
+* [**text_mode.jsfx-inc**](Effects/Tale/text_mode.jsfx-inc): Retro PC text mode font/color support. [#](https://www.taletn.com/reaper/mono_synth/#txt)
 * [**uint.jsfx-inc**](Effects/Tale/uint.jsfx-inc): Low-level 32/64-bit unsigned integer operations. [#](https://www.taletn.com/reaper/mono_synth/#uint)
 * [**wavetable.jsfx-inc**](Effects/Tale/wavetable.jsfx-inc): Wavetable oscillator. [#](https://www.taletn.com/reaper/mono_synth/#wave)
 * [**window.jsfx-inc**](Effects/Tale/window.jsfx-inc): Window functions. [#](https://www.taletn.com/reaper/mono_synth/#wnd)

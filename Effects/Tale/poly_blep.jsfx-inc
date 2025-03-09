@@ -1,6 +1,6 @@
 desc:PolyBLEP quasi-bandlimited tone generator
 
-// Copyright (C) 2013-2023 Theo Niessink <theo@taletn.com>
+// Copyright (C) 2013-2025 Theo Niessink <theo@taletn.com>
 // This work is free. You can redistribute it and/or modify it under the
 // terms of the Do What The Fuck You Want To Public License, Version 2,
 // as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
@@ -107,6 +107,9 @@ desc:PolyBLEP quasi-bandlimited tone generator
     * poly_sinn()      -- Stepped sine
     * poly_trin()      -- Stepped triangle
     * poly_sawn()      -- Stepped sawtooth
+
+    * poly_hstri()     -- Hard sync triangle
+    * poly_hssqr()     -- Hard sync square
     * poly_hssaw()     -- Hard sync sawtooth
 
     * poly_ham()       -- Might not be suitable for vegetarians
@@ -726,6 +729,50 @@ function poly_trip()
   ) * a;
 );
 
+// Hard sync triangle
+
+function poly_hstri()
+  instance(dt, a, fc)
+  local(t, x, y, dc, pw, scale, n)
+(
+  t = this.t + 0.5;
+  this.poly_inc();
+
+  fc > 0 ? (
+    x = (t -= (t|0)) * fc + 0.75;
+    y = abs((((x + 0.75)|0) - x) * 4 - 1) - 1;
+
+    pw = (dc = -1 / fc) * 0.5 + 1;
+    scale = abs((x = fc - (fc|0)) * 2 - 1) - 1;
+
+    x > 0.5 ? x -= 0.5 : dc = -dc;
+    y -= (sqr(x) * 2 - x) * dc;
+
+    y += poly_blep(t, dt) * scale;
+
+    n = ceil(fc * 2);
+    scale = fc * 4*dt;
+
+    n & 1 ? (
+      n -= 1;
+
+      t += pw;
+      scale = -scale;
+    );
+
+    loop(n,
+      y += poly_blamp(t -= t|0, dt) * scale;
+
+      t += pw;
+      scale = -scale;
+    );
+
+    y * a;
+  );
+
+  // 0 otherwise
+);
+
 // Trapezoid
 
 function poly_trap()
@@ -957,6 +1004,40 @@ function poly_sqr2()
   ) * a;
 );
 
+// Hard sync square
+
+function poly_hssqr()
+  instance(dt, a, fc)
+  local(t, x, y, n, pw, scale)
+(
+  t = this.t + 0.5;
+  this.poly_inc();
+
+  x = (t -= t|0) * fc;
+  y = (x - (x|0) < 0.5) * -2;
+
+  y += (x = fc|0) + 0.5 > fc ? 2 - x / max(fc, 0.5) : (x + 1) / fc;
+
+  n = ceil(fc - 0.5);
+  pw = 1 - 0.5/fc;
+
+  x < n ? (
+    scale = -1;
+  ) : (
+    t += pw;
+    scale = 1;
+  );
+
+  loop(n + n,
+    y += poly_blep(t -= t|0, dt) * scale;
+
+    t += pw;
+    scale = -scale;
+  );
+
+  y * a;
+);
+
 // Rectangle
 
 function poly_rect()
@@ -1180,14 +1261,13 @@ function poly_hssaw()
   t < dt ? y += sqr(t/dt - 1) * scale : t > 1 - dt ? y -= sqr((t - 1) / dt + 1) * scale;
 
   n > 0 ? (
-    t += pw;
-    pw = (1 - pw) / n;
+    pw = (pw - 1) / n + 1;
 
     loop(n,
+      t += pw;
+
       // y -= poly_blep(t - (t|0), dt);
       (t -= t|0) < dt ? y += sqr(t/dt - 1) : t > 1 - dt ? y -= sqr((t - 1) / dt + 1);
-
-      t += pw;
     );
   );
 
