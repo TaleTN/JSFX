@@ -206,7 +206,7 @@ function __txt_loadfont(image, str, w, h)
 
       loop(8,
         byte & 1 ? gfx_setpixel(1.0, 1.0, 1.0);
-        byte = (byte / 2)|0;
+        byte *= 0.5;
         gfx_x += 1;
       );
     );

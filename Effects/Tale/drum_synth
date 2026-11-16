@@ -2,7 +2,7 @@ desc:Simple drum synth
 //tags: instrument generator synthesis
 //author: Tale
 
-// Copyright (C) 2014-2024 Theo Niessink
+// Copyright (C) 2014-2026 Theo Niessink
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
 // This electronic drum synth supports the following General MIDI (GM)
@@ -151,6 +151,60 @@ gui_pad = /* gui_default + */ 25;
 25[40] =         25[41] =       25[42] = 49;   25[44] = "CY";
 25[45] =         25[46] = 82;   25[47] = 54;   25[49] = "TB";
 25[50] =         25[51] = 31;   25[52] = 56;   25[54] = "CB";
+
+/* <? printf("%c/", '*'); !jsfx_has_set_midi_note_name ? _suppress = 1; ?>
+
+mem_set_values(note_name = gui_pad + 55,
+  "Sticks",         // 31
+  "Bass Drum 2",    // 35
+  "Bass Drum 1",    // 36
+  "Rimshot",        // 37
+  "Snare Drum 1",   // 38
+  "",
+  "Snare Drum 2",   // 40
+  "[Low Tom]",      // 41
+  "Closed Hi-hat",  // 42
+  "Low Tom",        // 43
+  "Pedal Hi-hat",   // 44
+  "[Mid Tom]",      // 45
+  "Open Hi-hat",    // 46
+  "Mid Tom",        // 47
+  "[High Tom]",     // 48
+  "Crash Cymbal",   // 49
+  "High Tom",       // 50
+  "Ride Cymbal",    // 51
+  "[Crash Cymbal]", // 52
+  "Ride Bell",      // 53
+  "Tambourine",     // 54
+  "[Crash Cymbal]", // 55
+  "Cowbell",        // 56
+  "[Crash Cymbal]", // 57
+  "",
+  "[Ride Cymbal]",  // 58
+  "Shaker"          // 59
+);
+
+old_midi_ch = 16;
+
+function update_note_names()
+  // global(old_midi_ch, midi_ch, note_name)
+  local(i)
+(
+  old_midi_ch < 16 ? set_midi_note_name(-1, 0, old_midi_ch, 0);
+  old_midi_ch = midi_ch;
+
+  set_midi_note_name(0, 31, midi_ch, note_name[0]);
+  i = 0;
+
+  loop(25,
+    i += 1;
+    set_midi_note_name(0, i + 34, midi_ch, note_name[i]);
+  );
+
+  set_midi_note_name(0, 82, midi_ch, note_name[26]);
+);
+
+<? _suppress = 0; printf("/%c", '*'); ?> */
 
 function gain(db, inf)
 (
@@ -665,6 +719,10 @@ slider_update ? (
 
   midi_ch = max((slider21 + 0.0001)|0, 0) - 1;
   midi_ch > 15 ? midi_ch = -1;
+
+  /* <? printf("%c/", '*'); !jsfx_has_set_midi_note_name ? _suppress = 1; ?>
+  midi_ch != old_midi_ch ? update_note_names();
+  <? _suppress = 0; printf("/%c", '*'); ?> */
 
   multich = ((slider22 + 0.0001)|0) - 1;
   multich < -1 || multich > 1 ? multich = 0;

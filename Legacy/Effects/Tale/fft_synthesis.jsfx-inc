@@ -1,4 +1,0 @@
-desc:FFT bandlimited synthesis
-/* Legacy, import Tale/fft_synth.jsfx-inc instead. */
-import fft_synth.jsfx-inc
-@init

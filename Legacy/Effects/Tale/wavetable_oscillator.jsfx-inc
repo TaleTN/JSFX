@@ -1,4 +1,0 @@
-desc:Wavetable oscillator
-/* Legacy, import Tale/wavetable.jsfx-inc instead. */
-import wavetable.jsfx-inc
-@init

@@ -21,6 +21,7 @@ Tale's JSFX Pack includes these JSFX plug-ins:
 * [**random_midi_notes**](Effects/Tale/random_midi_notes): Random MIDI note generator.
 * [**rc_filter**](Effects/Tale/rc_filter): Multimode RC filter.
 * [**tube_amp**](Effects/Tale/tube_amp): Preamp simulation.
+* [**vocal_humanizer**](Effects/Tale/vocal_humanizer): Randomized delay.
 * [**zdf_filter**](Effects/Tale/zdf_filter): Multimode ZDF filter.
 
 The following JSFX libraries are included:

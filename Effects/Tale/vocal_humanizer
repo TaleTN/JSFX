@@ -1,0 +1,157 @@
+desc:Vocal humanizer
+//tags: delay
+//author: Tale
+
+// Copyright (C) 2026 Theo Niessink
+// License: LGPL - http://www.gnu.org/licenses/lgpl.html
+
+// This effect will humanize incoming audio signal by randomizing the delay
+// every time the input signal drops below the gate threshold.
+
+// It is typically used to add some controlled variation to a doubled vocal
+// track.
+
+slider1:100<0,5000,1>Min Slice Length (ms)
+slider2:100<0,5000,1>Min Silence Length (ms)
+slider3:-24.0<-72.0,0.0,0.1>Gate Threshold (dB)
+slider4:100<0,1000,1>Gate Sensitivity (ms)
+slider5:25<0,1000,1>Min Delay (ms)
+slider6:50<0,1000,1>Delay Range (ms)
+slider7:50<0,1000,1>Crossfade Length (ms)
+
+import Tale/rc_filter.jsfx-inc
+
+@init
+
+function rand_gauss_approx()
+  instance(x, y)
+  local(old_y)
+(
+  // Linear Congruential Generator
+  x = (x * 69069 + 1) & 0xFFFFFFFF;
+
+  old_y = y;
+  y = (x - 2147483648) * 2^(-31);
+  x < 2147483648 ? y = sqrt(1.0 + y) - 1.0 : y = 1.0 - sqrt(1.0 - y);
+
+  (y + old_y) + 2.0;
+);
+
+function rand_delay()
+  // global(rng*, delay_range, min_delay, srate)
+(
+  max(((rng.rand_gauss_approx() * delay_range + min_delay) * srate + 0.5)|0, 1);
+);
+
+buf_ofs = old_ofs = -1;
+
+buf_len = ceil(2.0 * srate);
+ms_spls = 0.001 * srate;
+
+@slider
+
+min_slice = max(slider1, 0.5) * ms_spls;
+min_silence = max(slider2, 0.5) * ms_spls;
+
+gate_thresh = exp(log(10.0)/20.0 * slider3 + log(2.0));
+gate.rc_sett_precise(max(slider4, 0.5) * 0.001);
+
+min_delay = min(max(0.0, slider5), 1000.0) * 0.001;
+delay_range = min(max(0.5, slider6), 1000.0) * 0.001/4;
+
+cross.rc_sett_precise(max(slider7, 0.5) * 0.001);
+
+buf_ofs < 0 ? (
+  rng.x = (min_delay * (2^32 - 1)) ~ 0x67676767;
+  rng.x ~= delay_range * 4*(2^32 - 1);
+
+  rng.rand_gauss_approx();
+  buf_ofs = rand_delay();
+);
+
+@sample
+
+in_L = spl0;
+in_R = spl1;
+
+ptr = buf + buf_idx * 2;
+(buf_idx += 1) >= buf_len ? buf_idx = 0;
+
+ptr[0] = in_L;
+ptr[1] = in_R;
+
+(i = buf_idx - buf_ofs) < 0 ? i += buf_len;
+ptr = buf + i * 2;
+
+out_L = ptr[0];
+out_R = ptr[1];
+
+old_gate = gate.lp;
+gate.rc_lp(abs(out_L) + abs(out_R));
+
+gate.lp < gate_thresh ? (
+  old_gate >= gate_thresh ? silence_len = 0;
+  silence_len < min_silence ? (silence_len += 1) >= min_silence ? silence_flag = 1;
+) : (
+  old_gate < gate_thresh ? slice_len = 0;
+  slice_len = min(slice_len + 1, min_slice);
+);
+
+old_ofs >= 0 ? (
+  (i = buf_idx - old_ofs) < 0 ? i += buf_len;
+  ptr = buf + i * 2;
+
+  cross.rc_lp(1.0 / (1.0 - exp(-5.0)));
+
+  a = min(cross.lp, 1.0);
+  b = 1.0 - a;
+
+  out_L = out_L * a + ptr[0] * b;
+  out_R = out_R * a + ptr[1] * b;
+
+  cross.lp >= 1.0 ? old_ofs = -1;
+);
+
+silence_flag && slice_len >= min_slice && old_ofs < 0 ? (
+  silence_flag = slice_len = 0;
+  cross.lp = 0.0;
+
+  old_ofs = buf_ofs;
+  buf_ofs = rand_delay();
+);
+
+spl0 = out_L;
+spl1 = out_R;
+
+@gfx 336 52
+
+gfx_r = 0.0;
+gfx_g = gfx_a = 1.0;
+gfx_b = 2/3;
+gfx_x = gfx_y = 12;
+gfx_drawstr("Gate:");
+
+gfx_g = 0.75;
+gfx_b = 0.5;
+gate_w = 256 - ((log(min(max(10^(-72/20), gate.lp), 1.0)) * 256/log(10^(-72/20)))|0);
+gfx_rect(gfx_x += 16, gfx_y -= 4, gate_w, 16);
+
+gate_w < 256 ? (
+  gfx_g = 0.25;
+  gfx_b = 1/6;
+  gfx_rect(gfx_x + gate_w, gfx_y, 256 - gate_w, 16);
+);
+
+gfx_g = 1.0;
+gfx_b = 2/3;
+gfx_x += 256 - ((min(max(-72.0, slider3), 0.0) * -256/72)|0);
+gfx_line(gfx_x, gfx_y, gfx_x, gfx_y + 15);
+
+gfx_x = 12;
+gfx_y += 24;
+gfx_drawstr("Delay:");
+
+gfx_g = 0.5;
+gfx_b = 1/3;
+gfx_x += 8;
+gfx_printf("%.1f ms", buf_ofs / srate * 1000.0);

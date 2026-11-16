@@ -1,4 +1,0 @@
-desc:Collection of window functions
-/* Legacy, import Tale/window.jsfx-inc instead. */
-import window.jsfx-inc
-@init

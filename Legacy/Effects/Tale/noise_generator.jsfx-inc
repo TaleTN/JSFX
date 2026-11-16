@@ -1,4 +1,0 @@
-desc:Noise generator
-/* Legacy, import Tale/noise.jsfx-inc instead. */
-import noise.jsfx-inc
-@init
